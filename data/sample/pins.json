@@ -1,0 +1,40 @@
+[
+	{
+		"type": "fuel",
+		"title": "Brim the tank — Lochcarron",
+		"body": "Sample fuel receipt: 14.2 L V-Power. Placed by timestamp only.",
+		"time": "2026-09-12T09:30:10Z"
+	},
+	{
+		"type": "blog",
+		"title": "Up the Bealach",
+		"body": "Sample blog pin. 20% gradients, hairpins stacked like ribbon, and a camper van coming the other way on every one of them.",
+		"time": "2026-09-12T09:38:00Z"
+	},
+	{
+		"type": "poi",
+		"title": "Bealach na Bà summit",
+		"body": "626 m. Sample POI placed by lat/lon.",
+		"lat": 57.4167,
+		"lon": -5.7062
+	},
+	{
+		"type": "photo",
+		"title": "View over to Skye",
+		"body": "Sample photo pin with geotag.",
+		"lat": 57.4165,
+		"lon": -5.7065
+	},
+	{
+		"type": "food",
+		"title": "Lunch — Applecross",
+		"body": "Sample food receipt. Placed by timestamp only.",
+		"time": "2026-09-12T10:20:00Z"
+	},
+	{
+		"type": "photo",
+		"title": "Coast road",
+		"body": "Sample photo with no GPS in EXIF — positioned from its timestamp against the track.",
+		"time": "2026-09-12T11:05:00Z"
+	}
+]

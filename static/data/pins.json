@@ -1,0 +1,70 @@
+[
+  {
+    "id": 0,
+    "type": "blog",
+    "title": "Figure of eight round the fells",
+    "body": "Sample story pin, placed by time only. Replace with your own words: pins live in data/pins.json.",
+    "time": "2026-09-16T09:31:00Z",
+    "i": 79,
+    "rt": 79,
+    "x": -2549.9,
+    "n": 10326.7,
+    "h": 76.8,
+    "placedBy": "time"
+  },
+  {
+    "id": 1,
+    "type": "poi",
+    "title": "Whinlatter Pass",
+    "body": "Sample POI placed by lat/lon. Forest pass west of Keswick.",
+    "lat": 54.6083,
+    "lon": -3.2263,
+    "i": 755,
+    "rt": 740,
+    "x": -7636.9,
+    "n": 11126.1,
+    "h": 309.6,
+    "placedBy": "gps"
+  },
+  {
+    "id": 2,
+    "type": "poi",
+    "title": "Honister Pass",
+    "body": "Sample POI placed by lat/lon. 356 m, slate mine at the top, 25% down into Borrowdale.",
+    "lat": 54.5105,
+    "lon": -3.1968,
+    "i": 3283,
+    "rt": 3150,
+    "x": -5732.4,
+    "n": 251.2,
+    "h": 356.9,
+    "placedBy": "gps"
+  },
+  {
+    "id": 3,
+    "type": "poi",
+    "title": "Kirkstone Pass",
+    "body": "Sample POI placed by lat/lon. Highest pass open to traffic in the Lakes, with the inn at the top.",
+    "lat": 54.4633,
+    "lon": -2.9291,
+    "i": 7695,
+    "rt": 7581,
+    "x": 11549.9,
+    "n": -4997.2,
+    "h": 422.6,
+    "placedBy": "gps"
+  },
+  {
+    "id": 4,
+    "type": "food",
+    "title": "Long stop (130 min)",
+    "body": "Sample pin placed by timestamp during the longest stop detected in the GPX. Swap in the real receipt.",
+    "time": "2026-09-16T11:40:00Z",
+    "i": 4929,
+    "rt": 4781.9,
+    "x": -2638.6,
+    "n": 10287.8,
+    "h": 77,
+    "placedBy": "time"
+  }
+]

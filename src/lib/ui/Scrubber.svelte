@@ -1,0 +1,431 @@
+<!--
+  Timeline scrubber on the riding-time axis (stops collapsed to a few seconds).
+  Elevation profile filled with the active colour scale, stop + pin markers, draggable playhead.
+-->
+<script lang="ts">
+	import { area, line, scaleLinear } from 'd3';
+	import { clock, mph, PIN_META, roadAtFix, weatherAt, weatherLabel } from '$lib/data';
+	import { colorScale, gradientAt, LEGENDS } from '$lib/colors';
+	import { FEATURES } from '$lib/config';
+	import type { Tour } from '$lib/tour.svelte';
+
+	let { tour }: { tour: Tour } = $props();
+	// svelte-ignore state_referenced_locally — `tour` is fixed for the component's lifetime
+	const tr = tour.data.track;
+
+	let width = $state(800);
+	const HEIGHT = 96;
+	const PAD = { top: 22, bottom: 18 };
+
+	const x = $derived(scaleLinear().domain([0, tour.duration]).range([0, width]));
+	const lo = Math.min(...tr.ground, ...tr.ele);
+	const hi = Math.max(...tr.ground, ...tr.ele);
+	const y = scaleLinear().domain([Math.min(0, lo), hi * 1.05]).range([HEIGHT - PAD.bottom, PAD.top]);
+
+	// decimate to ~2 samples per pixel
+	const idx = $derived.by(() => {
+		const step = Math.max(1, Math.floor(tr.count / (width * 2)));
+		const out: number[] = [];
+		for (let i = 0; i < tr.count; i += step) out.push(i);
+		if (out.at(-1) !== tr.count - 1) out.push(tr.count - 1);
+		return out;
+	});
+
+	const groundPath = $derived(
+		area<number>()
+			.x((i) => x(tr.rt[i]))
+			.y0(HEIGHT - PAD.bottom)
+			.y1((i) => y(tr.ground[i]))(idx) ?? ''
+	);
+	const gpsPath = $derived(
+		line<number>()
+			.x((i) => x(tr.rt[i]))
+			.y((i) => y(tr.ele[i]))(idx) ?? ''
+	);
+
+	const stops = $derived.by(() => {
+		const scale = colorScale(tr, tour.colorBy);
+		const n = 160;
+		return Array.from({ length: n + 1 }, (_, k) => {
+			const i = Math.round((k / n) * (tr.count - 1));
+			return { offset: tr.rt[i] / tour.duration, color: scale(i) };
+		});
+	});
+
+	const ticks = $derived(
+		x.ticks(Math.max(2, Math.floor(width / 110))).map((rt) => {
+			const i = Math.min(tr.count - 1, tr.rt.findIndex((v) => v >= rt));
+			return { rt, label: clock(tr.t0 + tr.t[Math.max(0, i)]) };
+		})
+	);
+
+	let dragging = $state(false);
+	let hoverX = $state<number | null>(null);
+	let svg: SVGSVGElement;
+
+	function rtAt(e: PointerEvent) {
+		const r = svg.getBoundingClientRect();
+		return x.invert(Math.max(0, Math.min(width, e.clientX - r.left)));
+	}
+
+	const b = $derived(tour.bike);
+	const road = $derived(roadAtFix(tour.data.osm, b.i));
+	const wx = $derived(weatherAt(tour.data.weather, tour.rt));
+	const wxLabel = $derived(wx ? weatherLabel(wx.code, wx.isDay) : null);
+
+	// weather strip: rain bars along the bottom, temperature trace near the top
+	// svelte-ignore state_referenced_locally
+	const wxSamples = tour.data.weather?.samples ?? [];
+	const temps = wxSamples.map((s) => s.temp ?? 0);
+	const tempY = scaleLinear()
+		.domain([Math.min(...temps) - 0.5, Math.max(...temps) + 0.5])
+		.range([PAD.top + 22, PAD.top + 2]);
+	const tempPath = $derived(
+		line<(typeof wxSamples)[number]>()
+			.x((s) => x(s.rt))
+			.y((s) => tempY(s.temp ?? 0))(wxSamples) ?? ''
+	);
+	const roadTitle = $derived(road ? [road.ref, road.name].filter(Boolean).join(' · ') || road.highway : '—');
+	const roadNotes = $derived(
+		road ? [road.singleTrack && 'single track', road.maxspeed && `limit ${road.maxspeed}`].filter(Boolean).join(' · ') : ''
+	);
+	const legend = $derived(LEGENDS[tour.colorBy]);
+	const legendGradient = $derived(
+		Array.from({ length: 11 }, (_, k) => `${legend.interp(k / 10)} ${k * 10}%`).join(', ')
+	);
+</script>
+
+<div class="scrubber">
+	<div class="bar">
+		<button class="play" onclick={() => tour.togglePlay()} aria-label={tour.playing ? 'Pause' : 'Play'}>
+			{tour.playing ? '❚❚' : '▶'}
+		</button>
+		<label class="rate">
+			<select bind:value={tour.rate} aria-label="Playback speed">
+				{#each [1, 5, 20, 60, 200] as r (r)}<option value={r}>{r}×</option>{/each}
+			</select>
+		</label>
+		<div class="clock">{clock(b.time)}</div>
+		{#if wx && wxLabel}
+			<div class="wx" title="{wxLabel.label}, cloud {wx.cloud}%, gusts {wx.gust?.toFixed(0)} mph">
+				<span class="wx-icon">{wxLabel.icon}</span>
+				<span class="wx-main">
+					<span class="wx-temp">{wx.temp?.toFixed(0)}°C</span>
+					<small>
+						{wxLabel.label} · <span class="arrow" style:transform="rotate({wx.windDir + 180}deg)">↑</span>
+						{wx.wind?.toFixed(0)} mph{#if (wx.precip ?? 0) > 0} · {wx.precip} mm/h{/if}
+					</small>
+				</span>
+			</div>
+		{/if}
+		<div class="road">
+			<span class="road-title">{roadTitle}</span>
+			{#if roadNotes}<small>{roadNotes}</small>{/if}
+		</div>
+		<dl class="readouts">
+			{#if FEATURES.showSpeed}
+				<div><dt>Speed</dt><dd>{mph(b.speed).toFixed(0)}<small>mph</small></dd></div>
+			{/if}
+			<div><dt>Ground</dt><dd>{b.h.toFixed(0)}<small>m</small></dd></div>
+			<div><dt>GPS alt</dt><dd>{b.ele.toFixed(0)}<small>m</small></dd></div>
+			<div><dt>Lean</dt><dd>{Math.abs((b.lean * 180) / Math.PI).toFixed(0)}<small>°</small></dd></div>
+			<div><dt>Gradient</dt><dd>{(gradientAt(tr, b.i) * 100).toFixed(0)}<small>%</small></dd></div>
+			<div><dt>Distance</dt><dd>{(b.dist / 1609.34).toFixed(1)}<small>mi</small></dd></div>
+		</dl>
+		<div class="legend">
+			<span>{legend.label}</span>
+			<span class="ramp" style:background="linear-gradient(90deg, {legendGradient})"></span>
+			<span class="ends"><small>{legend.min}</small><small>{legend.max}</small></span>
+		</div>
+	</div>
+
+	<div class="track" bind:clientWidth={width}>
+		<svg
+			bind:this={svg}
+			{width}
+			height={HEIGHT}
+			role="slider"
+			tabindex="0"
+			aria-label="Ride timeline"
+			aria-valuemin={0}
+			aria-valuemax={tour.duration}
+			aria-valuenow={tour.rt}
+			onpointerdown={(e) => {
+				dragging = true;
+				svg.setPointerCapture(e.pointerId);
+				tour.seek(rtAt(e));
+			}}
+			onpointermove={(e) => {
+				hoverX = e.clientX - svg.getBoundingClientRect().left;
+				if (dragging) tour.seek(rtAt(e));
+			}}
+			onpointerup={() => (dragging = false)}
+			onpointerleave={() => (hoverX = null)}
+		>
+			<defs>
+				<linearGradient id="profile-fill" x1="0" x2={width} gradientUnits="userSpaceOnUse">
+					{#each stops as s, k (k)}<stop offset={s.offset} stop-color={s.color} />{/each}
+				</linearGradient>
+			</defs>
+
+			<path d={groundPath} fill="url(#profile-fill)" opacity="0.85" />
+			{#if tour.layers.weather && wxSamples.length}
+				{#each wxSamples as s, k (k)}
+					{#if (s.precip ?? 0) > 0}
+						{@const x1 = x(s.rt)}
+						{@const x2 = x(wxSamples[k + 1]?.rt ?? tour.duration)}
+						{@const bh = Math.min(1, (s.precip ?? 0) / 1.5) * 26 + 3}
+						<rect x={x1} y={HEIGHT - PAD.bottom - bh} width={Math.max(1, x2 - x1)} height={bh} class="rain" />
+					{/if}
+				{/each}
+				<path d={tempPath} class="temp" />
+			{/if}
+			{#if tour.layers.gpsAltitude}
+				<path d={gpsPath} fill="none" stroke="#fff" stroke-width="1" opacity="0.7" />
+			{/if}
+
+			<!-- not-yet-ridden part dimmed -->
+			<rect x={x(tour.rt)} y="0" width={Math.max(0, width - x(tour.rt))} height={HEIGHT} fill="#03070c" opacity="0.55" />
+
+			{#each tr.stops as s (s.start)}
+				{@const sx = x(tr.rt[s.start])}
+				<line x1={sx} x2={sx} y1={PAD.top - 4} y2={HEIGHT - PAD.bottom} class="stop" />
+				<text x={sx + 3} y={HEIGHT - PAD.bottom - 4} class="stop-label">⏸ {Math.round(s.duration / 60)} min</text>
+			{/each}
+
+			{#each tour.data.pins as p (p.id)}
+				{@const m = PIN_META[p.type]}
+				<g
+					class="pin-tick"
+					transform="translate({x(p.rt)}, 10)"
+					role="button"
+					tabindex="-1"
+					onpointerdown={(e) => {
+						e.stopPropagation();
+						tour.seek(p.rt);
+						tour.selectedPin = p.id;
+					}}
+				>
+					<circle r="7" fill={m.color} />
+					<text text-anchor="middle" dy="3.5" font-size="8">{m.icon}</text>
+				</g>
+			{/each}
+
+			{#each ticks as t (t.rt)}
+				<text x={x(t.rt)} y={HEIGHT - 4} class="tick" text-anchor={x(t.rt) < 20 ? 'start' : x(t.rt) > width - 20 ? 'end' : 'middle'}>{t.label}</text>
+			{/each}
+
+			<line x1={x(tour.rt)} x2={x(tour.rt)} y1="0" y2={HEIGHT - PAD.bottom} class="head" />
+			<circle cx={x(tour.rt)} cy={y(b.h)} r="5" class="head-dot" />
+
+			{#if hoverX != null && !dragging}
+				{@const hi = tr.rt.findIndex((v) => v >= x.invert(hoverX!))}
+				<text x={hoverX} y={PAD.top - 8} class="hover" text-anchor="middle">{clock(tr.t0 + tr.t[Math.max(0, hi)])}</text>
+			{/if}
+		</svg>
+	</div>
+</div>
+
+<style>
+	.scrubber {
+		position: absolute;
+		z-index: 100;
+		left: 16px;
+		right: 16px;
+		bottom: 16px;
+		padding: 10px 14px 6px;
+		border: 1px solid var(--line);
+		border-radius: 14px;
+		background: var(--glass);
+		backdrop-filter: blur(10px);
+		color: var(--text);
+	}
+	.bar {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		flex-wrap: wrap;
+		margin-bottom: 4px;
+	}
+	.play {
+		all: unset;
+		cursor: pointer;
+		display: grid;
+		place-items: center;
+		width: 38px;
+		height: 38px;
+		border-radius: 50%;
+		background: var(--accent);
+		color: #03070c;
+		font-size: 14px;
+	}
+	.rate select {
+		background: transparent;
+		color: var(--text);
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		padding: 4px 6px;
+		font: inherit;
+	}
+	.rate option {
+		background: #0b1620;
+	}
+	.clock {
+		font-size: 22px;
+		font-variant-numeric: tabular-nums;
+		letter-spacing: 0.04em;
+		color: var(--accent);
+		min-width: 64px;
+	}
+	.wx {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		min-width: 150px;
+	}
+	.wx-icon {
+		font-size: 22px;
+	}
+	.wx-main {
+		display: flex;
+		flex-direction: column;
+	}
+	.wx-temp {
+		font-size: 15px;
+		font-weight: 600;
+	}
+	.wx small {
+		font-size: 10px;
+		color: var(--muted);
+	}
+	.arrow {
+		display: inline-block;
+		color: var(--text);
+	}
+	.rain {
+		fill: #3d8bff;
+		opacity: 0.45;
+		pointer-events: none;
+	}
+	.temp {
+		fill: none;
+		stroke: #ffb86b;
+		stroke-width: 1.2;
+		stroke-dasharray: 3 2;
+		opacity: 0.8;
+		pointer-events: none;
+	}
+	.road {
+		display: flex;
+		flex-direction: column;
+		min-width: 170px;
+		max-width: 240px;
+	}
+	.road-title {
+		font-size: 14px;
+		font-weight: 600;
+		color: #fff1c9;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.road small {
+		font-size: 10px;
+		color: var(--muted);
+	}
+	.readouts {
+		display: flex;
+		gap: 16px;
+		margin: 0;
+		flex-wrap: wrap;
+	}
+	.readouts div {
+		display: flex;
+		flex-direction: column;
+	}
+	dt {
+		font-size: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: var(--muted);
+	}
+	dd {
+		margin: 0;
+		font-size: 16px;
+		font-variant-numeric: tabular-nums;
+	}
+	dd small {
+		font-size: 10px;
+		color: var(--muted);
+		margin-left: 2px;
+	}
+	.legend {
+		margin-left: auto;
+		display: grid;
+		grid-template-columns: auto 120px;
+		column-gap: 8px;
+		align-items: center;
+		font-size: 11px;
+		color: var(--muted);
+	}
+	.ramp {
+		height: 8px;
+		border-radius: 4px;
+	}
+	.ends {
+		grid-column: 2;
+		display: flex;
+		justify-content: space-between;
+	}
+	.track {
+		width: 100%;
+	}
+	svg {
+		display: block;
+		cursor: ew-resize;
+		touch-action: none;
+		outline: none;
+	}
+	.stop {
+		stroke: #fff;
+		stroke-dasharray: 2 3;
+		opacity: 0.5;
+	}
+	.stop-label,
+	.tick,
+	.hover {
+		font-size: 10px;
+		fill: var(--muted);
+	}
+	.hover {
+		fill: var(--text);
+	}
+	/* decorations must not swallow clicks meant for the pin ticks */
+	.stop,
+	.stop-label,
+	.tick,
+	.hover,
+	.head,
+	.head-dot {
+		pointer-events: none;
+	}
+	.pin-tick {
+		cursor: pointer;
+	}
+	.head {
+		stroke: var(--accent);
+		stroke-width: 2;
+	}
+	.head-dot {
+		fill: var(--accent);
+		stroke: #03070c;
+		stroke-width: 2;
+	}
+	@media (max-width: 700px) {
+		.legend,
+		.wx small,
+		.readouts div:nth-child(n + 4) {
+			display: none;
+		}
+	}
+</style>

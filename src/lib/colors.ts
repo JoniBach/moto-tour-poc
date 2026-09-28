@@ -1,4 +1,4 @@
-import { interpolateInferno, interpolateRdYlBu, interpolateTurbo } from 'd3';
+import { interpolateInferno, interpolateRdYlBu, interpolateSinebow, interpolateTurbo } from 'd3';
 import { FEATURES } from './config';
 import type { Track } from './data';
 import type { ColorBy } from './tour.svelte';
@@ -30,3 +30,8 @@ export const LEGENDS: Record<ColorBy, { label: string; interp: (t: number) => st
 	lean: { label: 'Lean angle', interp: (t) => interpolateInferno(0.15 + t * 0.85), min: '0°', max: '34°' },
 	gradient: { label: 'Gradient', interp: (t) => interpolateRdYlBu(1 - t), min: '-17%', max: '+17%' }
 };
+
+/** One colour per day of the tour, spread around the hue wheel (stopping short of wrapping). */
+export function dayColor(index: number, total: number): string {
+	return interpolateSinebow((index / Math.max(1, total)) * 0.85);
+}

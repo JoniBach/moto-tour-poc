@@ -1,14 +1,12 @@
 <!--
-  Scene root. Everything anchored to the terrain lives in one group scaled on Y by the
+  One day's scene. Everything anchored to the terrain lives in one group scaled on Y by the
   vertical exaggeration, so the slider is live without rebuilding geometry.
   The bike and pins sit outside the group (they must not be squashed) and scale their own Y.
 -->
 <script lang="ts">
 	import { T, useTask } from '@threlte/core';
-	import { Stars } from '@threlte/extras';
 	import type { Tour } from '$lib/tour.svelte';
 	import Bike from './Bike.svelte';
-	import CameraRig from './CameraRig.svelte';
 	import Contours from './Contours.svelte';
 	import DetailBubble from './DetailBubble.svelte';
 	import HoloPoints from './HoloPoints.svelte';
@@ -28,14 +26,6 @@
 	});
 	$effect(() => tour.imagery.setStyle(tour.mapStyle));
 </script>
-
-<T.Color attach="background" args={['#03070c']} />
-<Stars radius={120000} depth={20000} count={3000} factor={900} />
-
-<T.AmbientLight intensity={0.6} />
-<T.DirectionalLight position={[-30000, 40000, -20000]} intensity={1.6} />
-
-<CameraRig {tour} />
 
 <T.Group scale.y={tour.exaggeration}>
 	{#if tour.layers.points}<HoloPoints {tour} />{/if}

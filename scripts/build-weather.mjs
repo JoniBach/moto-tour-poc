@@ -2,10 +2,10 @@
 // Samples the track every SAMPLE_MIN minutes of wall-clock time, asks for hourly weather at each
 // sample's position (with the DEM height so temperature is lapse-rate corrected for the fells),
 // and interpolates to the moment the bike was actually there.
-// Output: static/data/weather.json
+// Output (per day): weather.json
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import { makeProjection } from './lib/geo.mjs';
+import { dayContext, makeProjection } from './lib/geo.mjs';
 
 const SAMPLE_MIN = 10;
 // Historical forecast archive (uses the UK Met Office 2 km model in the UK); ERA5 archive as fallback
@@ -22,9 +22,10 @@ const HOURLY = [
 	'is_day'
 ];
 
-const meta = JSON.parse(fs.readFileSync('static/data/terrain.json', 'utf8'));
-const track = JSON.parse(fs.readFileSync('static/data/track.json', 'utf8'));
-const proj = makeProjection(meta.lon0, meta.lat0);
+const ctx = dayContext();
+const meta = JSON.parse(fs.readFileSync(ctx.file('terrain.json'), 'utf8'));
+const track = JSON.parse(fs.readFileSync(ctx.file('track.json'), 'utf8'));
+const proj = makeProjection(meta.originE, meta.originN);
 
 const lastLE = (arr, v) => {
 	let lo = 0;
@@ -126,7 +127,7 @@ const weather = {
 	},
 	samples: out
 };
-fs.writeFileSync('static/data/weather.json', JSON.stringify(weather));
+fs.writeFileSync(ctx.file('weather.json'), JSON.stringify(weather));
 console.log(
-	`Wrote static/data/weather.json: ${out.length} samples from ${weather.source}; ${weather.summary.minTemp}–${weather.summary.maxTemp} °C, wettest ${weather.summary.wettestHourMm} mm/h, gusts to ${weather.summary.maxGust} mph`
+	`  weather.json: ${out.length} samples from ${weather.source}; ${weather.summary.minTemp}–${weather.summary.maxTemp} °C, wettest ${weather.summary.wettestHourMm} mm/h, gusts to ${weather.summary.maxGust} mph`
 );

@@ -1,23 +1,37 @@
 // Turns raw GPX into the playback track, the route corridor mask and resolved pins.
-//  - projects fixes into the terrain grid's local metres and drapes them on the DEM
+//  - projects fixes into the day's BNG metres and drapes them on full-res DEM tiles (not the
+//    possibly coarse day grid), so the line also sits on the streamed near-bike terrain
 //  - derives smoothed speed, heading and lean from the fixes
 //  - detects stops and builds a compressed "riding time" axis for the scrubber
 //  - distance-transforms the route into a corridor raster (drives the dense point cloud)
 //  - places pins that only have a timestamp (e.g. photos without GPS) onto the track
-// Outputs: static/data/track.json, static/data/corridor.bin, static/data/pins.json
+//  - records breaks between separate rides on the same day so they aren't joined up
+// Outputs (per day): track.json, corridor.bin, pins.json
 import fs from 'node:fs';
-import { loadTerrainGrid, makeProjection, readAllGpx } from './lib/geo.mjs';
+import path from 'node:path';
+import { TerrariumSampler, dayContext, loadTerrainGrid, makeProjection, parseGpx } from './lib/geo.mjs';
 
 const STOP_RADIUS = 40; // metres
 const STOP_MIN = 120; // seconds stationary before it counts as a stop
 const STOP_KEEP = 6; // seconds of scrubber time a stop collapses to
 const G = 9.81;
 
-const { meta, heightAt: groundAt } = loadTerrainGrid();
+const ctx = dayContext();
+const { meta } = loadTerrainGrid(ctx.out);
 const { cols, rows, spacing, x0, n1 } = meta;
 
-const raw = readAllGpx('data/raw');
-const proj = makeProjection(meta.lon0, meta.lat0);
+// read file by file so we know where one ride ends and the next begins
+const rides = ctx.files.map((f) => parseGpx(fs.readFileSync(f, 'utf8')).filter((p) => p.time != null));
+rides.sort((a, b) => a[0].time - b[0].time);
+const raw = rides.flat();
+const breaks = [];
+rides.reduce((start, r) => (start && breaks.push(start), start + r.length), 0);
+const proj = makeProjection(meta.originE, meta.originN);
+
+// full-resolution DEM along the route only
+const dem = new TerrariumSampler('data/cache/terrarium', 12);
+await dem.prefetchPoints(raw.map((p) => [p.lon, p.lat]));
+const groundAt = (x, n) => dem.sample(...proj.inverse(x, n));
 const N = raw.length;
 const t = raw.map((p) => p.time);
 const x = new Float64Array(N);
@@ -110,13 +124,16 @@ const ground = Array.from({ length: N }, (_, i) => groundAt(sx[i], sn[i]));
 
 const r1 = (v) => Math.round(v * 10) / 10;
 const r3 = (v) => Math.round(v * 1000) / 1000;
-// "2026-09-16_tour_lakes-fig8.gpx" -> "Lakes Fig8"
-const title = fs
-	.readdirSync('data/raw')
-	.filter((f) => f.toLowerCase().endsWith('.gpx'))
-	.sort()
+// "2026-09-16_tour_lakes-fig8.gpx" -> "Lakes Fig8"; data/day-titles.json can override per day
+const titleOverrides = fs.existsSync('data/day-titles.json')
+	? JSON.parse(fs.readFileSync('data/day-titles.json', 'utf8'))
+	: {};
+const title =
+	titleOverrides[ctx.day] ??
+	ctx.files
 	.map((f) =>
-		f
+		path
+			.basename(f)
 			.replace(/\.gpx$/i, '')
 			.replace(/^\d{4}-\d{2}-\d{2}_?/, '')
 			.replace(/^tour[_-]?/i, '')
@@ -126,7 +143,9 @@ const title = fs
 	)
 	.join(' + ');
 const track = {
+	day: ctx.day,
 	title,
+	breaks, // fix indices where a new ride starts: don't join the previous point to these
 	count: N,
 	t0: t[0],
 	t: t.map((v) => v - t[0]),
@@ -141,8 +160,8 @@ const track = {
 	lean: Array.from(lean, r3),
 	stops: stops.map((s) => ({ start: s.start, end: s.end, duration: t[s.end] - t[s.start] }))
 };
-fs.writeFileSync('static/data/track.json', JSON.stringify(track));
-console.log(`Track: ${N} fixes, ${(dist[N - 1] / 1000).toFixed(1)} km, ${stops.length} stops, riding ${(rt[N - 1] / 60).toFixed(0)} min, max ${(Math.max(...speed) * 2.237).toFixed(0)} mph`);
+fs.writeFileSync(ctx.file('track.json'), JSON.stringify(track));
+console.log(`${ctx.day} "${title}": ${rides.length} ride(s), ${N} fixes, ${(dist[N - 1] / 1000).toFixed(1)} km, ${stops.length} stops, riding ${(rt[N - 1] / 60).toFixed(0)} min, max ${(Math.max(...speed) * 2.237).toFixed(0)} mph`);
 for (const s of stops) console.log(`  stop @ ${new Date(t[s.start] * 1000).toISOString()} for ${((t[s.end] - t[s.start]) / 60).toFixed(0)} min`);
 
 // ---------- corridor: chamfer distance transform from the route ----------
@@ -184,8 +203,7 @@ for (let r = rows - 1; r >= 0; r--)
 // store in cells (spacing units), capped at 255
 const corridor = new Uint8Array(cols * rows);
 for (let i = 0; i < corridor.length; i++) corridor[i] = Math.min(255, Math.round(dfield[i] / 3));
-fs.writeFileSync('static/data/corridor.bin', Buffer.from(corridor.buffer));
-console.log('Wrote static/data/corridor.bin');
+fs.writeFileSync(ctx.file('corridor.bin'), Buffer.from(corridor.buffer));
 
 // ---------- pins ----------
 // Source pins may carry lat/lon (geotagged photo, POI) or only a time (receipt, untagged photo).
@@ -200,19 +218,25 @@ const lastLE = (arr, v) => {
 	}
 	return lo;
 };
-const pins = src.map((p, id) => {
-	let i;
-	if (p.lat != null && p.lon != null) {
-		const [px, pn] = proj.forward(p.lon, p.lat);
-		i = 0;
-		for (let k = 1, best = Infinity; k < N; k++) {
-			const d = (sx[k] - px) ** 2 + (sn[k] - pn) ** 2;
-			if (d < best) [best, i] = [d, k];
+// keep pins belonging to this day: timed ones inside its riding window, GPS ones near its route
+const pins = src
+	.map((p, id) => {
+		let i;
+		if (p.lat != null && p.lon != null) {
+			const [px, pn] = proj.forward(p.lon, p.lat);
+			i = 0;
+			for (let k = 1, best = Infinity; k < N; k++) {
+				const d = (sx[k] - px) ** 2 + (sn[k] - pn) ** 2;
+				if (d < best) [best, i] = [d, k];
+			}
+			if (Math.hypot(sx[i] - px, sn[i] - pn) > 1000) return null;
+			return { id, ...p, i, rt: r1(rt[i]), x: r1(px), n: r1(pn), h: r1(groundAt(px, pn)), placedBy: 'gps' };
 		}
-		return { id, ...p, i, rt: r1(rt[i]), x: r1(px), n: r1(pn), h: r1(groundAt(px, pn)), placedBy: 'gps' };
-	}
-	i = lastLE(t, Date.parse(p.time) / 1000);
-	return { id, ...p, i, rt: r1(rt[i]), x: r1(sx[i]), n: r1(sn[i]), h: r1(ground[i]), placedBy: 'time' };
-});
-fs.writeFileSync('static/data/pins.json', JSON.stringify(pins, null, 2));
-console.log(`Wrote static/data/pins.json (${pins.length} pins)`);
+		const pt = Date.parse(p.time) / 1000;
+		if (pt < t[0] - 3600 || pt > t[N - 1] + 3600) return null;
+		i = lastLE(t, pt);
+		return { id, ...p, i, rt: r1(rt[i]), x: r1(sx[i]), n: r1(sn[i]), h: r1(ground[i]), placedBy: 'time' };
+	})
+	.filter(Boolean);
+fs.writeFileSync(ctx.file('pins.json'), JSON.stringify(pins, null, 2));
+console.log(`  ${pins.length} pins`);

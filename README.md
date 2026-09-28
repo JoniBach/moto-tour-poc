@@ -15,29 +15,46 @@ npm run dev            # http://localhost:5173
 ```
 
 The built data in `static/data/` is committed, so the app runs without the pipeline.
-It currently shows the real Beeline ride **Lakes Fig8 (16 Sep 2026, 82 mi)**: Whinlatter → Honister →
-Borrowdale → Kirkstone → Dunmail Raise.
+`/` is the whole tour over Great Britain; `/day/2026-09-16` etc. are the days. Built so far:
+**16 Sep, Lakes figure of eight** and **17 Sep, Lakes to Thorntonloch**.
+
+## Multi-day architecture: phased resolution, one page per day
+
+| Level | What | Loaded |
+| --- | --- | --- |
+| **L0 UK** | Great Britain at 1 km (`static/data/uk/`), every day's simplified route (`tour.json`) | Always: home page and backdrop |
+| **L1 Day** | A day bundle (`static/data/days/<date>/`): terrain grid, corridor, track, OSM, water, weather, pins. Grid spacing adapts to the day's size (25 m for the Lakes loop, 75 m for the 225 km run to Dunbar) | One day at a time; the next day is prefetched |
+| **L2 Near bike** | Full-resolution Terrarium tiles streamed in the browser around the bike (`nearTerrain.ts`), feeding a fixed 25 m detail mesh | Continuously, around the rider |
+
+- **One world:** everything is in British National Grid metres. Each day's data is stored relative to its own origin (whole km), and the world origin is the *active* day's origin, so the day renders untransformed with full float precision. The UK layer and the other days' routes are offset against it.
+- **Day transitions** (`app.svelte.ts`): climb to a point above both days, shift the world origin and the camera by the same amount (invisible), swap the day, fly back down. Driven by the URL: the trip bar, day markers, **Shift + ←/→** and auto-advance at the end of a day all just navigate.
+- **Settings persist across days** (`settings.svelte.ts`); `Tour` is per-day playback and forwards them.
+- **Grid north ≠ true north:** BNG is rotated from Mercator by up to ~3°, so imagery UVs near the bike use a full affine map, and far UVs come from a 2 km lookup table rather than per-vertex projection.
 
 ## Data pipeline
 
 ```sh
-npm run data:sample    # (optional) regenerate the synthetic sample GPX
-npm run data           # build-terrain + build-track + build-osm from every GPX in data/raw/
+npm run data                         # every day in data/beeline/, then the tour index
+node scripts/build-days.mjs 2026-09-18 2026-09-19   # just these days
+npm run data:uk                      # L0 UK grid (once)
+npm run data:tour                    # rebuild tour.json from the built days
 ```
 
-| Script | In | Out |
-| --- | --- | --- |
-| `scripts/make-sample-gpx.mjs` | OSRM road route + DEM | `data/raw/sample-applecross.gpx`: a realistic stand-in for a Beeline export (1 Hz, GPS jitter, drifting altitude, 2 stops) |
-| `scripts/build-terrain.mjs` | GPX bbox + 8 km margin, AWS Terrarium tiles (z12, cached in `data/cache/`) | `terrain.bin` (Int16 decimetres, 25 m grid, local metres) + `terrain.json` |
-| `scripts/build-osm.mjs` | Terrain bbox, track, Overpass API (cached in `data/cache/`) | `osm.json`: OpenStreetMap roads draped on the DEM (5 tiers; tracks and service roads only near the ride), towns/villages/hamlets/peaks, and which road the ride is on at every fix (ref, name, speed limit, single track) |
-| `scripts/build-weather.mjs` | Track, Open-Meteo historical API (cached) | `weather.json`: hourly weather interpolated to where the bike was every 10 min: temperature corrected to the ground height, precipitation, cloud, wind and gusts, WMO code, sunrise/sunset |
-| `scripts/build-track.mjs` | GPX, terrain, `data/pins.json` | `track.json` (draped, smoothed speed/heading/lean, stops, riding-time axis), `corridor.bin` (distance-to-route raster), resolved `pins.json` |
+The Beeline export lives in `data/beeline/` (git-ignored); files are grouped into days by their
+date prefix, so a day with several rides (e.g. a breakfast run plus the main ride) becomes one
+day with breaks between rides. Day titles come from the file names unless overridden in
+`data/day-titles.json`. Pins are authored once in `data/pins.json` and assigned to days by time
+or position.
 
-**Switching rides:** the full Beeline export lives in `data/beeline/` (git-ignored). Copy the GPX
-files for one day or region into `data/raw/` (remove the others) and run `npm run data`. The
-synthetic Applecross sample is in `data/sample/`. Pins are authored in `data/pins.json`.
-Keep to one region at a time for now: the whole tour is 2,489 mi and needs the tiled approach
-described below.
+| Script | Out |
+| --- | --- |
+| `build-uk.mjs` | `uk/terrain.*`: GB at 1 km from Terrarium z8 (Ireland masked out) |
+| `build-terrain.mjs <day>` | `days/<day>/terrain.*`: adaptive-spacing grid around the day's rides |
+| `build-track.mjs <day>` | `track.json` (draped on full-res tiles, stops, riding time, lean, ride breaks), `corridor.bin`, `pins.json` |
+| `build-osm.mjs <day>` | `osm.json` + `water.bin`: Overpass queried in ~32 km chunks along the route (minor roads/hamlets within 1.5 km, main roads/towns/peaks/water within 8 km), each chunk cached |
+| `build-weather.mjs <day>` | `weather.json` from Open-Meteo, every 10 min along the ride |
+| `build-tour.mjs` | `tour.json`: days, origins, extents, stats, simplified lines |
+| `build-days.mjs [days…]` | Runs the above per day; OSM/weather failures don't stop the day building |
 
 ## What this proves
 
@@ -49,7 +66,7 @@ described below.
 | Real detail around the bike | A 6.4 km grid mesh re-sampled around the bike, with a shader fading it into the hologram (glowing rim, 20 m / 100 m contour lines) | `DetailBubble.svelte` |
 | GPS altitude vs terrain | The track is **draped on the DEM**; raw GPS altitude is an optional overlay (the "Raw GPS altitude" layer) to show the drift | `Route.svelte` |
 | Speed as a colour gradient | Per-vertex colours with d3 Turbo; also lean and gradient modes. d3 gives sRGB, so colours go through `THREE.Color` to reach linear space | `Route.svelte`, `colors.ts` |
-| Live vertical exaggeration | All terrain-anchored layers sit in one group with `scale.y`; the bike and pins scale their own Y | `Scene.svelte` |
+| Live vertical exaggeration | All terrain-anchored layers sit in one group with `scale.y`; the bike and pins scale their own Y | `DayScene.svelte` |
 | Time-series playback | A riding-time axis with stops collapsed to a few seconds; binary search plus interpolation; a lean angle from yaw rate × speed | `data.ts`, `build-track.mjs` |
 | Scrubber | Elevation profile filled with the active colour scale, stop and pin markers, drag to seek, clock-time ticks | `Scrubber.svelte` |
 | Items without GPS (receipts, untagged photos) | Pins can carry `lat/lon` **or** just a `time`; time-only pins are snapped to the track position at that moment | `data/pins.json`, `build-track.mjs` |

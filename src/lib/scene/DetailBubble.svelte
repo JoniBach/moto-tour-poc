@@ -1,11 +1,13 @@
 <!--
-  Full-resolution solid terrain around the bike. A fixed-size grid mesh is re-sampled from the
-  height grid whenever the bike drifts far enough from its centre; the shader fades it out into
-  the hologram with a glowing rim. In prod this becomes streamed tiles instead of one big grid.
+  Solid terrain around the bike (L2). A fixed 25 m grid mesh is re-sampled whenever the bike
+  drifts far enough from its centre: first from the day grid (instant, maybe coarse), then again
+  from full-resolution Terrarium tiles streamed in the browser once they land. The shader fades
+  it into the hologram with a glowing rim.
 -->
 <script lang="ts">
 	import { T, useTask } from '@threlte/core';
 	import { BufferAttribute, BufferGeometry, ShaderMaterial, Vector2 } from 'three';
+	import { NearTerrain } from '$lib/nearTerrain';
 	import type { Tour } from '$lib/tour.svelte';
 
 	let { tour }: { tour: Tour } = $props();
@@ -15,8 +17,10 @@
 	const { spacing, x0, n1 } = terrain.meta;
 	// svelte-ignore state_referenced_locally
 	const imagery = tour.imagery;
+	const near = new NearTerrain(terrain.meta);
 
-	const HALF = 128; // cells each side -> 6.4 km square at 25 m
+	const CELL = 25; // metres, whatever the day grid's spacing
+	const HALF = 128; // cells each side -> 6.4 km square
 	const SIDE = HALF * 2 + 1;
 	const RECENTRE = 400; // metres of drift before re-sampling
 
@@ -40,28 +44,45 @@
 	let centre = { x: NaN, n: NaN };
 
 	function resample(bx: number, bn: number) {
-		// snap to the grid so vertices sit exactly on DEM samples (no swimming)
-		const cx = Math.round((bx - x0) / spacing);
-		const cr = Math.round((n1 - bn) / spacing);
-		centre = { x: x0 + cx * spacing, n: n1 - cr * spacing };
-		const hAt = (c: number, r: number) => terrain.heightAt(x0 + c * spacing, n1 - r * spacing);
+		// snap to a 25 m lattice so vertices don't swim as the patch moves
+		const cx = Math.round(bx / CELL) * CELL;
+		const cn = Math.round(bn / CELL) * CELL;
+		centre = { x: cx, n: cn };
+		fill(cx, cn);
+		// sharpen once the full-res tiles for this patch have arrived (if we haven't moved on)
+		near.ensure(cx, cn, (HALF + 1) * CELL).then(() => {
+			if (centre.x === cx && centre.n === cn) fill(cx, cn);
+		});
+	}
+
+	function fill(cx: number, cn: number) {
+		const sample = near.patch(cx, cn);
+		// heights on a 1-cell-padded lattice so normals can use neighbours without extra lookups
+		const W = SIDE + 2;
+		const hs = new Float32Array(W * W);
+		for (let r = 0; r < W; r++)
+			for (let c = 0; c < W; c++) {
+				const x = cx + (c - 1 - HALF) * CELL;
+				const n = cn - (r - 1 - HALF) * CELL;
+				let h = sample(x, n);
+				if (!Number.isFinite(h)) h = terrain.heightAt(x, n); // tile not loaded yet
+				hs[r * W + c] = Math.max(0, h);
+			}
 		for (let r = 0; r < SIDE; r++)
 			for (let c = 0; c < SIDE; c++) {
-				const gc = cx - HALF + c;
-				const gr = cr - HALF + r;
-				const h = Math.max(0, hAt(gc, gr));
+				const x = cx + (c - HALF) * CELL;
+				const n = cn - (r - HALF) * CELL;
+				const k = (r + 1) * W + (c + 1);
 				const o = (r * SIDE + c) * 3;
-				wet[r * SIDE + c] = terrain.waterAt(gc, gr);
-				farUv.set(imagery.farUv(x0 + gc * spacing, n1 - gr * spacing), (r * SIDE + c) * 2);
-				positions[o] = x0 + gc * spacing;
-				positions[o + 1] = h;
-				positions[o + 2] = -(n1 - gr * spacing);
+				positions[o] = x;
+				positions[o + 1] = hs[k];
+				positions[o + 2] = -n;
+				wet[r * SIDE + c] = terrain.waterAt(Math.round((x - x0) / spacing), Math.round((n1 - n) / spacing));
+				farUv.set(imagery.farUv(x, n), (r * SIDE + c) * 2);
 				// central-difference normal in raw metres; normalMatrix applies exaggeration
-				const dx = Math.max(0, hAt(gc + 1, gr)) - Math.max(0, hAt(gc - 1, gr));
-				const dz = Math.max(0, hAt(gc, gr + 1)) - Math.max(0, hAt(gc, gr - 1));
-				const nx = -dx;
-				const ny = 2 * spacing;
-				const nz = -dz;
+				const nx = -(hs[k + 1] - hs[k - 1]);
+				const ny = 2 * CELL;
+				const nz = -(hs[k + W] - hs[k - W]);
 				const len = Math.hypot(nx, ny, nz);
 				normals[o] = nx / len;
 				normals[o + 1] = ny / len;
@@ -83,7 +104,8 @@
 			uWater: { value: 1 },
 			uFar: { value: imagery.far.texture },
 			uNear: { value: imagery.near.texture },
-			uNearUV: { value: imagery.nearUV },
+			uNearU: { value: imagery.nearU },
+			uNearV: { value: imagery.nearV },
 			uMapMix: { value: 0 }
 		},
 		vertexShader: /* glsl */ `
@@ -112,7 +134,8 @@
 			uniform float uWater;
 			uniform sampler2D uFar;
 			uniform sampler2D uNear;
-			uniform vec4 uNearUV;
+			uniform vec3 uNearU;
+			uniform vec3 uNearV;
 			uniform float uMapMix;
 			varying float vWater;
 			varying vec2 vUvFar;
@@ -134,7 +157,8 @@
 				vec3 col = mix(hypso(vH) * shade * 0.75, vec3(0.02, 0.07, 0.16), sea);
 
 				// map imagery: sharp near texture where it has loaded, regional texture elsewhere
-				vec2 nuv = vec2(vXZ.x * uNearUV.x + uNearUV.y, -vXZ.y * uNearUV.z + uNearUV.w);
+				vec3 xn1 = vec3(vXZ.x, -vXZ.y, 1.0); // local (x, n, 1)
+				vec2 nuv = vec2(dot(uNearU, xn1), dot(uNearV, xn1));
 				vec4 nearTex = texture2D(uNear, nuv);
 				float inNear = step(0.0, nuv.x) * step(nuv.x, 1.0) * step(0.0, nuv.y) * step(nuv.y, 1.0) * nearTex.a;
 				vec3 img = mix(texture2D(uFar, vUvFar).rgb, nearTex.rgb, inNear);
@@ -181,7 +205,7 @@
 		const { x, n } = tour.bike;
 		if (!(Math.hypot(x - centre.x, n - centre.n) < RECENTRE)) resample(x, n);
 		material.uniforms.uBike.value.set(x, -n);
-		material.uniforms.uBubble.value = Math.min(tour.bubble, HALF * spacing - RECENTRE);
+		material.uniforms.uBubble.value = Math.min(tour.bubble, HALF * CELL - RECENTRE);
 	});
 
 	$effect(() => () => {

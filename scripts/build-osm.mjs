@@ -1,11 +1,11 @@
 // Pulls real road network, water and place names from OpenStreetMap (Overpass API) for the
 // terrain area, drapes roads and rivers on the DEM, rasterises lakes into a water mask aligned
 // with the height grid, and works out which road the ride is on at every fix.
-// Output: static/data/osm.json, static/data/water.bin
+// Output (per day): osm.json, water.bin
 // Data © OpenStreetMap contributors, ODbL — the app must show attribution.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import { loadTerrainGrid, makeProjection } from './lib/geo.mjs';
+import { TerrariumSampler, dayContext, loadTerrainGrid, makeProjection } from './lib/geo.mjs';
 
 // public instances; tried in turn because any one of them is often busy (HTTP 429/504)
 const OVERPASS = [
@@ -27,37 +27,70 @@ const TIERS = [
 ];
 const tierOf = (hw) => TIERS.findIndex((t) => t.includes(hw.replace(/_link$/, '')));
 
-const { meta, heightAt } = loadTerrainGrid();
-const proj = makeProjection(meta.lon0, meta.lat0);
+const ctx = dayContext();
+const { meta, heightAt: gridHeightAt } = loadTerrainGrid(ctx.out);
+const proj = makeProjection(meta.originE, meta.originN);
 const { x0, n1, cols, rows, spacing } = meta;
 const x1 = x0 + (cols - 1) * spacing;
 const n0 = n1 - (rows - 1) * spacing;
-const [west, south] = proj.inverse(x0, n0);
-const [east, north] = proj.inverse(x1, n1);
+// BNG grid -> lon/lat box: take the extremes of all four corners (grid north != true north)
+const corners = [proj.inverse(x0, n0), proj.inverse(x1, n0), proj.inverse(x0, n1), proj.inverse(x1, n1)];
+const west = Math.min(...corners.map((c) => c[0]));
+const east = Math.max(...corners.map((c) => c[0]));
+const south = Math.min(...corners.map((c) => c[1]));
+const north = Math.max(...corners.map((c) => c[1]));
 const bbox = `${south.toFixed(5)},${west.toFixed(5)},${north.toFixed(5)},${east.toFixed(5)}`;
 
-const query = `[out:json][timeout:120];
-(
-  way[highway~"^(${TIERS.flat().join('|')})(_link)?$"](${bbox});
-  node[place~"^(town|village|hamlet|locality)$"][name](${bbox});
-  node[natural=peak][name](${bbox});
-  way[natural=water](${bbox});
-  relation[natural=water](${bbox});
-  way[waterway=riverbank](${bbox});
-  relation[waterway=riverbank](${bbox});
-  way[waterway~"^(river|canal)$"](${bbox});
-);
-out geom;`;
+// Full-res DEM where the route is (tiles fetched by build-track are on disk); day grid elsewhere
+const dem = new TerrariumSampler('data/cache/terrarium', 12);
+const track = JSON.parse(fs.readFileSync(ctx.file('track.json'), 'utf8'));
+const routeLonLat = track.x.map((x, i) => proj.inverse(x, track.n[i]));
+await dem.prefetchPoints(routeLonLat);
+const heightAt = (x, n) => dem.sampleOr(...proj.inverse(x, n), gridHeightAt(x, n));
 
-// ---------- fetch (cached by query) ----------
-const cacheFile = `data/cache/osm-${crypto.createHash('md5').update(query).digest('hex').slice(0, 10)}.json`;
-let osm;
-if (fs.existsSync(cacheFile)) {
-	osm = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-	console.log(`OSM: cached ${cacheFile}`);
-} else {
+// The route as Overpass polylines (a point every ~800 m), in chunks: one query over a whole
+// long day times out on every public instance, so each chunk is its own small cached query.
+const aroundPts = [];
+for (let i = 0, last = -Infinity; i < track.count; i++)
+	if (track.dist[i] - last > 800 || i === track.count - 1) {
+		aroundPts.push(`${routeLonLat[i][1].toFixed(5)},${routeLonLat[i][0].toFixed(5)}`);
+		last = track.dist[i];
+	}
+const CHUNK = 40; // ~32 km of route per query
+const chunks = [];
+for (let k = 0; k < aroundPts.length - 1; k += CHUNK - 1) chunks.push(aroundPts.slice(k, k + CHUNK).join(','));
+const MAJOR = TIERS.slice(0, 2).flat().join('|');
+const MINOR = TIERS.slice(2).flat().join('|');
+const WIDE = 8000; // metres: major roads, towns, peaks and water shown this far from the ride
+
+const queries = chunks.flatMap((line) => [
+	// near the ride: lanes, tracks, hamlets
+	`[out:json][timeout:120];
+(
+  way[highway~"^(${MINOR})$"](around:${NEAR_ROUTE},${line});
+  node[place~"^(hamlet|locality)$"][name](around:${NEAR_ROUTE},${line});
+);
+out geom;`,
+	// the wider landscape: main roads, towns, fells, lakes and rivers
+	`[out:json][timeout:120];
+(
+  way[highway~"^(${MAJOR})(_link)?$"](around:${WIDE},${line});
+  node[place~"^(town|village)$"][name](around:${WIDE},${line});
+  node[natural=peak][name](around:${WIDE},${line});
+  way[natural=water](around:${WIDE},${line});
+  relation[natural=water](around:${WIDE},${line});
+  way[waterway=riverbank](around:${WIDE},${line});
+  relation[waterway=riverbank](around:${WIDE},${line});
+  way[waterway~"^(river|canal)$"](around:${WIDE},${line});
+);
+out geom;`
+]);
+
+// ---------- fetch (each query cached by its hash) ----------
+async function overpass(query) {
+	const cacheFile = `data/cache/osm-${crypto.createHash('md5').update(query).digest('hex').slice(0, 10)}.json`;
+	if (fs.existsSync(cacheFile)) return JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
 	for (const [attempt, url] of [...OVERPASS, ...OVERPASS].entries()) {
-		console.log(`OSM: querying ${new URL(url).host}…`);
 		try {
 			const res = await fetch(url, {
 				method: 'POST',
@@ -67,22 +100,31 @@ if (fs.existsSync(cacheFile)) {
 				signal: AbortSignal.timeout(150_000)
 			});
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
-			osm = await res.json();
-			break;
+			const json = await res.json();
+			fs.mkdirSync('data/cache', { recursive: true });
+			fs.writeFileSync(cacheFile, JSON.stringify(json));
+			return json;
 		} catch (e) {
-			console.log(`  failed (${e.message})`);
+			console.log(`  ${new URL(url).host} failed (${e.message})`);
 			await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
 		}
 	}
-	if (!osm) throw new Error('All Overpass instances failed; try again later');
-	fs.mkdirSync('data/cache', { recursive: true });
-	fs.writeFileSync(cacheFile, JSON.stringify(osm));
+	throw new Error('All Overpass instances failed; try again later');
 }
+
+// merge, de-duplicating features that sit in more than one chunk
+const seen = new Map();
+for (const [k, q] of queries.entries()) {
+	process.stdout.write(`OSM: query ${k + 1}/${queries.length}`);
+	for (const el of (await overpass(q)).elements) seen.set(`${el.type}/${el.id}`, el);
+}
+const osm = { elements: [...seen.values()] };
+console.log(`OSM: ${osm.elements.length} features from ${queries.length} queries`);
 
 const r1 = (v) => Math.round(v * 10) / 10;
 const inside = (x, n) => x >= x0 && x <= x1 && n >= n0 && n <= n1;
 // distance-to-route raster from build-track (cells, capped at 255)
-const corridor = new Uint8Array(fs.readFileSync('static/data/corridor.bin'));
+const corridor = new Uint8Array(fs.readFileSync(ctx.file('corridor.bin')));
 const routeDist = (x, n) =>
 	corridor[Math.round((n1 - n) / spacing) * cols + Math.round((x - x0) / spacing)] * spacing;
 const MINOR_TIERS = new Set([3, 4]); // service, track
@@ -198,7 +240,7 @@ for (const el of osm.elements) {
 	}
 }
 const water = Uint8Array.from(cover, (v) => Math.round(Math.min(1, v) * 255)); // 0..255 coverage
-fs.writeFileSync('static/data/water.bin', Buffer.from(water.buffer));
+fs.writeFileSync(ctx.file('water.bin'), Buffer.from(water.buffer));
 const waterCells = cover.reduce((a, v) => a + Math.min(1, v), 0);
 console.log(`Water: ${((waterCells * spacing * spacing) / 1e6).toFixed(1)} km² of lakes, ${rivers.length} river/canal ways`);
 
@@ -229,7 +271,7 @@ for (const el of osm.elements) {
 
 // ---------- which road is the ride on? ----------
 // spatial hash of road segments, then nearest named/ref'd segment per fix (major roads win ties)
-const track = JSON.parse(fs.readFileSync('static/data/track.json', 'utf8'));
+// (track loaded above)
 const CELL = 100;
 const buckets = new Map();
 roads.forEach((road, ri) => {
@@ -274,11 +316,11 @@ roadAt.forEach((r, i) => {
 	if (!roadRuns.length || roadRuns.at(-1)[1] !== r) roadRuns.push([i, r]);
 });
 
-fs.writeFileSync('static/data/osm.json', JSON.stringify({ attribution: '© OpenStreetMap contributors', roads, rivers, places, roadRuns }));
+fs.writeFileSync(ctx.file('osm.json'), JSON.stringify({ attribution: '© OpenStreetMap contributors', roads, rivers, places, roadRuns }));
 const matched = roadAt.filter((r) => r >= 0).length;
 console.log(
-	`Wrote static/data/osm.json: ${roads.length} roads, ${places.length} places/peaks, ride matched to roads on ${((matched / track.count) * 100).toFixed(0)}% of fixes`
+	`  osm.json: ${roads.length} roads, ${places.length} places/peaks, ride matched to roads on ${((matched / track.count) * 100).toFixed(0)}% of fixes`
 );
 const named = [...new Set(roadRuns.map(([, r]) => r).filter((r) => r >= 0).map((r) => [roads[r].ref, roads[r].name].filter(Boolean).join(' ') || roads[r].highway))];
 console.log('  roads ridden:', named.join(' → '));
-console.log(`  ${(fs.statSync('static/data/osm.json').size / 1e6).toFixed(1)} MB`);
+console.log(`  ${(fs.statSync(ctx.file('osm.json')).size / 1e6).toFixed(1)} MB`);

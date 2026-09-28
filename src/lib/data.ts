@@ -2,8 +2,8 @@
 // "where is the bike at riding-time rt?" and "how high is the ground at (x, n)?".
 
 export interface TerrainMeta {
-	lon0: number;
-	lat0: number;
+	originE: number; // British National Grid origin of this grid's local metres
+	originN: number;
 	x0: number; // west edge, local metres
 	n1: number; // north edge, local metres
 	cols: number;
@@ -15,7 +15,9 @@ export interface TerrainMeta {
 }
 
 export interface Track {
+	day: string;
 	title: string;
+	breaks: number[]; // fix indices where a new ride starts (not joined to the previous fix)
 	count: number;
 	t0: number; // epoch seconds of first fix
 	t: number[]; // seconds since t0 (wall clock)
@@ -140,7 +142,44 @@ export interface TourData {
 	weather: Weather | null;
 }
 
-export async function loadTour(base = '/data'): Promise<TourData> {
+// ---------- tour index + UK backdrop ----------
+
+export interface DaySummary {
+	index: number;
+	day: string; // "2026-09-16"
+	title: string;
+	originE: number;
+	originN: number;
+	extent: { minE: number; maxE: number; minN: number; maxN: number }; // absolute BNG metres
+	km: number;
+	rides: number;
+	start: number;
+	end: number;
+	weather: Weather['summary'] | null;
+	lines: number[][]; // simplified route, [E, N, E, N, …] per ride, absolute BNG metres
+}
+
+export interface TourIndex {
+	days: DaySummary[];
+}
+
+export const loadTourIndex = () => fetch('/data/tour.json').then((r) => r.json() as Promise<TourIndex>);
+
+/** L0: all of Great Britain at 1 km. Same shape as a day grid, with origin at BNG 0,0. */
+export async function loadUk(): Promise<Terrain> {
+	const [meta, buf] = await Promise.all([
+		fetch('/data/uk/terrain.json').then((r) => r.json() as Promise<TerrainMeta>),
+		fetch('/data/uk/terrain.bin').then((r) => r.arrayBuffer())
+	]);
+	const raw = new Int16Array(buf);
+	const heights = Float32Array.from(raw, (v) => v * meta.scale);
+	return new Terrain(meta, heights, new Uint8Array(0), null);
+}
+
+/** L1: one day's bundle. */
+export const loadDay = (day: string) => loadTour(`/data/days/${day}`);
+
+export async function loadTour(base: string): Promise<TourData> {
 	const [meta, heightsBuf, corridorBuf, track, pins, osm, waterBuf, weather] = await Promise.all([
 		fetch(`${base}/terrain.json`).then((r) => r.json() as Promise<TerrainMeta>),
 		fetch(`${base}/terrain.bin`).then((r) => r.arrayBuffer()),

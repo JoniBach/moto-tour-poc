@@ -1,25 +1,35 @@
-// Shared geo helpers for the build scripts: local projection, Terrarium DEM sampling, GPX I/O.
+// Shared geo helpers for the build scripts: British National Grid projection, day context,
+// Terrarium DEM sampling, GPX I/O.
 import fs from 'node:fs';
 import path from 'node:path';
+import proj4 from 'proj4';
 import { PNG } from 'pngjs';
 
 const R = 6371008.8;
 const RAD = Math.PI / 180;
 
+// British National Grid (EPSG:27700) with the OSGB36 datum shift. Keep in sync with src/lib/bng.ts.
+export const BNG_DEF =
+	'+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy ' +
+	'+towgs84=446.448,-125.157,542.06,0.15,0.247,0.842,-20.489 +units=m +no_defs';
+const bng = proj4('EPSG:4326', BNG_DEF);
+export const toBng = (lon, lat) => bng.forward([lon, lat]);
+export const fromBng = (e, n) => bng.inverse([e, n]);
+
 /**
- * Local equirectangular projection around an origin. Good to well under 0.1% over a
- * region this size. Prod should switch to British National Grid (EPSG:27700) so
- * OS Terrain 50 lines up natively.
- * Returns metres: x = east, n = north.
+ * Every day shares one world: British National Grid metres. Each day's data is stored relative
+ * to its own origin (originE, originN) so numbers stay small; the app offsets days against each
+ * other using those origins. Returns metres: x = east, n = north (relative to the origin).
  */
-export function makeProjection(lon0, lat0) {
-	const kx = R * Math.cos(lat0 * RAD) * RAD;
-	const ky = R * RAD;
+export function makeProjection(originE, originN) {
 	return {
-		lon0,
-		lat0,
-		forward: (lon, lat) => [(lon - lon0) * kx, (lat - lat0) * ky],
-		inverse: (x, n) => [lon0 + x / kx, lat0 + n / ky]
+		originE,
+		originN,
+		forward: (lon, lat) => {
+			const [e, n] = toBng(lon, lat);
+			return [e - originE, n - originN];
+		},
+		inverse: (x, n) => fromBng(x + originE, n + originN)
 	};
 }
 
@@ -59,6 +69,27 @@ export class TerrariumSampler {
 		for (let ty = Math.floor(y0 / 256); ty <= Math.floor(y1 / 256); ty++)
 			for (let tx = Math.floor(x0 / 256); tx <= Math.floor(x1 / 256); tx++) jobs.push([tx, ty]);
 		console.log(`  terrarium z${z}: ${jobs.length} tiles`);
+		await this.#loadAll(jobs);
+	}
+
+	/** Download only the tiles touched by these [lon, lat] points (and their bilinear neighbours). */
+	async prefetchPoints(lonLats) {
+		const keys = new Map();
+		for (const [lon, lat] of lonLats) {
+			const [x, y] = TerrariumSampler.lonLatToPixel(lon, lat, this.zoom);
+			for (const dx of [-1, 1])
+				for (const dy of [-1, 1]) {
+					const tx = Math.floor((x + dx) / 256);
+					const ty = Math.floor((y + dy) / 256);
+					keys.set(`${tx}/${ty}`, [tx, ty]);
+				}
+		}
+		const jobs = [...keys.values()].filter(([tx, ty]) => !this.tiles.has(`${tx}/${ty}`));
+		if (jobs.length) console.log(`  terrarium z${this.zoom}: ${jobs.length} tiles along the route`);
+		await this.#loadAll(jobs);
+	}
+
+	async #loadAll(jobs) {
 		for (let i = 0; i < jobs.length; i += 8) {
 			await Promise.all(jobs.slice(i, i + 8).map(([tx, ty]) => this.#load(tx, ty)));
 		}
@@ -89,6 +120,17 @@ export class TerrariumSampler {
 		const t = this.tiles.get(`${tx}/${ty}`);
 		if (!t) throw new Error(`tile ${tx}/${ty} not prefetched`);
 		return t[(py - ty * 256) * 256 + (px - tx * 256)];
+	}
+
+	/** Like sample(), but returns `fallback` instead of throwing where tiles weren't prefetched. */
+	sampleOr(lon, lat, fallback) {
+		const [x, y] = TerrariumSampler.lonLatToPixel(lon, lat, this.zoom);
+		for (const [px, py] of [
+			[x - 1, y - 1],
+			[x + 1, y + 1]
+		])
+			if (!this.tiles.has(`${Math.floor(px / 256)}/${Math.floor(py / 256)}`)) return fallback;
+		return this.sample(lon, lat);
 	}
 
 	/** Bilinear elevation in metres (negative = bathymetry). */
@@ -171,12 +213,36 @@ ${body}
 `;
 }
 
-export function readAllGpx(dir) {
-	return fs
-		.readdirSync(dir)
-		.filter((f) => f.toLowerCase().endsWith('.gpx'))
-		.sort()
-		.flatMap((f) => parseGpx(fs.readFileSync(path.join(dir, f), 'utf8')))
+export function readAllGpx(files) {
+	return files
+		.flatMap((f) => parseGpx(fs.readFileSync(f, 'utf8')))
 		.filter((p) => p.time != null)
 		.sort((a, b) => a.time - b.time);
+}
+
+// ---------- day context ----------
+
+export const GPX_DIR = process.env.GPX_DIR ?? 'data/beeline';
+
+/** All ride dates available in GPX_DIR ("2026-09-16", …), from the file-name prefix. */
+export function listDays() {
+	return [...new Set(fs.readdirSync(GPX_DIR).filter((f) => /^\d{4}-\d{2}-\d{2}.*\.gpx$/i.test(f)).map((f) => f.slice(0, 10)))].sort();
+}
+
+/**
+ * The day a build script is working on: DAY env var or first CLI arg. Gives its GPX files
+ * (every file whose name starts with the date) and output folder static/data/days/<day>/.
+ */
+export function dayContext() {
+	const day = process.env.DAY ?? process.argv[2];
+	if (!day) throw new Error('Set DAY=YYYY-MM-DD (or pass it as the first argument)');
+	const files = fs
+		.readdirSync(GPX_DIR)
+		.filter((f) => f.startsWith(day) && f.toLowerCase().endsWith('.gpx'))
+		.sort()
+		.map((f) => path.join(GPX_DIR, f));
+	if (!files.length) throw new Error(`No GPX files for ${day} in ${GPX_DIR}`);
+	const out = path.join('static/data/days', day);
+	fs.mkdirSync(out, { recursive: true });
+	return { day, files, out, file: (name) => path.join(out, name) };
 }

@@ -3,7 +3,8 @@
 //    detail mesh outside the near texture. Its UVs are exact per vertex (static geometry).
 //  - "near": a sharper square that follows the bike. The detail mesh maps into it with a linear
 //    transform (uniform), accurate to ~1 px at this size since Mercator is near-linear over a few km.
-import { CanvasTexture, LinearFilter, SRGBColorSpace, Vector4 } from 'three';
+import { CanvasTexture, LinearFilter, SRGBColorSpace, Vector3 } from 'three';
+import { makeProjection } from './bng';
 import type { TerrainMeta } from './data';
 
 export type MapStyle = 'hologram' | 'satellite' | 'sentinel' | 'topo';
@@ -44,15 +45,13 @@ const mercY = (lat: number, z: number) => {
 	return (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * 2 ** z;
 };
 
-/** Local metres <-> lon/lat, matching scripts/lib/geo.mjs makeProjection. */
-export function makeProjection(meta: TerrainMeta) {
-	const kx = R * Math.cos(meta.lat0 * RAD) * RAD;
-	const ky = R * RAD;
-	return {
-		toLonLat: (x: number, n: number): [number, number] => [meta.lon0 + x / kx, meta.lat0 + n / ky],
-		kx,
-		ky
-	};
+/** Largest zoom at which `tiles` tiles span `metres` at this latitude (Web Mercator tiles shrink with cos(lat)). */
+function zoomToCover(metres: number, lat: number, tiles: number) {
+	for (let z = 12; z > 6; z--) {
+		const tileWidth = (2 * Math.PI * R * Math.cos(lat * RAD)) / 2 ** z;
+		if (tileWidth * (tiles - 1) >= metres) return z;
+	}
+	return 6;
 }
 
 // small in-memory tile cache shared by all textures (the browser HTTP cache sits behind it)
@@ -129,23 +128,34 @@ export class TileCanvas {
  * Owns the far + near textures for the active style and keeps the near one centred on the bike.
  * Components read `far.texture`, `near.texture`, `nearUV` and `mix` each frame.
  */
-// 9 tiles at z12 is ~51 km at UK latitudes: covers the 45 km terrain square after tile snapping
+// 9 tiles, at whatever zoom lets them span the day's grid (z12 for a Lakes-sized day, lower for long ones)
 const FAR_TILES = 9;
+const LUT_STEP = 2000; // metres between far-UV lookup samples
 
 export class Imagery {
 	style: MapStyle = 'hologram';
 	readonly far = new TileCanvas(FAR_TILES);
 	readonly near = new TileCanvas(8);
-	/** u = x*nearUV.x + nearUV.y, v = n*nearUV.z + nearUV.w (local metres) */
-	readonly nearUV = new Vector4(0, -10, 0, -10);
+	/**
+	 * Near-texture UVs as an affine map of local metres: u = dot(nearU, (x, n, 1)), v = dot(nearV, …).
+	 * Full affine (not just scale + offset) because grid north in BNG is rotated from true north.
+	 */
+	readonly nearU = new Vector3(0, 0, -10);
+	readonly nearV = new Vector3(0, 0, -10);
 	private nearCentre = { x: NaN, n: NaN };
 	private proj: ReturnType<typeof makeProjection>;
 	private farCentre: [number, number];
+	private farZoom: number;
+	private meta: TerrainMeta;
 
 	constructor(meta: TerrainMeta) {
-		this.proj = makeProjection(meta);
+		this.meta = meta;
+		this.proj = makeProjection(meta.originE, meta.originN);
 		const { x0, n1, cols, rows, spacing } = meta;
 		this.farCentre = this.proj.toLonLat(x0 + ((cols - 1) * spacing) / 2, n1 - ((rows - 1) * spacing) / 2);
+		// the Mercator box must contain the BNG box even though they're slightly rotated
+		const span = Math.max(cols, rows) * spacing * 1.08;
+		this.farZoom = zoomToCover(span, this.farCentre[1], FAR_TILES);
 	}
 
 	get mix() {
@@ -156,15 +166,46 @@ export class Imagery {
 		return this.style === 'hologram' ? null : MAP_SOURCES[this.style].attribution;
 	}
 
-	/** Far-texture UV for local metres; stable for every style (same zoom + centre). */
+	/**
+	 * Far-texture UV for local metres; stable for every style (same zoom + centre).
+	 * Point clouds call this hundreds of thousands of times, so rather than a BNG -> lon/lat ->
+	 * Mercator conversion per call it interpolates a 2 km lookup table (error well under a metre).
+	 */
 	farUv(x: number, n: number): [number, number] {
-		// far canvas geometry is style-independent, so set it up once for UV maths
+		const lut = (this.lut ??= this.buildLut());
+		const fc = Math.max(0, Math.min(lut.cols - 1.001, (x - lut.x0) / LUT_STEP));
+		const fr = Math.max(0, Math.min(lut.rows - 1.001, (n - lut.n0) / LUT_STEP));
+		const c = Math.floor(fc);
+		const r = Math.floor(fr);
+		const a = fc - c;
+		const b = fr - r;
+		const i = (r * lut.cols + c) * 2;
+		const j = i + lut.cols * 2;
+		const d = lut.uv;
+		return [
+			(d[i] * (1 - a) + d[i + 2] * a) * (1 - b) + (d[j] * (1 - a) + d[j + 2] * a) * b,
+			(d[i + 1] * (1 - a) + d[i + 3] * a) * (1 - b) + (d[j + 1] * (1 - a) + d[j + 3] * a) * b
+		];
+	}
+
+	private lut: { x0: number; n0: number; cols: number; rows: number; uv: Float32Array } | null = null;
+
+	private buildLut() {
+		// far canvas geometry is style-independent, so it can be set up before any tiles load
 		if (!this.far.tiles) this.primeFar();
-		return this.far.uv(...this.proj.toLonLat(x, n));
+		const { x0, n1, cols, rows, spacing } = this.meta;
+		const lx0 = x0 - LUT_STEP;
+		const ln0 = n1 - (rows - 1) * spacing - LUT_STEP;
+		const lc = Math.ceil(((cols - 1) * spacing) / LUT_STEP) + 3;
+		const lr = Math.ceil(((rows - 1) * spacing) / LUT_STEP) + 3;
+		const uv = new Float32Array(lc * lr * 2);
+		for (let r = 0; r < lr; r++)
+			for (let c = 0; c < lc; c++) uv.set(this.far.uv(...this.proj.toLonLat(lx0 + c * LUT_STEP, ln0 + r * LUT_STEP)), (r * lc + c) * 2);
+		return { x0: lx0, n0: ln0, cols: lc, rows: lr, uv };
 	}
 
 	private primeFar() {
-		const z = 12;
+		const z = this.farZoom;
 		const [lon, lat] = this.farCentre;
 		this.far.zoom = z;
 		this.far.tiles = FAR_TILES;
@@ -178,7 +219,7 @@ export class Imagery {
 		this.nearCentre = { x: NaN, n: NaN };
 		if (style === 'hologram') return;
 		const src = MAP_SOURCES[style];
-		this.far.load(src, 12, ...this.farCentre, FAR_TILES);
+		this.far.load(src, this.farZoom, ...this.farCentre, FAR_TILES);
 	}
 
 	/** Call every frame with the bike position; re-centres the sharp texture when the bike drifts. */
@@ -191,12 +232,12 @@ export class Imagery {
 		// ~5-6 km square: 8 tiles at z15 (~0.7 km each at UK latitudes), 4 at z14
 		const tiles = src.nearZoom >= 15 ? 8 : 4;
 		this.near.load(src, src.nearZoom, lon, lat, tiles);
-		// linearise the near texture's UV mapping around the bike
+		// linearise the near texture's UV mapping around the bike (affine: BNG is rotated vs Mercator)
 		const [u0, v0] = this.near.uv(lon, lat);
-		const [u1] = this.near.uv(...this.proj.toLonLat(x + 100, n));
-		const [, v1] = this.near.uv(...this.proj.toLonLat(x, n + 100));
-		const du = (u1 - u0) / 100;
-		const dv = (v1 - v0) / 100;
-		this.nearUV.set(du, u0 - du * x, dv, v0 - dv * n);
+		const [ue, ve] = this.near.uv(...this.proj.toLonLat(x + 100, n));
+		const [un, vn] = this.near.uv(...this.proj.toLonLat(x, n + 100));
+		const [uex, vex, unx, vnx] = [(ue - u0) / 100, (ve - v0) / 100, (un - u0) / 100, (vn - v0) / 100];
+		this.nearU.set(uex, unx, u0 - uex * x - unx * n);
+		this.nearV.set(vex, vnx, v0 - vex * x - vnx * n);
 	}
 }

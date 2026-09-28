@@ -1,10 +1,11 @@
 <!--
-  Camera modes:
+  Camera modes (within a day):
    follow   – orbit freely; the rig carries your chosen offset along with the bike
    chase    – sits behind the bike along its heading
-   overview – flies out to frame the whole region, then leaves you free
+   overview – flies out to frame the whole day, then leaves you free
    free     – plain orbit controls, no tracking
-  Switching modes eases the camera over rather than cutting.
+  With no active day it frames Great Britain. It stays mounted across days and exposes a
+  CameraController so the app can run day-to-day transitions (fly up, shift origin, fly down).
 -->
 <script lang="ts">
 	import { T, useTask } from '@threlte/core';
@@ -12,40 +13,47 @@
 	import { untrack } from 'svelte';
 	import { PerspectiveCamera, Vector3 } from 'three';
 	import type { OrbitControls as OrbitControlsImpl } from 'three/examples/jsm/controls/OrbitControls.js';
-	import type { Tour } from '$lib/tour.svelte';
+	import type { App } from '$lib/app.svelte';
 
-	let { tour }: { tour: Tour } = $props();
+	let { app }: { app: App } = $props();
 
 	let camera = $state<PerspectiveCamera>();
 	let controls = $state<OrbitControlsImpl>();
 
-	// svelte-ignore state_referenced_locally — `tour` is fixed for the component's lifetime
-	const { cols, rows, spacing, x0, n1 } = tour.data.terrain.meta;
-	const centre = new Vector3(x0 + (cols * spacing) / 2, 0, -(n1 - (rows * spacing) / 2));
-	const span = Math.max(cols, rows) * spacing;
+	const tour = $derived(app.tour);
+	// svelte-ignore state_referenced_locally — one app for the life of the page
+	const settings = app.settings;
+
+	const UK_POSE = { pos: new Vector3(0, 1_100_000, 600_000), target: new Vector3(0, 0, 0) };
+
+	/** frame for the whole active day (its grid centre, in world metres) */
+	function dayFrame() {
+		const { cols, rows, spacing, x0, n1 } = tour!.data.terrain.meta;
+		const centre = new Vector3(x0 + (cols * spacing) / 2, 0, -(n1 - (rows * spacing) / 2));
+		return { centre, span: Math.max(cols, rows) * spacing };
+	}
 
 	const bikePos = new Vector3();
 	const lastBike = new Vector3();
 	const goalPos = new Vector3();
 	const goalTarget = new Vector3();
-	let flying = 0; // seconds of easing left
+	let flying = 0; // seconds of mode fly-in left
 	let hasLast = false;
 
+	// explicit flights requested by the app (day transitions)
+	let flight: { from: Vector3; fromT: Vector3; to: Vector3; toT: Vector3; t: number; dur: number; done: () => void } | null =
+		null;
+
 	function bikeWorld(out: Vector3) {
-		const b = tour.bike;
-		return out.set(b.x, b.h * tour.exaggeration, -b.n);
+		const b = tour!.bike;
+		return out.set(b.x, b.h * settings.exaggeration, -b.n);
 	}
 
-	// react to mode changes with a fly-to (only the mode is tracked, not the moving bike)
-	$effect(() => {
-		const mode = tour.camera;
-		if (!camera || !controls) return;
-		untrack(() => flyFor(mode));
-	});
-
-	function flyFor(mode: typeof tour.camera) {
+	function flyFor(mode: typeof settings.camera) {
+		if (!tour) return;
 		bikeWorld(bikePos);
 		if (mode === 'overview') {
+			const { centre, span } = dayFrame();
 			goalTarget.copy(centre);
 			goalPos.set(centre.x, span * 0.75, centre.z + span * 0.7);
 			flying = 1.6;
@@ -58,44 +66,97 @@
 		hasLast = false;
 	}
 
+	// react to mode changes with a fly-to (only the mode is tracked, not the moving bike)
+	$effect(() => {
+		const mode = settings.camera;
+		if (!camera || !controls) return;
+		untrack(() => {
+			if (!flight) flyFor(mode);
+		});
+	});
+
+	// hand the app a controller once the camera exists
+	$effect(() => {
+		if (!camera || !controls) return;
+		const cam = camera;
+		const ctl = controls;
+		app.camera = {
+			flyTo: (to, toT, dur) =>
+				new Promise<void>((done) => {
+					flying = 0;
+					flight = { from: cam.position.clone(), fromT: ctl.target.clone(), to: to.clone(), toT: toT.clone(), t: 0, dur, done };
+				}),
+			shift: (delta) => {
+				cam.position.add(delta);
+				ctl.target.add(delta);
+				if (flight) {
+					for (const v of [flight.from, flight.fromT, flight.to, flight.toT]) v.add(delta);
+				}
+				hasLast = false;
+			},
+			reenter: () => flyFor(settings.camera),
+			get target() {
+				return ctl.target;
+			}
+		};
+		if (tour) flyFor(untrack(() => settings.camera));
+		return () => {
+			app.camera = null;
+		};
+	});
+
+	const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+
 	useTask((dt) => {
 		if (!camera || !controls) return;
-		bikeWorld(bikePos);
 		const k = 1 - Math.exp(-dt * 3.5);
 
-		if (tour.camera === 'chase') {
-			const h = tour.bike.heading;
-			const fwd = new Vector3(Math.sin(h), 0, -Math.cos(h));
-			goalPos.copy(bikePos).addScaledVector(fwd, -16).add(new Vector3(0, 6, 0));
-			goalTarget.copy(bikePos).addScaledVector(fwd, 10).add(new Vector3(0, 1.5, 0));
-			// never dip below the terrain behind the bike
-			const ground = tour.data.terrain.heightAt(goalPos.x, -goalPos.z) * tour.exaggeration + 3;
-			goalPos.y = Math.max(goalPos.y, ground);
-			camera.position.lerp(goalPos, k);
-			controls.target.lerp(goalTarget, k * 1.5);
-		} else if (flying > 0) {
-			flying -= dt;
-			if (tour.camera === 'follow') {
-				// keep the goal glued to the moving bike while we fly in
-				const delta = bikePos.clone().sub(goalTarget);
-				goalTarget.add(delta);
-				goalPos.add(delta);
+		if (flight) {
+			flight.t = Math.min(1, flight.t + dt / flight.dur);
+			const e = ease(flight.t);
+			camera.position.lerpVectors(flight.from, flight.to, e);
+			controls.target.lerpVectors(flight.fromT, flight.toT, e);
+			if (flight.t >= 1) {
+				const done = flight.done;
+				flight = null;
+				done();
 			}
-			camera.position.lerp(goalPos, k);
-			controls.target.lerp(goalTarget, k);
-		} else if (tour.camera === 'follow') {
-			if (hasLast) {
-				const delta = bikePos.clone().sub(lastBike);
-				camera.position.add(delta);
-				controls.target.add(delta);
-			} else {
-				controls.target.lerp(bikePos, k);
+		} else if (tour) {
+			bikeWorld(bikePos);
+			if (settings.camera === 'chase') {
+				const h = tour.bike.heading;
+				const fwd = new Vector3(Math.sin(h), 0, -Math.cos(h));
+				goalPos.copy(bikePos).addScaledVector(fwd, -16).add(new Vector3(0, 6, 0));
+				goalTarget.copy(bikePos).addScaledVector(fwd, 10).add(new Vector3(0, 1.5, 0));
+				// never dip below the terrain behind the bike
+				const ground = tour.data.terrain.heightAt(goalPos.x, -goalPos.z) * settings.exaggeration + 3;
+				goalPos.y = Math.max(goalPos.y, ground);
+				camera.position.lerp(goalPos, k);
+				controls.target.lerp(goalTarget, k * 1.5);
+			} else if (flying > 0) {
+				flying -= dt;
+				if (settings.camera === 'follow') {
+					// keep the goal glued to the moving bike while we fly in
+					const delta = bikePos.clone().sub(goalTarget);
+					goalTarget.add(delta);
+					goalPos.add(delta);
+				}
+				camera.position.lerp(goalPos, k);
+				controls.target.lerp(goalTarget, k);
+			} else if (settings.camera === 'follow') {
+				if (hasLast) {
+					const delta = bikePos.clone().sub(lastBike);
+					camera.position.add(delta);
+					controls.target.add(delta);
+				} else {
+					controls.target.lerp(bikePos, k);
+				}
 			}
+			lastBike.copy(bikePos);
+			hasLast = true;
 		}
-		lastBike.copy(bikePos);
-		hasLast = true;
 
-		// keep depth precision sane from 50 m to 50 km
+		// keep depth precision sane from 20 m (chase) to 1,000 km (all of GB)
 		const d = camera.position.distanceTo(controls.target);
 		camera.near = Math.max(0.5, d / 400);
 		camera.far = Math.max(20000, d * 12);
@@ -103,22 +164,18 @@
 	});
 </script>
 
-<T.PerspectiveCamera
-	makeDefault
-	bind:ref={camera}
-	fov={45}
-	position={[centre.x, span * 0.75, centre.z + span * 0.7]}
->
+<T.PerspectiveCamera makeDefault bind:ref={camera} fov={45} position={UK_POSE.pos.toArray()}>
 	<OrbitControls
 		bind:ref={controls}
-		target={[centre.x, 0, centre.z]}
+		target={UK_POSE.target.toArray()}
 		enableDamping
 		dampingFactor={0.08}
 		maxPolarAngle={Math.PI * 0.47}
 		minDistance={20}
-		maxDistance={span * 2.5}
+		maxDistance={3_000_000}
 		onstart={() => {
-			if (tour.camera === 'chase' || tour.camera === 'overview') tour.camera = tour.camera === 'chase' ? 'follow' : 'free';
+			if (settings.camera === 'chase' || settings.camera === 'overview')
+				settings.camera = settings.camera === 'chase' ? 'follow' : 'free';
 			flying = 0;
 		}}
 	/>

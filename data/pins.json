@@ -1,11 +1,5 @@
 [
 	{
-		"type": "blog",
-		"title": "Figure of eight round the fells",
-		"body": "Sample story pin, placed by time only. Replace with your own words: pins live in data/pins.json.",
-		"time": "2026-09-16T09:31:00Z"
-	},
-	{
 		"type": "poi",
 		"title": "Whinlatter Pass",
 		"body": "Sample POI placed by lat/lon. Forest pass west of Keswick.",

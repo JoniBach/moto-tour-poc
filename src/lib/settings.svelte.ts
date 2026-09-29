@@ -32,6 +32,7 @@ export class Settings {
 		water: true,
 		parks: true,
 		photos: true,
+		blog: true,
 		ukPoints: false,
 		labels: true,
 		weather: true,

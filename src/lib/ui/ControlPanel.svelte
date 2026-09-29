@@ -43,6 +43,7 @@
 		water: 'Lakes & rivers',
 		parks: 'National parks',
 		photos: 'Photos',
+		blog: 'Blog posts',
 		ukPoints: 'UK backdrop points',
 		weather: 'Weather (rain)',
 		labels: 'Place names',

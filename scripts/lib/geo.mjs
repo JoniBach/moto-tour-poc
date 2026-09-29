@@ -268,3 +268,53 @@ export function outsidePrivacy(fixes) {
 	}
 	return runs.filter((r) => r.length > 1);
 }
+
+/**
+ * Where the rider really was at epoch-seconds t, from the *unfiltered* GPX (the built tracks have
+ * privacy zones cut out, so they can't answer this). Before a day's first fix it's that fix (still
+ * at the start), after the last it's the last. Returns null on days without rides.
+ */
+let rawByDate = null;
+export function rawPositionAt(t) {
+	if (!rawByDate) {
+		rawByDate = new Map();
+		for (const f of fs.readdirSync(GPX_DIR).filter((f) => /\.gpx$/i.test(f))) {
+			const date = f.slice(0, 10);
+			const fixes = parseGpx(fs.readFileSync(path.join(GPX_DIR, f), 'utf8')).filter((q) => q.time != null);
+			rawByDate.set(date, [...(rawByDate.get(date) ?? []), ...fixes]);
+		}
+		for (const fixes of rawByDate.values()) fixes.sort((a, b) => a.time - b.time);
+	}
+	const fixes = rawByDate.get(ukDate(t));
+	if (!fixes?.length) return null;
+	let lo = 0;
+	let hi = fixes.length - 1;
+	while (lo < hi) {
+		const mid = (lo + hi + 1) >> 1;
+		if (fixes[mid].time <= t) lo = mid;
+		else hi = mid - 1;
+	}
+	return fixes[lo];
+}
+
+/** True if the rider was inside a privacy zone at epoch-seconds t (see rawPositionAt). */
+export function inPrivacyZoneAt(t) {
+	const p = rawPositionAt(t);
+	return !!p && inPrivacyZone(p.lon, p.lat);
+}
+
+/** The calendar date in UK time ("2026-09-16") for epoch seconds. */
+export const ukDate = (sec) => new Date(sec * 1000).toLocaleDateString('en-CA', { timeZone: 'Europe/London' });
+
+/** Parse "2026-09-16 11:30" (UK local time, BST/GMT handled) or a full ISO string to epoch seconds. */
+export function parseUkTime(s) {
+	s = String(s).trim();
+	if (/[zZ]|[+-]\d\d:?\d\d$/.test(s)) return Date.parse(s) / 1000;
+	const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(s);
+	if (!m) return NaN;
+	const asUtc = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] ?? 0));
+	// offset of Europe/London at that moment (BST +60, GMT 0)
+	const london = new Date(new Date(asUtc).toLocaleString('en-US', { timeZone: 'Europe/London' }));
+	const utc = new Date(new Date(asUtc).toLocaleString('en-US', { timeZone: 'UTC' }));
+	return (asUtc - (london - utc)) / 1000;
+}

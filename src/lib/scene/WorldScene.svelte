@@ -7,6 +7,7 @@
 	import { T } from '@threlte/core';
 	import { Stars } from '@threlte/extras';
 	import type { App } from '$lib/app.svelte';
+	import BlogPins from './BlogPins.svelte';
 	import CameraRig from './CameraRig.svelte';
 	import DayMarkers from './DayMarkers.svelte';
 	import DayScene from './DayScene.svelte';
@@ -47,6 +48,16 @@
 				origin={app.origin}
 				exaggeration={app.settings.exaggeration}
 				onopen={(photos) => (app.gallery = { photos, index: 0 })}
+			/>
+		{/if}
+		{#if app.posts.length && app.settings.layers.blog}
+			<BlogPins
+				posts={app.posts}
+				uk={app.uk}
+				dayTerrain={app.tour?.data.terrain ?? null}
+				exaggeration={app.settings.exaggeration}
+				reading={app.reading}
+				onopen={(post) => (app.reading = post)}
 			/>
 		{/if}
 		{#if app.parks && app.settings.layers.parks}

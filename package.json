@@ -15,7 +15,9 @@
 		"data:uk": "node scripts/build-uk.mjs",
 		"data:tour": "node scripts/build-tour.mjs && node scripts/build-parks.mjs",
 		"data:parks": "node scripts/build-parks.mjs",
-		"deploy": "node scripts/deploy.mjs"
+		"deploy": "node scripts/deploy.mjs",
+		"data:photos": "node scripts/build-photos.mjs",
+		"data:blog": "node scripts/build-blog.mjs"
 	},
 	"devDependencies": {
 		"@mapbox/vector-tile": "^3.0.0",
@@ -39,6 +41,7 @@
 		"@threlte/core": "^8.6.1",
 		"@threlte/extras": "^9.22.0",
 		"d3": "^7.9.0",
+		"marked": "^18.0.14",
 		"proj4": "^2.22.0",
 		"three": "^0.186.1"
 	}

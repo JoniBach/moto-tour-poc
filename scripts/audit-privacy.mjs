@@ -41,6 +41,9 @@ for (const day of fs.readdirSync(DAYS)) {
 const tour = JSON.parse(fs.readFileSync('static/data/tour.json', 'utf8'));
 for (const d of tour.days) for (const line of d.lines) for (let k = 0; k < line.length; k += 2) check(`tour line ${d.day}`, line[k], line[k + 1]);
 
+if (fs.existsSync('static/data/blog.json'))
+	for (const p of JSON.parse(fs.readFileSync('static/data/blog.json', 'utf8')).posts) check(`post ${p.slug}`, p.e, p.n);
+
 const photos = JSON.parse(fs.readFileSync('static/data/photos.json', 'utf8')).photos;
 for (const p of photos) check(`photo ${p.id}`, p.e, p.n);
 const listed = new Set(photos.map((p) => p.id));

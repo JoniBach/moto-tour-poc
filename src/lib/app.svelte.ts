@@ -6,11 +6,13 @@
 import { Vector3 } from 'three';
 import {
 	loadDay,
+	loadBlog,
 	loadParks,
 	loadPhotos,
 	loadTourIndex,
 	loadUk,
 	type DaySummary,
+	type BlogPost,
 	type Parks,
 	type Photo,
 	type Terrain,
@@ -40,6 +42,9 @@ export class App {
 	uk = $state.raw<Terrain | null>(null);
 	parks = $state.raw<Parks | null>(null);
 	photos = $state.raw<Photo[]>([]);
+	posts = $state.raw<BlogPost[]>([]);
+	/** the blog post open in the reader */
+	reading = $state.raw<BlogPost | null>(null);
 	/** open photo gallery: the photos of a clicked cluster and which one is showing */
 	gallery = $state<{ photos: Photo[]; index: number } | null>(null);
 	/** riding time to jump to once the next day loads ("ride here" from a photo) */
@@ -48,6 +53,8 @@ export class App {
 	/** BNG metres at world (0, 0, 0) */
 	origin = $state.raw({ ...UK_CENTRE });
 	busy = $state(false);
+	/** the page has applied its URL's moment (see moment.ts); until then the URL isn't rewritten */
+	momentReady = $state(false);
 	/** the day being flown to while the scene is empty mid-transition */
 	pending = $state.raw<DaySummary | null>(null);
 	error = $state<string | null>(null);
@@ -59,7 +66,14 @@ export class App {
 	private wanted: string | null | undefined = undefined;
 
 	async init() {
-		const [index, uk, parks, photos] = await Promise.all([loadTourIndex(), loadUk(), loadParks(), loadPhotos()]);
+		const [index, uk, parks, photos, posts] = await Promise.all([
+			loadTourIndex(),
+			loadUk(),
+			loadParks(),
+			loadPhotos(),
+			loadBlog()
+		]);
+		this.posts = posts;
 		this.index = index;
 		this.uk = uk;
 		this.parks = parks;
@@ -81,15 +95,16 @@ export class App {
 		return i < 0 ? undefined : days[i + offset];
 	}
 
-	/** Go to where a photo was taken: its day, at the moment it was taken. */
-	rideTo(photo: Photo, navigate: (day: string) => void) {
-		if (!photo.day) return;
+	/** Go to a photo's or post's moment: its day, at the time it was taken / is about. */
+	rideTo(item: Photo | BlogPost, navigate: (day: string) => void) {
+		const day = item.day;
+		if (!day) return;
 		// time-placed photos carry rt (off-ride ones: the day's start or end); GPS ones start the day
-		const rt = photo.rt ?? 0;
-		if (this.tour?.data.track.day === photo.day) this.tour.seek(rt);
+		const rt = item.rt ?? 0;
+		if (this.tour?.data.track.day === day) this.tour.seek(rt);
 		else {
 			this.pendingSeek = rt;
-			navigate(photo.day);
+			navigate(day);
 		}
 	}
 
@@ -128,6 +143,7 @@ export class App {
 	}
 
 	private async transition(day: string | null) {
+		this.momentReady = false; // the new page applies its URL's moment, then sets this
 		const summary = day ? this.summary(day) : undefined;
 		if (day && !summary) throw new Error(`Unknown day ${day}`);
 		const hadDay = !!this.tour;
@@ -162,6 +178,7 @@ export class App {
 		if (data) {
 			const tour = new Tour(data, this.settings);
 			tour.photos = this.photos.filter((ph) => ph.day === day && ph.rt != null);
+			tour.posts = this.posts.filter((po) => po.day === day);
 			tour.playing = wasPlaying;
 			if (this.pendingSeek != null) {
 				tour.seek(this.pendingSeek);

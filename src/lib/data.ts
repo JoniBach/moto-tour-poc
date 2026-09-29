@@ -249,6 +249,32 @@ export async function loadPhotos(): Promise<Photo[]> {
 	}
 }
 
+// ---------- blog posts ----------
+
+export interface BlogPost {
+	slug: string;
+	title: string;
+	t: number; // epoch seconds of the moment it's about
+	day: string;
+	i: number; // track fix at that moment
+	rt: number;
+	e: number; // absolute BNG where the bike was
+	n: number;
+	cover: string | null; // photo id
+	excerpt: string;
+	minutes: number; // reading time
+	html: string; // rendered at build time from the author's own Markdown
+}
+
+export async function loadBlog(): Promise<BlogPost[]> {
+	try {
+		const r = await fetch('/data/blog.json');
+		return r.ok ? ((await r.json()).posts as BlogPost[]) : [];
+	} catch {
+		return []; // optional: the tour works without build-blog
+	}
+}
+
 /** L1: one day's bundle. */
 export const loadDay = (day: string) => loadTour(`/data/days/${day}`);
 

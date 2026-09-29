@@ -1,18 +1,19 @@
 // The day's chronology for the events drawer: rides starting and finishing, long breaks,
 // photo moments and authored pins (notes, POIs, fuel, food…), each on the riding-time axis so
 // the drawer can jump the tour to it.
-import { PIN_META, type Photo, type Pin, type Track } from './data';
+import { PIN_META, type BlogPost, type Photo, type Pin, type Track } from './data';
 
 export type TourEvent =
 	| { kind: 'start' | 'finish'; rt: number; t: number; ride: number; rides: number }
 	| { kind: 'break'; rt: number; t: number; minutes: number }
 	| { kind: 'photos'; rt: number; t: number; photos: Photo[] }
-	| { kind: 'pin'; rt: number; t: number; pin: Pin };
+	| { kind: 'pin'; rt: number; t: number; pin: Pin }
+	| { kind: 'post'; rt: number; t: number; post: BlogPost };
 
 export const BREAK_MIN = 30; // minutes: shorter stops aren't worth an entry
 const MOMENT = 5 * 60; // seconds: photos this close together are one moment
 
-export function dayEvents(tr: Track, pins: Pin[], photos: Photo[]): TourEvent[] {
+export function dayEvents(tr: Track, pins: Pin[], photos: Photo[], posts: BlogPost[] = []): TourEvent[] {
 	const ev: TourEvent[] = [];
 	const at = (i: number) => ({ rt: tr.rt[i], t: tr.t0 + tr.t[i] });
 
@@ -40,9 +41,10 @@ export function dayEvents(tr: Track, pins: Pin[], photos: Photo[]): TourEvent[] 
 	flush();
 
 	for (const pin of pins) ev.push({ kind: 'pin', rt: pin.rt, t: tr.t0 + tr.t[pin.i], pin });
+	for (const post of posts) ev.push({ kind: 'post', rt: post.rt, t: post.t, post });
 
 	// chronological; at equal times keep a sensible order (start before anything, finish after)
-	const rank = { start: 0, pin: 1, break: 2, photos: 3, finish: 4 };
+	const rank = { start: 0, post: 1, pin: 2, break: 3, photos: 4, finish: 5 };
 	return ev.sort((a, b) => a.t - b.t || rank[a.kind] - rank[b.kind]);
 }
 
@@ -56,6 +58,8 @@ export function eventLabel(e: TourEvent): { icon: string; title: string; color: 
 			return { icon: '⏸', title: `Break · ${e.minutes >= 60 ? `${Math.floor(e.minutes / 60)} h ${e.minutes % 60} min` : `${e.minutes} min`}`, color: '#b8c7d0' };
 		case 'photos':
 			return { icon: '📷', title: e.photos.length > 1 ? `${e.photos.length} photos` : 'Photo', color: '#ffd166' };
+		case 'post':
+			return { icon: '✎', title: e.post.title, color: '#ffd166' };
 		case 'pin': {
 			const m = PIN_META[e.pin.type];
 			return { icon: m.icon, title: e.pin.title, color: m.color };

@@ -28,6 +28,27 @@ node scripts/build-photos.mjs        # resize + place photos
 
 Only the UK backdrop and parks (`static/data/uk/`, public map data) are committed.
 
+## Blog posts
+
+Write Markdown in `content/blog/` (committed), one file per post, tied to a moment of the ride:
+
+```md
+---
+title: Honister Pass
+time: 2026-09-16 11:30      # UK local time; the post appears where the bike was then
+cover: 20260916_113010      # optional photo id (file name without extension)
+---
+Markdown body. Embed tour photos by id: ![caption](photo:20260916_115051)
+```
+
+`npm run data:blog` places each post against the track (like photos), renders it, and writes
+`static/data/blog.json` (git-ignored). Files starting with `_` are drafts (see
+`content/blog/_template.md`). Posts appear as ✎ markers on the map, entries in the events
+drawer, ticks on the scrubber and pop-ups during playback, and open in a reader with "Ride here"
+and previous/next. In dev, **✎ Post here** on the scrubber copies a ready-made header for the moment
+on screen (with the nearest photo as cover). Posts whose moment is inside a privacy zone are
+refused, and embedded photos withheld for privacy are removed.
+
 ## Privacy zones
 
 `data/privacy.json` lists circles (town centre + radius) where nothing personal may appear:

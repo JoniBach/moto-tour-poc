@@ -13,7 +13,7 @@
 	let { tour }: { tour: Tour } = $props();
 
 	// svelte-ignore state_referenced_locally — `tour` is fixed for the component's lifetime
-	const events = dayEvents(tour.data.track, tour.data.pins, tour.photos);
+	const events = dayEvents(tour.data.track, tour.data.pins, tour.photos, tour.posts);
 	const open = $derived(app.settings.eventsOpen);
 
 	// the last entry at or before the ride's current moment
@@ -30,6 +30,9 @@
 		if (e.kind === 'photos') {
 			tour.playing = false;
 			app.gallery = { photos: e.photos, index: 0 };
+		} else if (e.kind === 'post') {
+			tour.playing = false;
+			app.reading = e.post;
 		} else if (e.kind === 'pin') {
 			tour.playing = false;
 			tour.selectedPin = e.pin.id;
@@ -44,8 +47,13 @@
 			icon: l.icon,
 			color: l.color,
 			title: l.title,
-			sub: e.kind === 'pin' ? e.pin.body : undefined,
-			thumbs: e.kind === 'photos' ? e.photos.slice(0, 4).map((p) => photoUrl(p, 'thumb')) : undefined,
+			sub: e.kind === 'pin' ? e.pin.body : e.kind === 'post' ? e.post.excerpt : undefined,
+			thumbs:
+				e.kind === 'photos'
+					? e.photos.slice(0, 4).map((p) => photoUrl(p, 'thumb'))
+					: e.kind === 'post' && e.post.cover
+						? [`/photos/thumb/${e.post.cover}.webp`]
+						: undefined,
 			more: e.kind === 'photos' && e.photos.length > 4 ? e.photos.length - 4 : undefined,
 			onclick: () => go(e)
 		};

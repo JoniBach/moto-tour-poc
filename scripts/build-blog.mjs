@@ -1,0 +1,129 @@
+// Blog posts: Markdown files in content/blog/, each tied to a moment of the ride.
+//
+//   ---
+//   title: Up and over Honister
+//   time: 2026-09-16 11:30        # UK local time (or full ISO); the post goes where the bike was
+//   cover: 20260916_113010        # optional: a photo id for the header image
+//   ---
+//   Markdown body. Photos from the tour can be embedded by id:
+//   ![Looking down Borrowdale](photo:20260916_115051)
+//
+// Each post is placed by its time against that day's track (like photos), rendered to HTML, and
+// written to static/data/blog.json. Posts whose moment falls inside a privacy zone are refused
+// (with a message), and photos withheld for privacy are removed from posts.
+// Files starting with "_" are drafts and skipped.
+import fs from 'node:fs';
+import path from 'node:path';
+import { marked } from 'marked';
+import { inPrivacyZoneAt, parseUkTime, ukDate } from './lib/geo.mjs';
+
+const SRC = 'content/blog';
+const DAYS = 'static/data/days';
+
+const photos = fs.existsSync('static/data/photos.json')
+	? new Map(JSON.parse(fs.readFileSync('static/data/photos.json', 'utf8')).photos.map((p) => [p.id, p]))
+	: new Map();
+
+/** Minimal frontmatter: "key: value" lines between --- fences. */
+function frontmatter(text) {
+	const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
+	if (!m) return { data: {}, body: text };
+	const data = {};
+	for (const line of m[1].split(/\r?\n/)) {
+		const kv = /^([\w-]+)\s*:\s*(.*?)\s*(?:#.*)?$/.exec(line);
+		if (kv) data[kv[1]] = kv[2].replace(/^["']|["']$/g, '');
+	}
+	return { data, body: text.slice(m[0].length) };
+}
+
+const lastLE = (arr, v) => {
+	let lo = 0;
+	let hi = arr.length - 1;
+	while (lo < hi) {
+		const mid = (lo + hi + 1) >> 1;
+		if (arr[mid] <= v) lo = mid;
+		else hi = mid - 1;
+	}
+	return lo;
+};
+const tracks = new Map();
+function track(day) {
+	if (!tracks.has(day)) {
+		const dir = path.join(DAYS, day);
+		tracks.set(
+			day,
+			fs.existsSync(path.join(dir, 'track.json'))
+				? {
+						meta: JSON.parse(fs.readFileSync(path.join(dir, 'terrain.json'), 'utf8')),
+						tr: JSON.parse(fs.readFileSync(path.join(dir, 'track.json'), 'utf8'))
+					}
+				: null
+		);
+	}
+	return tracks.get(day);
+}
+
+// photo embeds: ![caption](photo:ID) -> the gallery-size image (dropped if withheld/unknown)
+const withheld = [];
+marked.use({
+	renderer: {
+		image({ href, text }) {
+			if (!href?.startsWith('photo:')) return false; // default rendering for normal images
+			const p = photos.get(href.slice(6));
+			if (!p) {
+				withheld.push(href.slice(6));
+				return '';
+			}
+			const alt = text.replace(/"/g, '&quot;');
+			return `<figure><img src="/photos/large/${p.id}.webp" width="${p.w}" height="${p.h}" alt="${alt}" loading="lazy" data-photo="${p.id}">${text ? `<figcaption>${text}</figcaption>` : ''}</figure>`;
+		}
+	}
+});
+
+fs.mkdirSync(SRC, { recursive: true });
+const posts = [];
+for (const file of fs.readdirSync(SRC).filter((f) => f.endsWith('.md') && !f.startsWith('_')).sort()) {
+	const { data, body } = frontmatter(fs.readFileSync(path.join(SRC, file), 'utf8'));
+	const slug = file.replace(/\.md$/, '');
+	const t = parseUkTime(data.time ?? '');
+	if (!data.title || !Number.isFinite(t)) {
+		console.log(`  skipped ${file}: needs "title" and "time" (e.g. time: 2026-09-16 11:30)`);
+		continue;
+	}
+	if (inPrivacyZoneAt(t)) {
+		console.log(`  skipped ${file}: its moment is inside a privacy zone`);
+		continue;
+	}
+	const day = ukDate(t);
+	const d = track(day);
+	if (!d) {
+		console.log(`  skipped ${file}: no ride on ${day}`);
+		continue;
+	}
+	const { tr, meta } = d;
+	const rel = t - tr.t0;
+	const i = rel <= 0 ? 0 : lastLE(tr.t, rel);
+	withheld.length = 0;
+	const html = marked.parse(body);
+	if (withheld.length) console.log(`  ${file}: removed photo(s) ${withheld.join(', ')} (unknown or withheld)`);
+	const text = body.replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/[#*_>`[\]()-]/g, '').replace(/\s+/g, ' ').trim();
+	const cover = data.cover && photos.has(data.cover) ? data.cover : null;
+	posts.push({
+		slug,
+		title: data.title,
+		t,
+		day,
+		i,
+		rt: tr.rt[i],
+		e: Math.round(tr.x[i] + meta.originE),
+		n: Math.round(tr.n[i] + meta.originN),
+		cover,
+		excerpt: text.length > 160 ? `${text.slice(0, 157).replace(/\s+\S*$/, '')}…` : text,
+		minutes: Math.max(1, Math.round(text.split(' ').length / 200)),
+		html
+	});
+}
+posts.sort((a, b) => a.t - b.t);
+fs.writeFileSync('static/data/blog.json', JSON.stringify({ posts }));
+console.log(`Wrote static/data/blog.json: ${posts.length} post(s)`);
+for (const p of posts) console.log(`  ${p.day} ${new Date(p.t * 1000).toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' })}  ${p.title}`);

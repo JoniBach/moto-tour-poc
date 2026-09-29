@@ -9,6 +9,7 @@
 	import { clock, mph, photoUrl, PIN_META, roadAtFix, weatherAt, weatherLabel, type Photo } from '$lib/data';
 	import { colorScale, gradientAt, LEGENDS } from '$lib/colors';
 	import { speedFigures } from '$lib/config';
+	import { copyLink, momentUrl } from '$lib/moment';
 	import type { Tour } from '$lib/tour.svelte';
 
 	let { tour }: { tour: Tour } = $props();
@@ -105,6 +106,34 @@
 	});
 	let photoHover = $state<{ px: number; photos: Photo[] } | null>(null);
 
+	let linked = $state(false);
+	async function shareMoment() {
+		// just the moment: '' leaves out whatever post or photo is open
+		linked = await copyLink(momentUrl(app, { post: '', photo: '' }));
+		setTimeout(() => (linked = false), 1500);
+	}
+
+	// dev helper: copy a ready-made Markdown header for the moment on screen (nearest photo as cover)
+	let copied = $state(false);
+	async function copyPostHeader() {
+		const t = tour.bike.time;
+		const d = new Date(t * 1000);
+		const part = (o: Intl.DateTimeFormatOptions) => d.toLocaleString('en-GB', { timeZone: 'Europe/London', ...o });
+		const stamp = `${d.toLocaleDateString('en-CA', { timeZone: 'Europe/London' })} ${part({ hour: '2-digit', minute: '2-digit', hour12: false })}`;
+		const near = [...tour.photos].sort((a, b) => Math.abs(a.t - t) - Math.abs(b.t - t))[0];
+		const cover = near && Math.abs(near.t - t) < 1800 ? `
+cover: ${near.id}` : '';
+		const where = road ? [road.ref, road.name].filter(Boolean).join(' ') : '';
+		await navigator.clipboard.writeText(`---
+title: ${where || 'Untitled'}
+time: ${stamp}${cover}
+---
+
+`);
+		copied = true;
+		setTimeout(() => (copied = false), 1500);
+	}
+
 	const legend = $derived(LEGENDS[tour.colorBy]);
 	const legendGradient = $derived(
 		Array.from({ length: 11 }, (_, k) => `${legend.interp(k / 10)} ${k * 10}%`).join(', ')
@@ -148,6 +177,14 @@
 			<div><dt>Gradient</dt><dd>{(gradientAt(tr, b.i) * 100).toFixed(0)}<small>%</small></dd></div>
 			<div><dt>Distance</dt><dd>{(b.dist / 1609.34).toFixed(1)}<small>mi</small></dd></div>
 		</dl>
+		<button class="share" onclick={shareMoment} title="Copy a link to this moment of the ride">
+			{linked ? '✓ Copied' : '🔗 Share moment'}
+		</button>
+		{#if import.meta.env.DEV}
+			<button class="post-here" onclick={copyPostHeader} title="Copy a blog post header for this moment">
+				{copied ? '✓ Copied' : '✎ Post here'}
+			</button>
+		{/if}
 		<div class="legend">
 			<span>{legend.label}</span>
 			<span class="ramp" style:background="linear-gradient(90deg, {legendGradient})"></span>
@@ -227,6 +264,28 @@
 					<text text-anchor="middle" dy="3.5" font-size="8">{m.icon}</text>
 				</g>
 			{/each}
+
+			{#if tour.layers.blog}
+				{#each tour.posts as po (po.slug)}
+					<g
+						class="post-tick"
+						transform="translate({x(po.rt)}, 10)"
+						role="button"
+						tabindex="-1"
+						aria-label="Story: {po.title}"
+						onpointerdown={(e) => {
+							e.stopPropagation();
+							tour.seek(po.rt);
+							tour.playing = false;
+							app.reading = po;
+						}}
+					>
+						<title>{po.title}</title>
+						<circle r="8" />
+						<text text-anchor="middle" dy="3.5" font-size="9">✎</text>
+					</g>
+				{/each}
+			{/if}
 
 			{#each photoTicks as pt (pt.first)}
 				<g
@@ -425,6 +484,45 @@
 	.track {
 		position: relative;
 		width: 100%;
+	}
+	.post-tick {
+		cursor: pointer;
+	}
+	.post-tick circle {
+		fill: #ffd166;
+		stroke: #03070c;
+		stroke-width: 1.5;
+	}
+	.post-tick text {
+		fill: #03070c;
+		pointer-events: none;
+	}
+	.post-tick:hover circle {
+		transform: scale(1.2);
+	}
+	.share {
+		all: unset;
+		cursor: pointer;
+		padding: 4px 9px;
+		border-radius: 8px;
+		border: 1px solid var(--line);
+		color: var(--muted);
+		font-size: 11px;
+		white-space: nowrap;
+	}
+	.share:hover {
+		color: var(--text);
+		background: var(--accent-soft);
+	}
+	.post-here {
+		all: unset;
+		cursor: pointer;
+		padding: 4px 9px;
+		border-radius: 8px;
+		border: 1px dashed #ffd166;
+		color: #ffe3a3;
+		font-size: 11px;
+		white-space: nowrap;
 	}
 	.photo-tick {
 		cursor: pointer;

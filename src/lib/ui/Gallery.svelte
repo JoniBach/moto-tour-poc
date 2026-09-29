@@ -6,6 +6,17 @@
 <script lang="ts">
 	import type { App } from '$lib/app.svelte';
 	import { clock, photoUrl } from '$lib/data';
+	import { copyLink, momentUrl } from '$lib/moment';
+
+	let linked = $state(false);
+	async function share() {
+		if (!photo?.day) return;
+		const url = new URL(momentUrl(app, { photo: photo.id, t: photo.t }));
+		url.pathname = `/day/${photo.day}`;
+		url.searchParams.delete('post');
+		linked = await copyLink(url.toString());
+		setTimeout(() => (linked = false), 1500);
+	}
 
 	let { app, onride }: { app: App; onride: (day: string) => void } = $props();
 
@@ -70,6 +81,9 @@
 				</div>
 				<div class="actions">
 					<span class="pos">{g.index + 1} / {g.photos.length}</span>
+					{#if photo.day}
+						<button onclick={share} title="Copy a link to this photo">{linked ? '✓ Copied' : '🔗 Link'}</button>
+					{/if}
 					{#if photo.day}
 						<button
 							onclick={() => {

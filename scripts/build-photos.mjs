@@ -11,7 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import exifr from 'exifr';
 import sharp from 'sharp';
-import { GPX_DIR, inPrivacyZone, makeProjection, parseGpx, toBng } from './lib/geo.mjs';
+import { inPrivacyZone, inPrivacyZoneAt, makeProjection, toBng } from './lib/geo.mjs';
 
 const SRC = 'data/photos-src/jpg';
 const OUT = 'static/photos';
@@ -43,22 +43,9 @@ const lastLE = (arr, v) => {
 // the calendar day in UK time (a photo at 00:30 BST belongs to that date, not the UTC one)
 const ukDate = (sec) => new Date(sec * 1000).toLocaleDateString('en-CA', { timeZone: 'Europe/London' });
 
-// Privacy: where the rider really was when each photo was taken, from the *unfiltered* GPX
-// (the built tracks have the privacy zones cut out, so they can't answer this). Photos taken
-// inside a zone — including at home before setting off or after arriving — are dropped.
-const rawByDate = new Map();
-for (const f of fs.readdirSync(GPX_DIR).filter((f) => /.gpx$/i.test(f))) {
-	const date = f.slice(0, 10);
-	const fixes = parseGpx(fs.readFileSync(path.join(GPX_DIR, f), 'utf8')).filter((q) => q.time != null);
-	rawByDate.set(date, [...(rawByDate.get(date) ?? []), ...fixes].sort((a, b) => a.time - b.time));
-}
-function takenInPrivacyZone(t, gps) {
-	if (gps) return inPrivacyZone(gps.longitude, gps.latitude);
-	const fixes = rawByDate.get(ukDate(t));
-	if (!fixes?.length) return false;
-	const i = t <= fixes[0].time ? 0 : lastLE(fixes.map((q) => q.time), t);
-	return inPrivacyZone(fixes[i].lon, fixes[i].lat);
-}
+// Privacy: photos taken inside a zone (judged from the unfiltered GPX at that moment, so photos
+// at home before setting off or after arriving count) are dropped.
+const takenInPrivacyZone = (t, gps) => (gps ? inPrivacyZone(gps.longitude, gps.latitude) : inPrivacyZoneAt(t));
 
 function place(t, gps) {
 	const day = days.get(ukDate(t));

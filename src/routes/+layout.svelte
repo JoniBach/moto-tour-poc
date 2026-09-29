@@ -3,12 +3,15 @@
   animates within one scene instead of remounting it. Pages only say which day to show.
 -->
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, replaceState } from '$app/navigation';
+	import { page } from '$app/state';
+	import { momentUrl } from '$lib/moment';
 	import favicon from '$lib/assets/favicon.svg';
 	import { Canvas } from '@threlte/core';
 	import { onMount } from 'svelte';
 	import { app } from '$lib/app.svelte';
 	import WorldScene from '$lib/scene/WorldScene.svelte';
+	import BlogReader from '$lib/ui/BlogReader.svelte';
 	import ControlPanel from '$lib/ui/ControlPanel.svelte';
 	import EventsDrawer from '$lib/ui/EventsDrawer.svelte';
 	import Gallery from '$lib/ui/Gallery.svelte';
@@ -24,10 +27,25 @@
 
 	onMount(() => {
 		app.onAdvance = openDay;
+		// dev only: lets browser tests drive the app
+		if (import.meta.env.DEV) (window as unknown as { __app: typeof app }).__app = app;
 		app.init().catch((e) => (app.error = String(e)));
 	});
 
 	const tour = $derived(app.tour);
+
+	// keep the URL in step with the moment on screen and what's open, so it can be shared
+	// (replaceState: no history entries; less often while playing)
+	let urlTimer: ReturnType<typeof setTimeout> | undefined;
+	$effect(() => {
+		if (!app.momentReady) return;
+		const href = momentUrl(app); // reads the ride's moment, the open post and the open photo
+		const playing = app.tour?.playing ?? false;
+		clearTimeout(urlTimer);
+		urlTimer = setTimeout(() => {
+			if (href !== location.href) replaceState(href, page.state);
+		}, playing ? 1500 : 300);
+	});
 
 	function onkeydown(e: KeyboardEvent) {
 		if ((e.target as HTMLElement).closest('input, select, textarea')) return;
@@ -83,6 +101,7 @@
 	{:else}
 		<p class="loading">{app.error ?? 'Loading the tour…'}</p>
 	{/if}
+	<BlogReader {app} onride={openDay} />
 	<Gallery {app} onride={openDay} />
 	{#if app.error && app.index}<p class="error">{app.error}</p>{/if}
 	{@render children()}

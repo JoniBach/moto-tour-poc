@@ -8,6 +8,8 @@
 	import { clock, photoUrl } from '$lib/data';
 	import { dayEvents, eventLabel, type TourEvent } from '$lib/events';
 	import type { Tour } from '$lib/tour.svelte';
+	import { ui } from '$lib/ui.svelte';
+	import Sheet from './Sheet.svelte';
 	import Timeline, { type TimelineItem } from './Timeline.svelte';
 
 	let { tour }: { tour: Tour } = $props();
@@ -27,6 +29,7 @@
 
 	function go(e: TourEvent) {
 		tour.seek(e.rt);
+		if (ui.mobile) ui.sheet = null; // back to the map to see the moment
 		if (e.kind === 'photos') {
 			tour.playing = false;
 			app.gallery = { photos: e.photos, index: 0 };
@@ -60,6 +63,11 @@
 	});
 </script>
 
+{#if ui.mobile}
+	<Sheet open={ui.sheet === 'events'} title="Day events · {events.length}" onclose={() => (ui.sheet = null)}>
+		<Timeline {items} {current} fadePast whenWidth={44} />
+	</Sheet>
+{:else}
 <button
 	class="tab"
 	class:open
@@ -80,6 +88,7 @@
 			<Timeline {items} {current} fadePast />
 		</div>
 	</aside>
+{/if}
 {/if}
 
 <style>

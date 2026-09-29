@@ -108,12 +108,13 @@
 		font-size: 12px;
 		white-space: nowrap;
 	}
-	@media (max-width: 700px) {
-		.card {
+	@media (max-width: 900px) {
+		.card,
+		.card.beside-drawer {
 			top: auto;
-			bottom: 200px;
-			left: 16px;
-			right: 16px;
+			bottom: calc(var(--scrub-h, 150px) + 14px + env(safe-area-inset-bottom));
+			left: 8px;
+			right: 8px;
 			width: auto;
 		}
 	}

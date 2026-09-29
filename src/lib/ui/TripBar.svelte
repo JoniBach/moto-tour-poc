@@ -134,11 +134,34 @@
 		font-size: 11px;
 		padding: 0 4px;
 	}
+	/* tablets: sit between the left panel and the right edge */
 	@media (max-width: 1100px) {
 		.trip {
-			top: auto;
-			bottom: 196px;
-			max-width: calc(100% - 32px);
+			left: 332px;
+			right: 16px;
+			transform: none;
+			max-width: none;
+		}
+	}
+	/* phones: full width along the top, clear of the notch */
+	@media (max-width: 900px) {
+		.trip {
+			top: calc(env(safe-area-inset-top) + 6px);
+			left: 6px;
+			right: 6px;
+			padding: 4px 6px;
+			gap: 2px;
+		}
+		.home,
+		.step {
+			padding: 10px 8px;
+		}
+		.chip {
+			min-width: 38px;
+			padding: 4px 4px;
+		}
+		.busy {
+			display: none;
 		}
 	}
 </style>

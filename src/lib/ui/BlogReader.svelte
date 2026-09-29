@@ -54,7 +54,8 @@
 
 {#if post}
 	<article class="reader scroll-y" class:beside-drawer={app.settings.eventsOpen} bind:this={body}>
-		<button class="close" onclick={() => (app.reading = null)} aria-label="Close">×</button>
+		<!-- zero-height sticky bar: the close button floats over the cover without taking space -->
+		<div class="close-bar"><button class="close" onclick={() => (app.reading = null)} aria-label="Close">×</button></div>
 		{#if post.cover}
 			<img class="cover" src="/photos/large/{post.cover}.webp" alt="" />
 		{/if}
@@ -104,13 +105,18 @@
 	.reader.beside-drawer {
 		right: 332px;
 	}
+	.close-bar {
+		position: sticky;
+		top: 0;
+		height: 0;
+		z-index: 2;
+	}
 	.close {
 		all: unset;
 		cursor: pointer;
-		position: sticky;
+		position: absolute;
 		top: 8px;
-		float: right;
-		margin: 8px 10px 0 0;
+		right: 10px;
 		width: 28px;
 		height: 28px;
 		display: grid;
@@ -127,7 +133,6 @@
 		height: 200px;
 		object-fit: cover;
 		border-radius: 13px 13px 0 0;
-		margin-top: -36px;
 	}
 	.kicker,
 	h1,
@@ -240,13 +245,32 @@
 		opacity: 0.3;
 		cursor: default;
 	}
-	@media (max-width: 700px) {
+	/* phones: a full-width bottom sheet over everything */
+	@media (max-width: 900px) {
 		.reader,
 		.reader.beside-drawer {
-			left: 16px;
-			right: 16px;
+			z-index: 160;
+			left: 0;
+			right: 0;
+			top: auto;
+			bottom: 0;
 			width: auto;
-			top: 84px;
+			max-height: 86dvh;
+			border-radius: 18px 18px 0 0;
+			border-bottom: none;
+			padding-bottom: calc(16px + env(safe-area-inset-bottom));
+		}
+		.close {
+			width: 40px;
+			height: 40px;
+			font-size: 24px;
+		}
+		.cover {
+			height: 170px;
+			border-radius: 17px 17px 0 0;
+		}
+		footer button {
+			padding: 10px 12px;
 		}
 	}
 </style>

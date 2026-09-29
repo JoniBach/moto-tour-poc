@@ -126,16 +126,18 @@
 		color: var(--muted);
 		padding: 0 2px;
 	}
-	@media (max-width: 700px) {
-		.popups {
-			right: 16px;
-			left: 16px;
-			bottom: 230px;
-			justify-content: flex-end;
+	@media (max-width: 900px) {
+		.popups,
+		.popups.beside-drawer {
+			right: 8px;
+			bottom: calc(var(--scrub-h, 150px) + 14px + env(safe-area-inset-bottom));
 		}
 		.card img {
-			width: 96px;
-			height: 72px;
+			width: 110px;
+			height: 82px;
+		}
+		.card.post {
+			width: 160px;
 		}
 	}
 </style>

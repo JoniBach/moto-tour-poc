@@ -7,7 +7,11 @@
 	import type { App } from '$lib/app.svelte';
 	import { dayColor } from '$lib/colors';
 	import { photoUrl } from '$lib/data';
+	import { ui } from '$lib/ui.svelte';
 	import Timeline, { type TimelineItem } from './Timeline.svelte';
+
+	// phones: a peek card at the bottom; tap the header to expand the day list
+	let expanded = $state(false);
 
 	let { app }: { app: App } = $props();
 	const days = $derived(app.index?.days ?? []);
@@ -38,6 +42,23 @@
 	);
 </script>
 
+{#if ui.mobile}
+	<aside class="peek" class:expanded>
+		<button class="peek-head" onclick={() => (expanded = !expanded)} aria-expanded={expanded}>
+			<span class="grab" aria-hidden="true"></span>
+			<span class="peek-title">UK tour · September 2026</span>
+			<span class="peek-totals">
+				{days.length} days · {(km / 1.609).toFixed(0)} mi{#if parksTotal} · {parksVisited} national parks{/if}
+			</span>
+			<span class="peek-cta">{expanded ? 'Hide days ▾' : 'Show days ▴'}</span>
+		</button>
+		{#if expanded}
+			<div class="peek-list scroll-y">
+				<Timeline {items} whenWidth={44} />
+			</div>
+		{/if}
+	</aside>
+{:else}
 <aside class="intro scroll-y">
 	<h1>UK tour · September 2026</h1>
 	<p class="totals">
@@ -47,6 +68,7 @@
 	<Timeline {items} whenWidth={42} />
 	<p class="hint">Pick a day, or click a marker on the map.</p>
 </aside>
+{/if}
 
 <style>
 	.intro {
@@ -75,6 +97,61 @@
 	}
 	.parks {
 		color: #b9f5c4;
+	}
+	.peek {
+		position: fixed;
+		z-index: 100;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		display: flex;
+		flex-direction: column;
+		max-height: 70dvh;
+		border: 1px solid var(--line);
+		border-bottom: none;
+		border-radius: 18px 18px 0 0;
+		background: rgba(4, 12, 20, 0.92);
+		backdrop-filter: blur(14px);
+		padding-bottom: env(safe-area-inset-bottom);
+	}
+	.peek-head {
+		all: unset;
+		cursor: pointer;
+		position: relative;
+		display: grid;
+		gap: 2px;
+		padding: 18px 16px 12px;
+		text-align: center;
+	}
+	.grab {
+		position: absolute;
+		top: 7px;
+		left: 50%;
+		width: 40px;
+		height: 4px;
+		margin-left: -20px;
+		border-radius: 2px;
+		background: var(--muted);
+		opacity: 0.6;
+	}
+	.peek-title {
+		font-size: 16px;
+		font-weight: 600;
+		color: var(--accent);
+	}
+	.peek-totals {
+		font-size: 12px;
+		color: var(--muted);
+	}
+	.peek-cta {
+		margin-top: 6px;
+		font-size: 12px;
+		color: var(--text);
+	}
+	.peek-list {
+		flex: 1;
+		min-height: 0;
+		padding: 0 10px 12px;
 	}
 	.hint {
 		margin: 10px 4px 0;

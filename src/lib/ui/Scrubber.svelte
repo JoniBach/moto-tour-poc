@@ -106,6 +106,12 @@
 	});
 	let photoHover = $state<{ px: number; photos: Photo[] } | null>(null);
 
+	// publish the scrubber's height so pop-ups and cards can sit just above it
+	let scrubH = $state(0);
+	$effect(() => {
+		document.documentElement.style.setProperty('--scrub-h', `${scrubH}px`);
+	});
+
 	let linked = $state(false);
 	async function shareMoment() {
 		// just the moment: '' leaves out whatever post or photo is open
@@ -140,7 +146,7 @@ time: ${stamp}${cover}
 	);
 </script>
 
-<div class="scrubber">
+<div class="scrubber" bind:offsetHeight={scrubH}>
 	<div class="bar">
 		<button class="play" onclick={() => tour.togglePlay()} aria-label={tour.playing ? 'Pause' : 'Play'}>
 			{tour.playing ? '❚❚' : '▶'}
@@ -606,11 +612,60 @@ time: ${stamp}${cover}
 		stroke: #03070c;
 		stroke-width: 2;
 	}
-	@media (max-width: 700px) {
+	/* phones: play, time, weather, road + the timeline; the rest lives in the sheets */
+	@media (max-width: 900px) {
+		.scrubber {
+			left: 6px;
+			right: 6px;
+			bottom: calc(6px + env(safe-area-inset-bottom));
+			padding: 8px 10px 4px;
+		}
+		.bar {
+			gap: 10px;
+			flex-wrap: nowrap;
+			min-width: 0;
+		}
 		.legend,
+		.readouts,
+		.stop-label,
+		.share,
+		.post-here,
 		.wx small,
-		.readouts div:nth-child(n + 4) {
+		.road small {
 			display: none;
+		}
+		.play {
+			width: 44px;
+			height: 44px;
+			flex-shrink: 0;
+		}
+		.rate select {
+			padding: 8px 4px;
+		}
+		.clock {
+			font-size: 19px;
+			min-width: 0;
+		}
+		.wx {
+			min-width: 0;
+			flex-shrink: 0;
+		}
+		.road {
+			min-width: 0;
+			flex: 1;
+		}
+		.road-title {
+			font-size: 13px;
+		}
+	}
+	/* fingers: bigger hit areas on the timeline markers */
+	@media (pointer: coarse) {
+		.photo-tick circle {
+			r: 6px;
+		}
+		.post-tick circle,
+		.pin-tick circle {
+			r: 10px;
 		}
 	}
 </style>

@@ -20,6 +20,10 @@
 	import Scrubber from '$lib/ui/Scrubber.svelte';
 	import TourIntro from '$lib/ui/TourIntro.svelte';
 	import TripBar from '$lib/ui/TripBar.svelte';
+	import MobileBar from '$lib/ui/MobileBar.svelte';
+	import Sheet from '$lib/ui/Sheet.svelte';
+	import { ui } from '$lib/ui.svelte';
+	import { dayEvents } from '$lib/events';
 
 	let { children } = $props();
 
@@ -30,9 +34,14 @@
 		// dev only: lets browser tests drive the app
 		if (import.meta.env.DEV) (window as unknown as { __app: typeof app }).__app = app;
 		app.init().catch((e) => (app.error = String(e)));
+		return ui.watch();
 	});
 
+	// phones render the 3D scene at a lower pixel ratio: most of the sharpness, much less GPU work
+	const dpr = $derived(Math.min(globalThis.devicePixelRatio ?? 1, ui.mobile ? 1.5 : 2));
+
 	const tour = $derived(app.tour);
+	const eventCount = $derived(tour ? dayEvents(tour.data.track, tour.data.pins, tour.photos, tour.posts).length : 0);
 
 	// keep the URL in step with the moment on screen and what's open, so it can be shared
 	// (replaceState: no history entries; less often while playing)
@@ -73,7 +82,7 @@
 
 <main>
 	{#if app.index && app.uk}
-		<Canvas>
+		<Canvas {dpr}>
 			<WorldScene {app} onselect={openDay} />
 		</Canvas>
 		<TripBar {app} />
@@ -89,7 +98,7 @@
 			<!-- not while flying between days: the scene is briefly empty, the card would flash -->
 			<TourIntro {app} />
 		{/if}
-		<p class="attribution">
+		{#snippet credits()}
 			Map data <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer"
 				>{tour?.data.osm?.attribution ?? '© OpenStreetMap contributors'}</a
 			>
@@ -97,7 +106,18 @@
 			{#if tour?.data.weather}
 				· <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">{tour.data.weather.attribution}</a>
 			{/if}
-		</p>
+		{/snippet}
+		{#if ui.mobile}
+			<MobileBar {app} events={eventCount} />
+			<Sheet open={ui.sheet === 'info'} title="About this map" onclose={() => (ui.sheet = null)} maxHeight="50dvh">
+				<div class="info">
+					<p><b>Getting around</b><br />Drag to orbit · pinch to zoom · two fingers to pan. Tap pins and photos to open them.</p>
+					<p class="credits">{@render credits()}</p>
+				</div>
+			</Sheet>
+		{:else}
+			<p class="attribution">{@render credits()}</p>
+		{/if}
 	{:else}
 		<p class="loading">{app.error ?? 'Loading the tour…'}</p>
 	{/if}
@@ -196,6 +216,16 @@
 		border-radius: 6px 6px 0 0;
 		background: var(--glass);
 		font-size: 10px;
+		color: var(--muted);
+	}
+	.info {
+		font-size: 13px;
+		line-height: 1.5;
+		color: var(--text);
+	}
+	.info .credits,
+	.info .credits a {
+		font-size: 12px;
 		color: var(--muted);
 	}
 	.attribution a {

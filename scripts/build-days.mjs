@@ -24,4 +24,5 @@ for (const day of days) {
 }
 run('build-tour');
 run('build-parks'); // parks record which days pass through them
+run('build-feed'); // the blog's event list
 if (failed.length) console.log(`\nIncomplete: ${failed.join(', ')} — re-run those days later (results are cached).`);

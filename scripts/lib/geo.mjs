@@ -318,3 +318,7 @@ export function parseUkTime(s) {
 	const utc = new Date(new Date(asUtc).toLocaleString('en-US', { timeZone: 'UTC' }));
 	return (asUtc - (london - utc)) / 1000;
 }
+
+/** True if a lon/lat is inside a privacy zone or within `margin` metres of one. */
+export const nearPrivacyZone = (lon, lat, margin) =>
+	privacyZones.some((z) => haversine(lon, lat, z.lon, z.lat) < z.radius + margin);

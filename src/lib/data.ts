@@ -275,6 +275,40 @@ export async function loadBlog(): Promise<BlogPost[]> {
 	}
 }
 
+// ---------- blog feed (scripts/build-feed.mjs) ----------
+
+export type FeedEvent = { t: number; place: string | null } & (
+	| { kind: 'start' | 'finish'; ride: number; rides: number }
+	| { kind: 'break'; minutes: number }
+	| { kind: 'photos'; photos: string[] }
+	| { kind: 'pin'; pin: { type: PinType; title: string; body: string } }
+	| { kind: 'post'; post: string }
+);
+
+export interface FeedDay {
+	day: string;
+	index: number;
+	title: string;
+	start: number;
+	end: number;
+	km: number;
+	rides: number;
+	weather: Weather['summary'] | null;
+	parks: string[];
+	photos: number;
+	events: FeedEvent[];
+}
+
+export interface Feed {
+	days: FeedDay[];
+}
+
+export async function loadFeed(): Promise<Feed> {
+	const r = await fetch('/data/feed.json');
+	if (!r.ok) throw new Error('Blog feed missing: run npm run data:feed');
+	return r.json();
+}
+
 /** L1: one day's bundle. */
 export const loadDay = (day: string) => loadTour(`/data/days/${day}`);
 

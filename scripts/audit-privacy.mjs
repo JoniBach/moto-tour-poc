@@ -47,7 +47,7 @@ if (fs.existsSync('static/data/blog.json'))
 const photos = JSON.parse(fs.readFileSync('static/data/photos.json', 'utf8')).photos;
 for (const p of photos) check(`photo ${p.id}`, p.e, p.n);
 const listed = new Set(photos.map((p) => p.id));
-for (const size of ['thumb', 'large'])
+for (const size of ['thumb', 'medium', 'large'])
 	for (const f of fs.readdirSync(`static/photos/${size}`))
 		if (!listed.has(path.basename(f, '.webp'))) {
 			leaks++;

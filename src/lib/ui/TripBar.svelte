@@ -51,6 +51,7 @@
 		{/each}
 	</div>
 	<a class="step" class:disabled={!next} href={next ? `/day/${next.day}` : undefined} aria-label="Next day">▶</a>
+	<a class="blog" href={activeDay ? `/blog/${activeDay}` : '/blog'} title="Read the tour as a simple blog">📖 Blog</a>
 	{#if app.pending}
 		<span class="busy">Loading Day {app.pending.index + 1}…</span>
 	{:else if app.busy}
@@ -90,6 +91,17 @@
 	.home:hover,
 	.step:hover {
 		color: var(--text);
+		background: var(--accent-soft);
+	}
+	.blog {
+		flex-shrink: 0;
+		padding: 5px 9px;
+		border-radius: 8px;
+		border: 1px solid var(--line);
+		color: var(--text);
+		white-space: nowrap;
+	}
+	.blog:hover {
 		background: var(--accent-soft);
 	}
 	.step.disabled {
@@ -160,8 +172,9 @@
 			min-width: 38px;
 			padding: 4px 4px;
 		}
-		.busy {
-			display: none;
+		.busy,
+		.blog {
+			display: none; /* on phones it's in the button strip */
 		}
 	}
 </style>

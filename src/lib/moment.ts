@@ -8,17 +8,8 @@ import type { App } from './app.svelte';
 import { bisect } from './data';
 import type { Tour } from './tour.svelte';
 
-const pad = (n: number) => String(n).padStart(2, '0');
-
-/** Epoch seconds -> "HH:MM:SS" in UK time. */
-export function ukClock(sec: number): string {
-	const d = new Date(sec * 1000);
-	const [h, m, s] = d
-		.toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour12: false })
-		.split(':')
-		.map(Number);
-	return `${pad(h % 24)}:${pad(m)}:${pad(s)}`;
-}
+export { ukClock } from './time';
+import { ukClock } from './time';
 
 /** "2026-09-16" + "10:40" / "10:40:12" (UK time) -> epoch seconds, or NaN. */
 export function ukToEpoch(day: string, clock: string): number {

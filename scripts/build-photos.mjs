@@ -15,7 +15,8 @@ import { inPrivacyZone, inPrivacyZoneAt, makeProjection, toBng } from './lib/geo
 
 const SRC = 'data/photos-src/jpg';
 const OUT = 'static/photos';
-const SIZES = { thumb: { px: 320, quality: 70 }, large: { px: 1600, quality: 80 } };
+// thumb: pins, grids · medium: blog pages on phones and in columns · large: gallery and wide screens
+const SIZES = { thumb: { px: 320, quality: 70 }, medium: { px: 800, quality: 76 }, large: { px: 1600, quality: 80 } };
 const CONCURRENCY = 4;
 
 for (const s of Object.keys(SIZES)) fs.mkdirSync(path.join(OUT, s), { recursive: true });

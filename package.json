@@ -16,8 +16,9 @@
 		"data:tour": "node scripts/build-tour.mjs && node scripts/build-parks.mjs",
 		"data:parks": "node scripts/build-parks.mjs",
 		"deploy": "node scripts/deploy.mjs",
-		"data:photos": "node scripts/build-photos.mjs",
-		"data:blog": "node scripts/build-blog.mjs"
+		"data:photos": "node scripts/build-photos.mjs && node scripts/build-feed.mjs",
+		"data:blog": "node scripts/build-blog.mjs && node scripts/build-feed.mjs",
+		"data:feed": "node scripts/build-feed.mjs"
 	},
 	"devDependencies": {
 		"@mapbox/vector-tile": "^3.0.0",

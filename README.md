@@ -49,6 +49,56 @@ and previous/next. In dev, **✎ Post here** on the scrubber copies a ready-made
 on screen (with the nearest photo as cover). Posts whose moment is inside a privacy zone are
 refused, and embedded photos withheld for privacy are removed.
 
+## The blog (plain pages)
+
+`/blog` is the same tour without the 3D view: the whole trip as a traditional blog, for readers
+who'd rather scroll and read (or who need to: keyboard/screen-reader friendly, follows the system's
+light/dark setting, scales with browser zoom, reduced motion respected).
+
+- `/blog`: every day and **every event** (the same list as the events drawer: set off/arrived,
+  breaks ≥ 30 min, photo drops, notes/pins, stories)
+- `/blog/<day>`: one day with larger photos · `/blog/<day>/<post>`: an article ·
+  `/blog/<day>/photo/<id>`: a photo with previous/next
+- Every timestamp links to that moment in the 3D view (`/day/<day>?t=…&post=…&photo=…`); the 3D
+  view's **📖 Blog** button (and "Read in the blog" in the reader) comes back the other way.
+
+Reading the timeline: each event's first line is time · icon · title · chevron. The time and the
+icon open that moment in the 3D view; the chevron folds the details (photos, note text) away, and
+**Collapse all events** folds the lot so a day reads as one-liners. Stories never fold: they're
+the heart of the blog, and folding everything else quietens the page around them.
+
+**Filter and group** (`src/lib/blog/view.svelte.ts`, `ViewControls.svelte`): show or hide each
+kind of event (set off and arrived, breaks, photos, notes and places, stories), pick a range of
+days (index), and group back-to-back similar events (on by default: a run of photo stops, breaks
+or notes becomes one row that opens to the events; stories never group). Settings carry across
+blog pages and live in the URL (`?show=photos,pin&from=2026-09-14&to=2026-09-16&group=0`), so a
+filtered view can be shared. Pages are prerendered showing everything; the URL is applied once
+the page runs.
+
+Data: `scripts/build-feed.mjs` writes `static/data/feed.json` from the same event logic as the
+drawer (`src/lib/events-core.js`, shared by app and pipeline) plus the nearest town/village for
+each event, the day's parks and weather. It holds no coordinates, and place names are left out
+within 8 km of a privacy zone. It runs as part of `npm run data`, `data:photos` and `data:blog`.
+
+Routes: the 3D experience lives in the `(dx)` route group (URLs unchanged) so the blog never loads
+the canvas; the root layout holds the shared theme.
+
+Performance: blog pages are server-rendered and prerendered at build time (`blog/+layout.ts`,
+data from `src/lib/server/blog-data.ts`), so the HTML arrives with the content and no blog page
+loads three.js or the app state (don't import `$lib/app.svelte` under `routes/blog`). Photos go
+through `src/lib/blog/Photo.svelte`: WebP `srcset` (thumb 320 / medium 800 / large 1600) with
+`sizes`, width/height set (no layout shift), lazy-loaded and decoded off the main thread; only a
+page's main image (post cover, photo page) is eager with `fetchpriority="high"`. Off-screen days on
+the index skip layout/paint (`content-visibility: auto`). `vercel.json` caches `/photos` for 30
+days and `/data` for an hour, both with stale-while-revalidate.
+
+Accessibility target: WCAG 2.2 AAA. Text contrast ≥ 7:1 in light and dark, targets ≥ 44 px,
+skip link, landmarks and breadcrumbs, one `h1` per page, unique link names (screen-reader text
+like "View on the map at 10:42"), durations in words, 1.5 line/paragraph spacing, visible focus
+not hidden by the sticky header, reflow at 320 px, ← / → between photos. To re-check after
+changes, build, run `npx vite preview`, then audit with axe-core (`wcag2aaa` + `wcag22aa` tags);
+axe can't check target size, reflow, text spacing or focus visibility, so test those by hand.
+
 ## Privacy zones
 
 `data/privacy.json` lists circles (town centre + radius) where nothing personal may appear:

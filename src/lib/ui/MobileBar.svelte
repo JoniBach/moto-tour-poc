@@ -16,6 +16,7 @@
 			☰{#if events}<span class="n">{events}</span>{/if}
 		</button>
 	{/if}
+	<a class="btn" href={app.tour ? `/blog/${app.tour.data.track.day}` : '/blog'} aria-label="Read as a blog">📖</a>
 	<button class:on={ui.sheet === 'info'} onclick={() => ui.toggle('info')} aria-label="Map info and credits">ⓘ</button>
 </nav>
 
@@ -29,7 +30,8 @@
 		flex-direction: column;
 		gap: 8px;
 	}
-	button {
+	button,
+	.btn {
 		all: unset;
 		cursor: pointer;
 		position: relative;

@@ -2,6 +2,9 @@
 // photo moments and authored pins (notes, POIs, fuel, food…), each on the riding-time axis so
 // the drawer can jump the tour to it.
 import { PIN_META, type BlogPost, type Photo, type Pin, type Track } from './data';
+import { dayEventsCore } from './events-core.js';
+
+export { BREAK_MIN } from './events-core.js';
 
 export type TourEvent =
 	| { kind: 'start' | 'finish'; rt: number; t: number; ride: number; rides: number }
@@ -10,42 +13,9 @@ export type TourEvent =
 	| { kind: 'pin'; rt: number; t: number; pin: Pin }
 	| { kind: 'post'; rt: number; t: number; post: BlogPost };
 
-export const BREAK_MIN = 30; // minutes: shorter stops aren't worth an entry
-const MOMENT = 5 * 60; // seconds: photos this close together are one moment
-
+/** The day's events (shared logic in events-core.js, also used to build the blog feed). */
 export function dayEvents(tr: Track, pins: Pin[], photos: Photo[], posts: BlogPost[] = []): TourEvent[] {
-	const ev: TourEvent[] = [];
-	const at = (i: number) => ({ rt: tr.rt[i], t: tr.t0 + tr.t[i] });
-
-	// each ride's start and finish (a day can hold several rides)
-	const starts = [0, ...(tr.breaks ?? [])];
-	starts.forEach((s, k) => {
-		const end = (starts[k + 1] ?? tr.count) - 1;
-		ev.push({ kind: 'start', ...at(s), ride: k + 1, rides: starts.length });
-		ev.push({ kind: 'finish', ...at(end), ride: k + 1, rides: starts.length });
-	});
-
-	for (const s of tr.stops)
-		if (s.duration >= BREAK_MIN * 60) ev.push({ kind: 'break', ...at(s.start), minutes: Math.round(s.duration / 60) });
-
-	// photo moments
-	let moment: Photo[] = [];
-	const flush = () => {
-		if (moment.length) ev.push({ kind: 'photos', rt: moment[0].rt ?? 0, t: moment[0].t, photos: moment });
-		moment = [];
-	};
-	for (const p of [...photos].sort((a, b) => a.t - b.t)) {
-		if (moment.length && p.t - moment.at(-1)!.t > MOMENT) flush();
-		moment.push(p);
-	}
-	flush();
-
-	for (const pin of pins) ev.push({ kind: 'pin', rt: pin.rt, t: tr.t0 + tr.t[pin.i], pin });
-	for (const post of posts) ev.push({ kind: 'post', rt: post.rt, t: post.t, post });
-
-	// chronological; at equal times keep a sensible order (start before anything, finish after)
-	const rank = { start: 0, post: 1, pin: 2, break: 3, photos: 4, finish: 5 };
-	return ev.sort((a, b) => a.t - b.t || rank[a.kind] - rank[b.kind]);
+	return dayEventsCore(tr, pins, photos, posts);
 }
 
 export function eventLabel(e: TourEvent): { icon: string; title: string; color: string } {

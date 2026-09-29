@@ -42,4 +42,5 @@ static/data/days/
 static/data/tour.json
 static/data/photos.json
 static/data/blog.json
+static/data/feed.json
 static/photos/

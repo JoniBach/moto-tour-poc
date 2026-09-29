@@ -7,12 +7,14 @@ import { Vector3 } from 'three';
 import {
 	loadDay,
 	loadBlog,
+	loadFeed,
 	loadParks,
 	loadPhotos,
 	loadTourIndex,
 	loadUk,
 	type DaySummary,
 	type BlogPost,
+	type Feed,
 	type Parks,
 	type Photo,
 	type Terrain,
@@ -65,19 +67,27 @@ export class App {
 	private days = new Map<string, Promise<TourData>>();
 	private wanted: string | null | undefined = undefined;
 
+	/** Everything the 3D experience needs. Safe to call again: only fetches what's missing. */
 	async init() {
-		const [index, uk, parks, photos, posts] = await Promise.all([
-			loadTourIndex(),
-			loadUk(),
-			loadParks(),
-			loadPhotos(),
-			loadBlog()
-		]);
+		await this.initShared();
+		if (!this.uk) this.uk = await loadUk();
+	}
+
+	/** The light data both experiences share (no terrain): the blog only needs this + the feed. */
+	async initShared() {
+		if (this.index) return;
+		const [index, parks, photos, posts] = await Promise.all([loadTourIndex(), loadParks(), loadPhotos(), loadBlog()]);
 		this.posts = posts;
-		this.index = index;
-		this.uk = uk;
 		this.parks = parks;
 		this.photos = photos;
+		this.index = index; // last: pages wait on the index
+	}
+
+	/** The blog's per-day event list (scripts/build-feed.mjs). */
+	feed = $state.raw<Feed | null>(null);
+	async initBlog() {
+		await this.initShared();
+		if (!this.feed) this.feed = await loadFeed();
 	}
 
 	summary(day: string | null | undefined): DaySummary | undefined {

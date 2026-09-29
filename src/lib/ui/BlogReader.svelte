@@ -75,6 +75,7 @@
 			<span class="actions">
 				<button class="ride" onclick={() => app.rideTo(post, onride)}>▶ Ride here</button>
 				<button class="link" onclick={share} title="Copy a link to this post">{linked ? '✓ Copied' : '🔗 Link'}</button>
+				<a class="link" href="/blog/{post.day}/{post.slug}">📖 Read in the blog</a>
 			</span>
 			<nav>
 				<button disabled={!prev} onclick={() => (app.reading = prev)} title={prev?.title}>‹ Previous</button>
@@ -225,6 +226,12 @@
 	}
 	.link {
 		color: var(--muted);
+		text-decoration: none;
+	}
+	a.link {
+		padding: 5px 10px;
+		border-radius: 8px;
+		font-size: 12px;
 	}
 	.link:hover {
 		color: var(--text);

@@ -24,6 +24,26 @@ sh('node scripts/pack.mjs');
 sh('node scripts/audit-privacy.mjs');
 vercel(`build${prod ? ' --prod' : ''}`);
 
+// Building on Windows writes each function's handler as a Windows path relative to somewhere
+// else ("..\\..\\workspaces\\…\\.svelte-kit\\vercel-tmp\\index.js"); Vercel's Linux runtime can't
+// load that, so every request reaching the function (unknown URLs, whose 404 page it renders)
+// failed. The file itself is inside the function: point the handler at it.
+const findConfigs = (dir) =>
+	fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+		const p = path.join(dir, e.name);
+		return e.isDirectory() ? findConfigs(p) : e.name === '.vc-config.json' ? [p] : [];
+	});
+for (const file of fs.existsSync('.vercel/output/functions') ? findConfigs('.vercel/output/functions') : []) {
+	const cfg = JSON.parse(fs.readFileSync(file, 'utf8'));
+	if (!cfg.handler || !/[\\]|\.\./.test(cfg.handler)) continue;
+	const parts = cfg.handler.split(/[\\/]/);
+	const from = parts.indexOf('.svelte-kit');
+	const handler = parts.slice(from).join('/');
+	if (from < 0 || !fs.existsSync(path.join(path.dirname(file), handler))) throw new Error(`Can't fix function handler ${cfg.handler} in ${file}`);
+	fs.writeFileSync(file, JSON.stringify({ ...cfg, handler }, null, '\t'));
+	console.log(`Fixed function handler: ${handler}`);
+}
+
 // the plain day files are working copies for the build scripts; the app reads the .gz ones
 const days = '.vercel/output/static/data/days';
 let dropped = 0;

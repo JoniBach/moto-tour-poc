@@ -125,8 +125,11 @@
 		inset: 0;
 		z-index: 200;
 		display: grid;
+		/* one column no wider than the screen: without minmax(0, …) the column grows to fit
+		   the thumbnail strip's full width (a whole day's photos) and the viewer is pushed off-screen */
+		grid-template-columns: minmax(0, 1fr);
 		place-items: center;
-		padding: 16px;
+		padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
 		background: rgba(2, 5, 9, 0.82);
 		backdrop-filter: blur(6px);
 	}
@@ -135,7 +138,9 @@
 		flex-direction: column;
 		gap: 10px;
 		width: min(1100px, 100%);
+		min-width: 0;
 		max-height: 100%;
+		box-sizing: border-box;
 		padding: 12px;
 		border: 1px solid var(--line);
 		border-radius: 16px;
@@ -186,7 +191,8 @@
 	}
 	.stage img {
 		max-width: 100%;
-		max-height: calc(100vh - 230px);
+		/* dvh: the visible height on phones (100vh includes space under the browser toolbars) */
+		max-height: calc(100dvh - 230px);
 		width: auto;
 		height: auto;
 		border-radius: 10px;
@@ -225,6 +231,7 @@
 	.strip {
 		display: flex;
 		gap: 6px;
+		min-width: 0;
 	}
 	.strip button {
 		all: unset;

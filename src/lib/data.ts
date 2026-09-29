@@ -61,6 +61,21 @@ export class Terrain {
 		this.water = water;
 	}
 
+	/** 0..1 water coverage at local metres, bilinear: smooth shorelines even on coarse day grids. */
+	waterAtXY(x: number, n: number): number {
+		const { x0, n1, spacing, cols, rows } = this.meta;
+		const fc = Math.max(0, Math.min(cols - 1.001, (x - x0) / spacing));
+		const fr = Math.max(0, Math.min(rows - 1.001, (n1 - n) / spacing));
+		const c = Math.floor(fc);
+		const r = Math.floor(fr);
+		const a = fc - c;
+		const b = fr - r;
+		return (
+			(this.waterAt(c, r) * (1 - a) + this.waterAt(c + 1, r) * a) * (1 - b) +
+			(this.waterAt(c, r + 1) * (1 - a) + this.waterAt(c + 1, r + 1) * a) * b
+		);
+	}
+
 	/** 0..1 water coverage at grid cell (c, r): OSM lake coverage, or 1 for sea (height at/below 0). */
 	waterAt(c: number, r: number): number {
 		const { cols, rows } = this.meta;
@@ -89,8 +104,11 @@ export interface Road {
 	highway: string;
 	name: string | null;
 	ref: string | null;
-	maxspeed: string | null;
-	singleTrack: boolean;
+	/** speed limit / single track: only in the old Overpass data, absent from vector tiles */
+	maxspeed?: string | null;
+	singleTrack?: boolean;
+	/** false = a name-only line kept for road matching; not drawn */
+	render?: boolean;
 	pts: number[]; // flat [x, n, h, …] draped on the DEM
 }
 
@@ -176,32 +194,105 @@ export async function loadUk(): Promise<Terrain> {
 	return new Terrain(meta, heights, new Uint8Array(0), null);
 }
 
+// ---------- national parks ----------
+
+export interface Park {
+	name: string; // display name, e.g. "Lake District"
+	days: string[]; // tour days whose route passes through it
+	visited: boolean;
+	label: { e: number; n: number }; // absolute BNG
+	areaKm2: number;
+	rings: number[][]; // outlines, [E, N, E, N, …] absolute BNG, closed
+}
+
+export interface Parks {
+	parks: Park[];
+	/** 1 km mask aligned with the UK grid: park index + 1, 0 outside */
+	mask: Uint8Array;
+}
+
+export async function loadParks(): Promise<Parks | null> {
+	try {
+		const [json, buf] = await Promise.all([
+			fetch('/data/uk/parks.json').then((r) => (r.ok ? r.json() : Promise.reject())),
+			fetch('/data/uk/parks.bin').then((r) => (r.ok ? r.arrayBuffer() : Promise.reject()))
+		]);
+		return { parks: json.parks, mask: new Uint8Array(buf) };
+	} catch {
+		return null; // optional layer: the tour works without build-parks
+	}
+}
+
+// ---------- photos ----------
+
+export interface Photo {
+	id: string; // file stem; images at /photos/{thumb,large}/<id>.webp
+	t: number; // epoch seconds taken
+	w: number; // gallery image size
+	h: number;
+	day: string | null;
+	e: number; // absolute BNG where it was taken (or placed)
+	n: number;
+	i?: number; // track fix it was placed at (time placement)
+	rt?: number; // riding time of that fix
+	placedBy: 'gps' | 'time' | 'time-offride';
+}
+
+export const photoUrl = (p: Photo, size: 'thumb' | 'large') => `/photos/${size}/${p.id}.webp`;
+
+export async function loadPhotos(): Promise<Photo[]> {
+	try {
+		const r = await fetch('/data/photos.json');
+		return r.ok ? ((await r.json()).photos as Photo[]) : [];
+	} catch {
+		return []; // optional: the tour works without build-photos
+	}
+}
+
 /** L1: one day's bundle. */
 export const loadDay = (day: string) => loadTour(`/data/days/${day}`);
 
+/**
+ * Fetch a day file, preferring the gzipped copy made for deployment (<name>.gz, see
+ * scripts/pack.mjs): static hosts don't compress .bin files, and packing shrinks a day several
+ * times over. Falls back to the plain file (local dev). Resolves null if neither exists.
+ */
+async function fetchPacked(url: string): Promise<ArrayBuffer | null> {
+	const gz = await fetch(`${url}.gz`).catch(() => null);
+	if (gz?.ok) {
+		const buf = await gz.arrayBuffer();
+		const bytes = new Uint8Array(buf, 0, 2);
+		// gzip magic: decompress here; otherwise the host already decoded it (Content-Encoding)
+		if (bytes[0] === 0x1f && bytes[1] === 0x8b)
+			return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+		return buf;
+	}
+	const plain = await fetch(url).catch(() => null);
+	return plain?.ok ? plain.arrayBuffer() : null;
+}
+const packedJson = async <T>(url: string): Promise<T | null> => {
+	const buf = await fetchPacked(url);
+	return buf ? (JSON.parse(new TextDecoder().decode(buf)) as T) : null;
+};
+
 export async function loadTour(base: string): Promise<TourData> {
 	const [meta, heightsBuf, corridorBuf, track, pins, osm, waterBuf, weather] = await Promise.all([
-		fetch(`${base}/terrain.json`).then((r) => r.json() as Promise<TerrainMeta>),
-		fetch(`${base}/terrain.bin`).then((r) => r.arrayBuffer()),
-		fetch(`${base}/corridor.bin`).then((r) => r.arrayBuffer()),
-		fetch(`${base}/track.json`).then((r) => r.json() as Promise<Track>),
-		fetch(`${base}/pins.json`).then((r) => r.json() as Promise<Pin[]>),
-		// road data is optional: the tour still works without running build-osm
-		fetch(`${base}/osm.json`)
-			.then((r) => (r.ok ? (r.json() as Promise<Osm>) : null))
-			.catch(() => null),
-		fetch(`${base}/water.bin`)
-			.then((r) => (r.ok ? r.arrayBuffer() : null))
-			.catch(() => null),
-		fetch(`${base}/weather.json`)
-			.then((r) => (r.ok ? (r.json() as Promise<Weather>) : null))
-			.catch(() => null)
+		packedJson<TerrainMeta>(`${base}/terrain.json`),
+		fetchPacked(`${base}/terrain.bin`),
+		fetchPacked(`${base}/corridor.bin`),
+		packedJson<Track>(`${base}/track.json`),
+		packedJson<Pin[]>(`${base}/pins.json`),
+		// roads, water and weather are optional: the tour works without them
+		packedJson<Osm>(`${base}/osm.json`),
+		fetchPacked(`${base}/water.bin`),
+		packedJson<Weather>(`${base}/weather.json`)
 	]);
+	if (!meta || !heightsBuf || !corridorBuf || !track) throw new Error(`Day data missing under ${base}`);
 	const raw = new Int16Array(heightsBuf);
 	const heights = new Float32Array(raw.length);
 	for (let i = 0; i < raw.length; i++) heights[i] = raw[i] * meta.scale;
 	const water = waterBuf && waterBuf.byteLength === raw.length ? new Uint8Array(waterBuf) : null;
-	return { terrain: new Terrain(meta, heights, new Uint8Array(corridorBuf), water), track, pins, osm, weather };
+	return { terrain: new Terrain(meta, heights, new Uint8Array(corridorBuf), water), track, pins: pins ?? [], osm, weather };
 }
 
 export interface BikeState {

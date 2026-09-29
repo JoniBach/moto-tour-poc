@@ -124,13 +124,12 @@ export class TerrariumSampler {
 
 	/** Like sample(), but returns `fallback` instead of throwing where tiles weren't prefetched. */
 	sampleOr(lon, lat, fallback) {
-		const [x, y] = TerrariumSampler.lonLatToPixel(lon, lat, this.zoom);
-		for (const [px, py] of [
-			[x - 1, y - 1],
-			[x + 1, y + 1]
-		])
-			if (!this.tiles.has(`${Math.floor(px / 256)}/${Math.floor(py / 256)}`)) return fallback;
-		return this.sample(lon, lat);
+		// bilinear lookups can straddle a tile edge, so let sample() decide what it needs
+		try {
+			return this.sample(lon, lat);
+		} catch {
+			return fallback;
+		}
 	}
 
 	/** Bilinear elevation in metres (negative = bathymetry). */
@@ -245,4 +244,27 @@ export function dayContext() {
 	const out = path.join('static/data/days', day);
 	fs.mkdirSync(out, { recursive: true });
 	return { day, files, out, file: (name) => path.join(out, name) };
+}
+
+// ---------- privacy zones ----------
+
+const PRIVACY_FILE = 'data/privacy.json';
+const privacyZones = fs.existsSync(PRIVACY_FILE) ? JSON.parse(fs.readFileSync(PRIVACY_FILE, 'utf8')).zones : [];
+
+/** True if a lon/lat falls inside any privacy zone (data/privacy.json). */
+export const inPrivacyZone = (lon, lat) =>
+	privacyZones.some((z) => haversine(lon, lat, z.lon, z.lat) < z.radius);
+
+/**
+ * Split a ride's fixes into the runs that lie outside every privacy zone. A ride that passes
+ * through a zone becomes separate pieces, so nothing is drawn (or interpolated) across it.
+ */
+export function outsidePrivacy(fixes) {
+	const runs = [[]];
+	for (const p of fixes) {
+		if (inPrivacyZone(p.lon, p.lat)) {
+			if (runs.at(-1).length) runs.push([]);
+		} else runs.at(-1).push(p);
+	}
+	return runs.filter((r) => r.length > 1);
 }

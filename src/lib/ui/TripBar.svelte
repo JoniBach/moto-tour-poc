@@ -9,9 +9,25 @@
 	let { app }: { app: App } = $props();
 
 	const days = $derived(app.index?.days ?? []);
-	const activeDay = $derived(app.tour?.data.track.day ?? null);
+	// the day on screen, or the one we're flying to while the scene is empty
+	const activeDay = $derived(app.currentDay);
 	const prev = $derived(activeDay ? app.neighbour(-1) : undefined);
 	const next = $derived(activeDay ? app.neighbour(1) : days[0]);
+	// keep the active day's chip in view as the tour moves on
+	let chips = $state<HTMLDivElement>();
+	$effect(() => {
+		if (!activeDay) return;
+		chips
+			?.querySelector<HTMLElement>(`[data-day="${activeDay}"]`)
+			?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+	});
+	// a vertical wheel over the strip scrolls it sideways
+	function onwheel(e: WheelEvent) {
+		if (!chips || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+		chips.scrollLeft += e.deltaY;
+		e.preventDefault();
+	}
+
 	const date = (s: number) =>
 		new Date(s * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Europe/London' });
 </script>
@@ -19,13 +35,14 @@
 <nav class="trip" aria-label="Tour days">
 	<a class="home" class:on={!activeDay} href="/" title="Whole tour">⌂ UK</a>
 	<a class="step" class:disabled={!prev} href={prev ? `/day/${prev.day}` : undefined} aria-label="Previous day">◀</a>
-	<div class="chips">
+	<div class="chips scroll-x" bind:this={chips} {onwheel}>
 		{#each days as d (d.day)}
 			<a
 				class="chip"
 				class:on={d.day === activeDay}
 				style:--c={dayColor(d.index, days.length)}
 				href="/day/{d.day}"
+				data-day={d.day}
 				title="{d.title} · {d.km.toFixed(0)} km"
 			>
 				<b>{d.index + 1}</b>
@@ -34,7 +51,11 @@
 		{/each}
 	</div>
 	<a class="step" class:disabled={!next} href={next ? `/day/${next.day}` : undefined} aria-label="Next day">▶</a>
-	{#if app.busy}<span class="busy">flying…</span>{/if}
+	{#if app.pending}
+		<span class="busy">Loading Day {app.pending.index + 1}…</span>
+	{:else if app.busy}
+		<span class="busy">flying…</span>
+	{/if}
 </nav>
 
 <style>
@@ -78,7 +99,10 @@
 	.chips {
 		display: flex;
 		gap: 4px;
-		overflow-x: auto;
+		/* fade the ends so it's obvious the strip scrolls */
+		mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+		padding-inline: 10px;
+		margin-bottom: -6px; /* the scroll-x bar room sits under the chips, not in the bar's height */
 	}
 	.chip {
 		display: flex;

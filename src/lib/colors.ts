@@ -1,5 +1,5 @@
 import { interpolateInferno, interpolateRdYlBu, interpolateSinebow, interpolateTurbo } from 'd3';
-import { FEATURES } from './config';
+import { speedFigures, speedShade } from './config';
 import type { Track } from './data';
 import type { ColorBy } from './tour.svelte';
 
@@ -8,7 +8,7 @@ export function colorScale(tr: Track, by: ColorBy): (i: number) => string {
 	switch (by) {
 		case 'speed':
 			// belt and braces: never colour by speed with the feature off
-			if (FEATURES.showSpeed) return (i) => interpolateTurbo(Math.min(1, tr.speed[i] / 28));
+			if (speedShade()) return (i) => interpolateTurbo(Math.min(1, tr.speed[i] / 28));
 			return colorScale(tr, 'gradient');
 		case 'lean':
 			return (i) => interpolateInferno(0.15 + Math.min(1, Math.abs(tr.lean[i]) / 0.6) * 0.85);
@@ -26,7 +26,13 @@ export function gradientAt(tr: Track, i: number): number {
 }
 
 export const LEGENDS: Record<ColorBy, { label: string; interp: (t: number) => string; min: string; max: string }> = {
-	speed: { label: 'Speed', interp: interpolateTurbo, min: '0', max: '63 mph' },
+	// at speed level 1 the legend is relative only: no figures
+	speed: {
+		label: 'Speed',
+		interp: interpolateTurbo,
+		min: speedFigures() ? '0' : 'slower',
+		max: speedFigures() ? '63 mph' : 'faster'
+	},
 	lean: { label: 'Lean angle', interp: (t) => interpolateInferno(0.15 + t * 0.85), min: '0°', max: '34°' },
 	gradient: { label: 'Gradient', interp: (t) => interpolateRdYlBu(1 - t), min: '-17%', max: '+17%' }
 };

@@ -77,7 +77,7 @@
 				positions[o] = x;
 				positions[o + 1] = hs[k];
 				positions[o + 2] = -n;
-				wet[r * SIDE + c] = terrain.waterAt(Math.round((x - x0) / spacing), Math.round((n1 - n) / spacing));
+				wet[r * SIDE + c] = terrain.waterAtXY(x, n);
 				farUv.set(imagery.farUv(x, n), (r * SIDE + c) * 2);
 				// central-difference normal in raw metres; normalMatrix applies exaggeration
 				const nx = -(hs[k + 1] - hs[k - 1]);

@@ -3,13 +3,14 @@
 // around MAX_CELLS; the app streams full-resolution terrain around the bike separately.
 // Output: static/data/days/<day>/terrain.bin (Int16, decimetres, row 0 = north) + terrain.json
 import fs from 'node:fs';
-import { TerrariumSampler, dayContext, makeProjection, readAllGpx, toBng } from './lib/geo.mjs';
+import { TerrariumSampler, dayContext, inPrivacyZone, makeProjection, readAllGpx, toBng } from './lib/geo.mjs';
 
 const MARGIN = 8000; // metres around the ride bbox
 const MAX_CELLS = 3_200_000;
 
 const ctx = dayContext();
-const pts = readAllGpx(ctx.files);
+// extent from fixes outside the privacy zones only (so the grid isn't centred on them)
+const pts = readAllGpx(ctx.files).filter((p) => !inPrivacyZone(p.lon, p.lat));
 if (!pts.length) throw new Error(`No GPX fixes for ${ctx.day}`);
 
 const bng = pts.map((p) => toBng(p.lon, p.lat));

@@ -10,6 +10,9 @@
 	import CameraRig from './CameraRig.svelte';
 	import DayMarkers from './DayMarkers.svelte';
 	import DayScene from './DayScene.svelte';
+	import NationalParks from './NationalParks.svelte';
+	import ParkLabels from './ParkLabels.svelte';
+	import PhotoPins from './PhotoPins.svelte';
 	import TourRoutes from './TourRoutes.svelte';
 	import UkLayer from './UkLayer.svelte';
 
@@ -30,9 +33,25 @@
 {#if app.uk && app.index}
 	<T.Group position={[-app.origin.e, 0, app.origin.n]}>
 		<T.Group scale.y={app.settings.exaggeration}>
-			{#if app.settings.layers.points}<UkLayer uk={app.uk} {active} settings={app.settings} />{/if}
+			<UkLayer uk={app.uk} {active} settings={app.settings} parkMask={app.parks?.mask ?? null} />
 			<TourRoutes days={app.index.days} uk={app.uk} {activeDay} />
+			{#if app.parks && app.settings.layers.parks}
+				<NationalParks parks={app.parks} uk={app.uk} day={activeDay} dayTerrain={app.tour?.data.terrain ?? null} />
+			{/if}
 		</T.Group>
+		{#if app.photos.length && app.settings.layers.photos}
+			<PhotoPins
+				photos={app.photos}
+				uk={app.uk}
+				dayTerrain={app.tour?.data.terrain ?? null}
+				origin={app.origin}
+				exaggeration={app.settings.exaggeration}
+				onopen={(photos) => (app.gallery = { photos, index: 0 })}
+			/>
+		{/if}
+		{#if app.parks && app.settings.layers.parks}
+			<ParkLabels parks={app.parks} uk={app.uk} day={activeDay} exaggeration={app.settings.exaggeration} />
+		{/if}
 		<DayMarkers days={app.index.days} uk={app.uk} {activeDay} exaggeration={app.settings.exaggeration} {onselect} />
 	</T.Group>
 {/if}

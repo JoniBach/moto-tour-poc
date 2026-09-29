@@ -9,7 +9,7 @@
 // Outputs (per day): track.json, corridor.bin, pins.json
 import fs from 'node:fs';
 import path from 'node:path';
-import { TerrariumSampler, dayContext, loadTerrainGrid, makeProjection, parseGpx } from './lib/geo.mjs';
+import { TerrariumSampler, dayContext, inPrivacyZone, loadTerrainGrid, makeProjection, outsidePrivacy, parseGpx } from './lib/geo.mjs';
 
 const STOP_RADIUS = 40; // metres
 const STOP_MIN = 120; // seconds stationary before it counts as a stop
@@ -21,7 +21,12 @@ const { meta } = loadTerrainGrid(ctx.out);
 const { cols, rows, spacing, x0, n1 } = meta;
 
 // read file by file so we know where one ride ends and the next begins
-const rides = ctx.files.map((f) => parseGpx(fs.readFileSync(f, 'utf8')).filter((p) => p.time != null));
+// privacy zones are cut out here, before anything else sees the fixes; a ride passing through
+// one becomes separate pieces (breaks), so nothing is drawn across the zone
+const rides = ctx.files
+	.flatMap((f) => outsidePrivacy(parseGpx(fs.readFileSync(f, 'utf8')).filter((p) => p.time != null)))
+	.filter((r) => r.length > 1);
+if (!rides.length) throw new Error(`${ctx.day}: nothing left outside the privacy zones`);
 rides.sort((a, b) => a[0].time - b[0].time);
 const raw = rides.flat();
 const breaks = [];
@@ -31,7 +36,7 @@ const proj = makeProjection(meta.originE, meta.originN);
 // full-resolution DEM along the route only
 const dem = new TerrariumSampler('data/cache/terrarium', 12);
 await dem.prefetchPoints(raw.map((p) => [p.lon, p.lat]));
-const groundAt = (x, n) => dem.sample(...proj.inverse(x, n));
+const groundAt = (x, n) => dem.sampleOr(...proj.inverse(x, n), 0);
 const N = raw.length;
 const t = raw.map((p) => p.time);
 const x = new Float64Array(N);
@@ -66,12 +71,17 @@ const inStop = new Uint8Array(N);
 for (const s of stops) for (let k = s.start; k <= s.end; k++) inStop[k] = 1;
 
 // ---------- positions: smooth the GPS jitter, pin stationary fixes to one spot ----------
+// which ride piece each fix belongs to: smoothing must never average across a break, or
+// points would be pulled back across a gap (e.g. into a privacy zone that was cut out)
+const piece = new Int32Array(N);
+for (let i = 1, k = 0, b = new Set(breaks); i < N; i++) piece[i] = b.has(i) ? ++k : k;
 const smooth = (arr, w) => {
 	const out = new Float64Array(arr.length);
 	for (let i = 0; i < arr.length; i++) {
 		let s = 0;
 		let c = 0;
-		for (let k = Math.max(0, i - w); k <= Math.min(arr.length - 1, i + w); k++) s += arr[k], c++;
+		for (let k = Math.max(0, i - w); k <= Math.min(arr.length - 1, i + w); k++)
+			if (piece[k] === piece[i]) (s += arr[k]), c++;
 		out[i] = s / c;
 	}
 	return out;
@@ -86,7 +96,8 @@ for (const s of stops) {
 const dist = new Float64Array(N);
 const speedRaw = new Float64Array(N);
 for (let i = 1; i < N; i++) {
-	const d = Math.hypot(sx[i] - sx[i - 1], sn[i] - sn[i - 1]);
+	// no distance (or speed) across a break between ride pieces
+	const d = piece[i] === piece[i - 1] ? Math.hypot(sx[i] - sx[i - 1], sn[i] - sn[i - 1]) : 0;
 	dist[i] = dist[i - 1] + d;
 	speedRaw[i] = inStop[i] ? 0 : d / Math.max(1, t[i] - t[i - 1]);
 }
@@ -168,6 +179,7 @@ for (const s of stops) console.log(`  stop @ ${new Date(t[s.start] * 1000).toISO
 const INF = 65535;
 const dfield = new Uint16Array(cols * rows).fill(INF);
 for (let i = 1; i < N; i++) {
+	if (piece[i] !== piece[i - 1]) continue; // never rasterise across a break (e.g. a privacy zone)
 	const steps = Math.ceil(Math.hypot(sx[i] - sx[i - 1], sn[i] - sn[i - 1]) / (spacing / 2)) || 1;
 	for (let k = 0; k <= steps; k++) {
 		const f = k / steps;
@@ -223,6 +235,7 @@ const pins = src
 	.map((p, id) => {
 		let i;
 		if (p.lat != null && p.lon != null) {
+			if (inPrivacyZone(p.lon, p.lat)) return null;
 			const [px, pn] = proj.forward(p.lon, p.lat);
 			i = 0;
 			for (let k = 1, best = Infinity; k < N; k++) {

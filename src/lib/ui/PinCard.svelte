@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { app } from '$lib/app.svelte';
 	import { clock, PIN_META } from '$lib/data';
 	import type { Tour } from '$lib/tour.svelte';
 
@@ -10,7 +11,7 @@
 
 {#if pin}
 	{@const meta = PIN_META[pin.type]}
-	<article class="card" style:--c={meta.color}>
+	<article class="card" class:beside-drawer={app.settings.eventsOpen} style:--c={meta.color}>
 		<header>
 			<span class="badge">{meta.icon} {meta.label}</span>
 			<button class="close" onclick={() => (tour.selectedPin = null)} aria-label="Close">×</button>
@@ -48,6 +49,9 @@
 		backdrop-filter: blur(10px);
 		color: var(--text);
 		font-size: 13px;
+	}
+	.card.beside-drawer {
+		right: 332px;
 	}
 	header {
 		display: flex;

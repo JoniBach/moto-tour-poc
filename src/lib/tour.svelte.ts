@@ -1,6 +1,6 @@
 // One day's playback state. Viewer settings live in the shared Settings object and are
 // forwarded here so scene components can keep reading `tour.layers`, `tour.exaggeration`, etc.
-import { sampleTrack, type BikeState, type TourData } from './data';
+import { sampleTrack, type BikeState, type Photo, type TourData } from './data';
 import { Imagery } from './imagery';
 import type { Settings } from './settings.svelte';
 
@@ -10,6 +10,10 @@ export class Tour {
 	rt = $state(0);
 	playing = $state(false);
 	selectedPin = $state<number | null>(null);
+	/** this day's photos placed on the ride timeline (set by the app), in time order */
+	photos: Photo[] = [];
+	/** photos popping up as the bike rides past where they were taken */
+	popups = $state<{ photo: Photo; until: number }[]>([]);
 
 	readonly data: TourData;
 	readonly settings: Settings;
@@ -33,6 +37,8 @@ export class Tour {
 	get exaggeration() { return this.settings.exaggeration; }
 	set exaggeration(v) { this.settings.exaggeration = v; }
 	get bubble() { return this.settings.bubble; }
+	get horizon() { return this.settings.horizon; }
+	set horizon(v) { this.settings.horizon = v; }
 	set bubble(v) { this.settings.bubble = v; }
 	get camera() { return this.settings.camera; }
 	set camera(v) { this.settings.camera = v; }
@@ -43,6 +49,8 @@ export class Tour {
 	get pointSize() { return this.settings.pointSize; }
 	set pointSize(v) { this.settings.pointSize = v; }
 	get pointGlow() { return this.settings.pointGlow; }
+	get pointDensity() { return this.settings.pointDensity; }
+	set pointDensity(v) { this.settings.pointDensity = v; }
 	set pointGlow(v) { this.settings.pointGlow = v; }
 	get layers() { return this.settings.layers; }
 
@@ -53,6 +61,10 @@ export class Tour {
 		// surface pins as the bike rides past them
 		const crossed = this.data.pins.find((p) => p.rt > prev && p.rt <= this.rt);
 		if (crossed) this.selectedPin = crossed.id;
+		// photo pop-ups: each shows for a few seconds of real time; at most 4 on screen
+		const now = performance.now();
+		for (const ph of this.photos)
+			if (ph.rt! > prev && ph.rt! <= this.rt) this.popups = [...this.popups, { photo: ph, until: now + 5000 }].slice(-4);
 		if (this.rt >= this.duration) {
 			this.playing = false;
 			this.onEnded?.();

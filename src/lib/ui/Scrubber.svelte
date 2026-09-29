@@ -1,12 +1,14 @@
 <!--
   Timeline scrubber on the riding-time axis (stops collapsed to a few seconds).
-  Elevation profile filled with the active colour scale, stop + pin markers, draggable playhead.
+  Elevation profile filled with the active colour scale, stop + pin markers, draggable playhead,
+  and a row of photo ticks (hover to preview, click to jump there and open the photo).
 -->
 <script lang="ts">
 	import { area, line, scaleLinear } from 'd3';
-	import { clock, mph, PIN_META, roadAtFix, weatherAt, weatherLabel } from '$lib/data';
+	import { app } from '$lib/app.svelte';
+	import { clock, mph, photoUrl, PIN_META, roadAtFix, weatherAt, weatherLabel, type Photo } from '$lib/data';
 	import { colorScale, gradientAt, LEGENDS } from '$lib/colors';
-	import { FEATURES } from '$lib/config';
+	import { speedFigures } from '$lib/config';
 	import type { Tour } from '$lib/tour.svelte';
 
 	let { tour }: { tour: Tour } = $props();
@@ -14,8 +16,9 @@
 	const tr = tour.data.track;
 
 	let width = $state(800);
-	const HEIGHT = 96;
-	const PAD = { top: 22, bottom: 18 };
+	const HEIGHT = 104;
+	const PAD = { top: 22, bottom: 26 }; // bottom: photo row + clock labels
+	const PHOTO_Y = HEIGHT - PAD.bottom + 7;
 
 	const x = $derived(scaleLinear().domain([0, tour.duration]).range([0, width]));
 	const lo = Math.min(...tr.ground, ...tr.ele);
@@ -89,6 +92,19 @@
 	const roadNotes = $derived(
 		road ? [road.singleTrack && 'single track', road.maxspeed && `limit ${road.maxspeed}`].filter(Boolean).join(' · ') : ''
 	);
+	// photo ticks: photos within 4 px of each other share a tick (with a count)
+	const photoTicks = $derived.by(() => {
+		const out: { px: number; photos: Photo[]; first: number }[] = [];
+		tour.photos.forEach((ph, k) => {
+			const px = x(ph.rt!);
+			const last = out.at(-1);
+			if (last && px - last.px < 4) last.photos.push(ph);
+			else out.push({ px, photos: [ph], first: k });
+		});
+		return out;
+	});
+	let photoHover = $state<{ px: number; photos: Photo[] } | null>(null);
+
 	const legend = $derived(LEGENDS[tour.colorBy]);
 	const legendGradient = $derived(
 		Array.from({ length: 11 }, (_, k) => `${legend.interp(k / 10)} ${k * 10}%`).join(', ')
@@ -123,7 +139,7 @@
 			{#if roadNotes}<small>{roadNotes}</small>{/if}
 		</div>
 		<dl class="readouts">
-			{#if FEATURES.showSpeed}
+			{#if speedFigures()}
 				<div><dt>Speed</dt><dd>{mph(b.speed).toFixed(0)}<small>mph</small></dd></div>
 			{/if}
 			<div><dt>Ground</dt><dd>{b.h.toFixed(0)}<small>m</small></dd></div>
@@ -151,6 +167,7 @@
 			aria-valuemax={tour.duration}
 			aria-valuenow={tour.rt}
 			onpointerdown={(e) => {
+				e.preventDefault(); // a drag here is scrubbing, not selecting the text around it
 				dragging = true;
 				svg.setPointerCapture(e.pointerId);
 				tour.seek(rtAt(e));
@@ -211,6 +228,27 @@
 				</g>
 			{/each}
 
+			{#each photoTicks as pt (pt.first)}
+				<g
+					class="photo-tick"
+					class:passed={pt.px <= x(tour.rt)}
+					transform="translate({pt.px}, {PHOTO_Y})"
+					role="button"
+					tabindex="-1"
+					aria-label="{pt.photos.length} photo(s)"
+					onpointerenter={() => (photoHover = { px: pt.px, photos: pt.photos })}
+					onpointerleave={() => (photoHover = null)}
+					onpointerdown={(e) => {
+						e.stopPropagation();
+						tour.seek(pt.photos[0].rt!);
+						tour.playing = false;
+						app.gallery = { photos: tour.photos, index: pt.first };
+					}}
+				>
+					<circle r={pt.photos.length > 1 ? 4.5 : 3.5} />
+				</g>
+			{/each}
+
 			{#each ticks as t (t.rt)}
 				<text x={x(t.rt)} y={HEIGHT - 4} class="tick" text-anchor={x(t.rt) < 20 ? 'start' : x(t.rt) > width - 20 ? 'end' : 'middle'}>{t.label}</text>
 			{/each}
@@ -223,6 +261,13 @@
 				<text x={hoverX} y={PAD.top - 8} class="hover" text-anchor="middle">{clock(tr.t0 + tr.t[Math.max(0, hi)])}</text>
 			{/if}
 		</svg>
+		{#if photoHover}
+			{@const ph = photoHover.photos[0]}
+			<div class="photo-preview" style:left="{Math.max(56, Math.min(width - 56, photoHover.px))}px">
+				<img src={photoUrl(ph, 'thumb')} alt="" />
+				<span>{clock(ph.t)}{#if photoHover.photos.length > 1} · {photoHover.photos.length} photos{/if}</span>
+			</div>
+		{/if}
 	</div>
 </div>
 
@@ -378,7 +423,49 @@
 		justify-content: space-between;
 	}
 	.track {
+		position: relative;
 		width: 100%;
+	}
+	.photo-tick {
+		cursor: pointer;
+	}
+	.photo-tick circle {
+		fill: #ffd166;
+		stroke: #03070c;
+		stroke-width: 1.5;
+		opacity: 0.55;
+	}
+	.photo-tick.passed circle {
+		opacity: 1;
+	}
+	.photo-tick:hover circle {
+		opacity: 1;
+		transform: scale(1.5);
+	}
+	.photo-preview {
+		position: absolute;
+		bottom: calc(100% - 6px);
+		transform: translateX(-50%);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 3px;
+		padding: 4px;
+		border: 1px solid #ffd166;
+		border-radius: 8px;
+		background: var(--glass);
+		pointer-events: none;
+		z-index: 2;
+	}
+	.photo-preview img {
+		width: 104px;
+		height: 78px;
+		object-fit: cover;
+		border-radius: 5px;
+	}
+	.photo-preview span {
+		font-size: 10px;
+		color: var(--muted);
 	}
 	svg {
 		display: block;

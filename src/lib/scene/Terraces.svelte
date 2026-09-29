@@ -8,6 +8,7 @@
 	import { T, useTask } from '@threlte/core';
 	import { BufferAttribute, BufferGeometry, ShaderMaterial } from 'three';
 	import type { Tour } from '$lib/tour.svelte';
+	import { HORIZON_GLSL, horizonUniforms } from './horizon';
 
 	let { tour, interval = 50 }: { tour: Tour; interval?: number } = $props();
 
@@ -49,7 +50,7 @@
 	const material = new ShaderMaterial({
 		transparent: true,
 		// svelte-ignore state_referenced_locally
-		uniforms: { uInterval: { value: interval }, uMaxH: { value: maxH }, uWater: { value: 1 }, uMap: { value: imagery.far.texture }, uMapMix: { value: 0 } },
+		uniforms: { uInterval: { value: interval }, uMaxH: { value: maxH }, uWater: { value: 1 }, uMap: { value: imagery.far.texture }, uMapMix: { value: 0 }, ...horizonUniforms() },
 		vertexShader: /* glsl */ `
 			uniform float uInterval;
 			varying float vLevel;
@@ -76,6 +77,7 @@
 			uniform float uWater;
 			uniform sampler2D uMap;
 			uniform float uMapMix;
+			${HORIZON_GLSL}
 			varying float vWater;
 			varying vec2 vUv;
 			varying float vLevel;
@@ -95,7 +97,9 @@
 				// lakes read as flat blue sheets set into their terrace
 				float w = max(vSea, smoothstep(0.4, 0.6, vWater) * uWater) * (1.0 - 0.7 * uMapMix);
 				col = mix(col, mix(vec3(0.05, 0.2, 0.5), vec3(0.02, 0.06, 0.14), vSea), w);
-				gl_FragColor = vec4(col, mix(0.92, 0.75, w));
+				float fade = horizonFade(vWorld.xz);
+				if (fade <= 0.001) discard;
+				gl_FragColor = vec4(col, mix(0.92, 0.75, w) * fade);
 			}
 		`
 	});
@@ -107,6 +111,8 @@
 
 	useTask(() => {
 		material.uniforms.uMapMix.value = imagery.mix;
+		material.uniforms.uRider.value.set(tour.bike.x, -tour.bike.n);
+		material.uniforms.uHorizon.value = tour.horizon;
 	});
 
 	$effect(() => () => {

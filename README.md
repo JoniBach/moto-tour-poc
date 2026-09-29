@@ -14,9 +14,36 @@ npm install
 npm run dev            # http://localhost:5173
 ```
 
-The built data in `static/data/` is committed, so the app runs without the pipeline.
-`/` is the whole tour over Great Britain; `/day/2026-09-16` etc. are the days. Built so far:
-**16 Sep, Lakes figure of eight** and **17 Sep, Lakes to Thorntonloch**.
+`/` is the whole tour over Great Britain; `/day/2026-09-09` … `/day/2026-09-26` are the 18 days.
+
+**The personal data is not in git.** Day bundles (`static/data/days/`), `tour.json`,
+`photos.json` and `static/photos/` are generated from private sources (the Beeline export in
+`data/beeline/`, originals in `data/photos-src/jpg/`, privacy zones in `data/privacy.json`) and
+git-ignored. To rebuild on a fresh checkout, put those in place, then:
+
+```sh
+npm run data                         # all days, tour index, parks
+node scripts/build-photos.mjs        # resize + place photos
+```
+
+Only the UK backdrop and parks (`static/data/uk/`, public map data) are committed.
+
+## Privacy zones
+
+`data/privacy.json` lists circles (town centre + radius) where nothing personal may appear:
+`build-track` drops every GPS fix inside them before anything else (a ride through a zone
+becomes separate pieces, never joined across it), `build-terrain` sizes the day grid from what's
+left, pins inside a zone are dropped, and `build-photos` withholds (and deletes the resized copies
+of) any photo taken inside a zone, judged from the *unfiltered* GPS at the moment it was taken.
+`node scripts/audit-privacy.mjs` checks every served position (tracks, route rasters, pins,
+tour lines, photos, stray photo files); the deploy refuses to run if it finds anything.
+
+## Deploy
+
+`npm run deploy` builds a **private Vercel preview** (Vercel login required to view): packs the day
+files as `.gz` (275 MB -> 86 MB; the app decompresses them), runs the privacy audit, builds with
+every page prerendered as static files, and uploads with `--prebuilt`. Uploads resume, so on a
+flaky connection just re-run. `node scripts/deploy.mjs --prod` would publish publicly.
 
 ## Multi-day architecture: phased resolution, one page per day
 
@@ -53,6 +80,7 @@ or position.
 | `build-track.mjs <day>` | `track.json` (draped on full-res tiles, stops, riding time, lean, ride breaks), `corridor.bin`, `pins.json` |
 | `build-osm.mjs <day>` | `osm.json` + `water.bin`: Overpass queried in ~32 km chunks along the route (minor roads/hamlets within 1.5 km, main roads/towns/peaks/water within 8 km), each chunk cached |
 | `build-weather.mjs <day>` | `weather.json` from Open-Meteo, every 10 min along the ride |
+| `build-parks.mjs` | `uk/parks.json` + `uk/parks.bin`: the 15 GB national parks (incl. the Broads) from OpenMapTiles z9, rasterised at 200 m and traced into clean outlines, which tour days pass through each, and a 1 km mask on the UK grid for tinting |
 | `build-tour.mjs` | `tour.json`: days, origins, extents, stats, simplified lines |
 | `build-days.mjs [days…]` | Runs the above per day; OSM/weather failures don't stop the day building |
 
@@ -77,11 +105,18 @@ or position.
 | Historical weather | HUD (conditions, °C, wind arrow, rain), rain bars and a temperature trace on the scrubber, and rain streaks in 3D whose density follows precipitation (drizzle codes get a floor) and whose slant follows the recorded wind | `build-weather.mjs`, `Rain.svelte`, `Scrubber.svelte` |
 | Camera | Follow (keeps your orbit offset), Chase (behind the bike, never under the terrain), Overview, Free, with fly-to transitions | `CameraRig.svelte` |
 
-**Feature flags** live in `src/lib/config.ts` (hard-coded; flip and rebuild). `showSpeed` is **off**
-by default: no speed readout, no speed colouring, no mph legend. This is a travelogue, and showing
-speeds could read as encouraging people to race these roads. Note that the flag only hides speed in
-the UI: playback timing and `track.json` still imply it, so strip or resample the data before
-publishing if that matters.
+**Feature flags** live in `src/lib/config.ts` (hard-coded; change and rebuild). `FEATURES.speed`
+sets how much riding speed the tour reveals:
+
+| Level | Speed colouring | Figures (HUD readout, mph legend) |
+| --- | --- | --- |
+| 0 | no | no |
+| **1 (default)** | yes, legend reads "slower → faster" | no |
+| 2 | yes | yes |
+
+This is a travelogue, and published speed figures could read as encouraging people to race these
+roads. Note that the flag only controls the UI: playback timing and `track.json` still imply
+speed, so strip or resample the data before publishing if that matters.
 
 Controls: Space to play/pause, ←/→ to skip 30 s, drag to orbit.
 
@@ -114,6 +149,11 @@ Controls: Space to play/pause, ←/→ to skip 30 s, drag to orbit.
 
 ## Not in the POC yet
 
-Real photos (EXIF extraction + thumbnails), Spotify "now playing" matched by timestamp, a
-multi-day/chapter timeline, blog content as Markdown files, a glTF bike model, and mobile
-performance tuning.
+Built since the first POC: all 18 days with day-to-day flights, national parks layer, photos
+(resized, placed by time, clustered pins + exact-spot dots, gallery, scrubber ticks, playback
+pop-ups), the events drawer and timeline day list, rider-scoped terrain, screen-density point LOD,
+privacy zones and a private deploy.
+
+Still to do: Spotify "now playing" matched by timestamp, fuel/food receipts as pins (`data/pins.json`
+supports `"type": "fuel"` etc.), exact photo positions from Google Takeout sidecars, videos,
+blog content as Markdown files, a glTF bike model, and mobile performance tuning.

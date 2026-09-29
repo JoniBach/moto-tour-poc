@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { FEATURES } from '$lib/config';
+	import { speedShade } from '$lib/config';
 	import type { MapStyle } from '$lib/imagery';
 	import type { CameraMode, ColorBy, Tour } from '$lib/tour.svelte';
 
@@ -29,7 +29,7 @@
 		{ id: 'topo', label: 'Topo' }
 	];
 	const colorModes: { id: ColorBy; label: string }[] = [
-		...(FEATURES.showSpeed ? [{ id: 'speed' as const, label: 'Speed' }] : []),
+		...(speedShade() ? [{ id: 'speed' as const, label: 'Speed' }] : []),
 		{ id: 'lean', label: 'Lean' },
 		{ id: 'gradient', label: 'Gradient' }
 	];
@@ -41,6 +41,9 @@
 		route: 'Route',
 		roads: 'Roads (OSM)',
 		water: 'Lakes & rivers',
+		parks: 'National parks',
+		photos: 'Photos',
+		ukPoints: 'UK backdrop points',
 		weather: 'Weather (rain)',
 		labels: 'Place names',
 		pins: 'Pins',
@@ -48,7 +51,7 @@
 	};
 </script>
 
-<aside class="panel" class:open>
+<aside class="panel scroll-y" class:open>
 	<header>
 		<div>
 			<h1>{tr.title}</h1>
@@ -92,8 +95,12 @@
 			<input type="range" min="1" max="5" step="0.1" bind:value={tour.exaggeration} />
 			<h2>Detail radius <output>{(tour.bubble / 1000).toFixed(1)} km</output></h2>
 			<input type="range" min="600" max="2800" step="100" bind:value={tour.bubble} />
+			<h2>Terrain radius <output>{(tour.horizon / 1000).toFixed(0)} km</output></h2>
+			<input type="range" min="4000" max="60000" step="1000" bind:value={tour.horizon} />
 			<h2>Point size <output>{tour.pointSize.toFixed(1)}×</output></h2>
 			<input type="range" min="0.5" max="4" step="0.1" bind:value={tour.pointSize} />
+			<h2>Point density <output>{tour.pointDensity.toFixed(1)}×</output></h2>
+			<input type="range" min="0.4" max="2.5" step="0.1" bind:value={tour.pointDensity} />
 			<h2>Point glow <output>{tour.pointGlow.toFixed(1)}×</output></h2>
 			<input type="range" min="0.4" max="3" step="0.1" bind:value={tour.pointGlow} />
 		</section>
@@ -118,7 +125,6 @@
 		left: 16px;
 		width: 250px;
 		max-height: calc(100% - 200px);
-		overflow: auto;
 		padding: 12px 14px;
 		border: 1px solid var(--line);
 		border-radius: 14px;

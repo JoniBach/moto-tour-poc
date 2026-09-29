@@ -6,6 +6,7 @@
 	import { T } from '@threlte/core';
 	import { HTML } from '@threlte/extras';
 	import { PIN_META } from '$lib/data';
+	import { clickThroughControls } from './controls';
 	import type { Tour } from '$lib/tour.svelte';
 
 	let { tour }: { tour: Tour } = $props();
@@ -24,6 +25,7 @@
 				class:selected={tour.selectedPin === pin.id}
 				style:--c={meta.color}
 				title={pin.title}
+				{@attach clickThroughControls}
 				onclick={() => {
 					tour.selectedPin = pin.id;
 					tour.playing = false;

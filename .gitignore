@@ -27,3 +27,18 @@ data/cache/
 
 # full Beeline export (personal ride data); copy rides into data/raw to use them
 data/beeline/
+
+# original photos (large, private EXIF); resized copies are built into static/photos
+data/photos-src/
+
+.vercel
+.env*
+
+# privacy zones (family locations)
+data/privacy.json
+
+# generated personal data (routes, photos): large, private, rebuilt by `npm run data` + build-photos
+static/data/days/
+static/data/tour.json
+static/data/photos.json
+static/photos/

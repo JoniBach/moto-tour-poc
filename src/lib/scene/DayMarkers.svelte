@@ -7,6 +7,7 @@
 	import { HTML } from '@threlte/extras';
 	import { Vector3 } from 'three';
 	import { dayColor } from '$lib/colors';
+	import { clickThroughControls } from './controls';
 	import type { DaySummary, Terrain } from '$lib/data';
 
 	let {
@@ -58,6 +59,7 @@
 					class:active={m.d.day === activeDay}
 					class:hidden={!far}
 					style:--c={dayColor(m.d.index, days.length)}
+					{@attach clickThroughControls}
 					onclick={() => onselect(m.d.day)}
 					title={m.d.title}
 				>
@@ -76,7 +78,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		padding: 4px 9px;
+		padding: 2px 8px;
 		border-radius: 10px;
 		border: 1px solid var(--c);
 		background: rgba(4, 12, 20, 0.78);
@@ -90,8 +92,17 @@
 		color: var(--c);
 		font-size: 12px;
 	}
+	/* compact "Day N" pills: with 18 days full titles pile up, so they show on hover */
 	.marker span {
+		display: none;
 		color: #9fc2d0;
+	}
+	.marker:hover span,
+	.marker.active span {
+		display: block;
+	}
+	.marker:hover {
+		z-index: 1;
 	}
 	.marker.active {
 		background: color-mix(in srgb, var(--c) 30%, rgba(4, 12, 20, 0.85));

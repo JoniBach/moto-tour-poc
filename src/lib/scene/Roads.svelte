@@ -25,7 +25,7 @@
 	const batches = STYLES.map((style, tier) => {
 		const seg: number[] = [];
 		for (const road of osm.roads) {
-			if (road.tier !== tier) continue;
+			if (road.tier !== tier || road.render === false) continue; // name-only lines are for matching
 			const p = road.pts;
 			for (let k = 3; k < p.length; k += 3)
 				seg.push(p[k - 3], p[k - 1] + LIFT, -p[k - 2], p[k], p[k + 2] + LIFT, -p[k + 1]);

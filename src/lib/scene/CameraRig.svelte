@@ -38,6 +38,8 @@
 	const goalPos = new Vector3();
 	const goalTarget = new Vector3();
 	let flying = 0; // seconds of mode fly-in left
+	/** set when the user's own drag/zoom changes the mode: keep their view, don't fly */
+	let userSwitched = false;
 	let hasLast = false;
 
 	// explicit flights requested by the app (day transitions)
@@ -53,7 +55,11 @@
 		if (!tour) return;
 		bikeWorld(bikePos);
 		if (mode === 'overview') {
-			const { centre, span } = dayFrame();
+			// frame the terrain around the rider (see horizon.ts), or the whole day if that's smaller
+			const day = dayFrame();
+			const scoped = settings.horizon * 2 < day.span;
+			const centre = scoped ? bikePos.clone().setY(0) : day.centre;
+			const span = scoped ? settings.horizon * 2 : day.span;
 			goalTarget.copy(centre);
 			goalPos.set(centre.x, span * 0.75, centre.z + span * 0.7);
 			flying = 1.6;
@@ -71,7 +77,10 @@
 		const mode = settings.camera;
 		if (!camera || !controls) return;
 		untrack(() => {
-			if (!flight) flyFor(mode);
+			if (userSwitched) {
+				userSwitched = false;
+				hasLast = false;
+			} else if (!flight) flyFor(mode);
 		});
 	});
 
@@ -99,7 +108,11 @@
 				return ctl.target;
 			}
 		};
-		if (tour) flyFor(untrack(() => settings.camera));
+		// untracked as a whole: flyFor reads the bike's position, and tracking that would re-run
+		// this setup (and its fly-in) every time the bike moved, snapping the user's zoom back
+		if (tour) untrack(() => flyFor(settings.camera));
+		// dev only: lets browser tests read the camera
+		if (import.meta.env.DEV) (window as unknown as { __rig: object }).__rig = { camera: cam, controls: ctl };
 		return () => {
 			app.camera = null;
 		};
@@ -145,6 +158,8 @@
 				controls.target.lerp(goalTarget, k);
 			} else if (settings.camera === 'follow') {
 				if (hasLast) {
+					// carry the viewer's chosen offset (zoom + angle) with the bike, however far it
+					// jumps (scrubbing), so the framing they set is kept
 					const delta = bikePos.clone().sub(lastBike);
 					camera.position.add(delta);
 					controls.target.add(delta);
@@ -174,8 +189,10 @@
 		minDistance={20}
 		maxDistance={3_000_000}
 		onstart={() => {
-			if (settings.camera === 'chase' || settings.camera === 'overview')
+			if (settings.camera === 'chase' || settings.camera === 'overview') {
+				userSwitched = true; // the user is taking over the view: keep it where it is
 				settings.camera = settings.camera === 'chase' ? 'follow' : 'free';
+			}
 			flying = 0;
 		}}
 	/>

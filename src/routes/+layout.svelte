@@ -10,6 +10,9 @@
 	import { app } from '$lib/app.svelte';
 	import WorldScene from '$lib/scene/WorldScene.svelte';
 	import ControlPanel from '$lib/ui/ControlPanel.svelte';
+	import EventsDrawer from '$lib/ui/EventsDrawer.svelte';
+	import Gallery from '$lib/ui/Gallery.svelte';
+	import PhotoPopups from '$lib/ui/PhotoPopups.svelte';
 	import PinCard from '$lib/ui/PinCard.svelte';
 	import Scrubber from '$lib/ui/Scrubber.svelte';
 	import TourIntro from '$lib/ui/TourIntro.svelte';
@@ -28,6 +31,7 @@
 
 	function onkeydown(e: KeyboardEvent) {
 		if ((e.target as HTMLElement).closest('input, select, textarea')) return;
+		if (app.gallery) return; // the gallery has the keyboard while it's open
 		// shift + arrows: previous / next day
 		if (e.shiftKey && (e.code === 'ArrowRight' || e.code === 'ArrowLeft')) {
 			const d = tour ? app.neighbour(e.code === 'ArrowRight' ? 1 : -1) : app.index?.days[0];
@@ -60,12 +64,17 @@
 				<ControlPanel {tour} />
 				<PinCard {tour} />
 				<Scrubber {tour} />
+				<PhotoPopups {tour} />
+				<EventsDrawer {tour} />
 			{/key}
-		{:else}
+		{:else if !app.pending}
+			<!-- not while flying between days: the scene is briefly empty, the card would flash -->
 			<TourIntro {app} />
 		{/if}
 		<p class="attribution">
-			Map data <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a>
+			Map data <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer"
+				>{tour?.data.osm?.attribution ?? '© OpenStreetMap contributors'}</a
+			>
 			{#if tour?.imagery.attribution} · {tour.imagery.attribution}{/if}
 			{#if tour?.data.weather}
 				· <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">{tour.data.weather.attribution}</a>
@@ -74,6 +83,7 @@
 	{:else}
 		<p class="loading">{app.error ?? 'Loading the tour…'}</p>
 	{/if}
+	<Gallery {app} onride={openDay} />
 	{#if app.error && app.index}<p class="error">{app.error}</p>{/if}
 	{@render children()}
 </main>
@@ -87,6 +97,61 @@
 		--line: rgba(124, 247, 255, 0.18);
 		--glass: rgba(4, 12, 20, 0.72);
 	}
+	/*
+	  Themed, "safe" scrolling for the glass panels. Add class="scroll-y" / "scroll-x".
+	  - the bar gets its own gutter (never drawn over content) and sits inset from rounded corners
+	  - overscroll-behavior stops a panel's wheel scroll leaking into the 3D scene's zoom
+	  Chrome ignores ::-webkit-scrollbar styling once the standard scrollbar-* properties are set,
+	  so those are applied to Firefox only.
+	*/
+	:global(.scroll-y) {
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		scrollbar-gutter: stable;
+	}
+	:global(.scroll-x) {
+		overflow-x: auto;
+		overflow-y: hidden;
+		overscroll-behavior: contain;
+		padding-bottom: 6px; /* room for the bar under the content */
+	}
+	:global(.scroll-y::-webkit-scrollbar),
+	:global(.scroll-x::-webkit-scrollbar) {
+		width: 6px;
+		height: 5px;
+	}
+	:global(.scroll-y::-webkit-scrollbar-track),
+	:global(.scroll-x::-webkit-scrollbar-track) {
+		background: transparent;
+	}
+	:global(.scroll-y::-webkit-scrollbar-track) {
+		margin: 14px 0; /* clear of the panel's rounded corners */
+	}
+	:global(.scroll-x::-webkit-scrollbar-track) {
+		margin: 0 10px;
+	}
+	:global(.scroll-y::-webkit-scrollbar-thumb),
+	:global(.scroll-x::-webkit-scrollbar-thumb) {
+		border-radius: 6px;
+		background: linear-gradient(rgba(124, 247, 255, 0.45), rgba(124, 247, 255, 0.25));
+		box-shadow: 0 0 6px rgba(124, 247, 255, 0.35);
+	}
+	:global(.scroll-y::-webkit-scrollbar-thumb:hover),
+	:global(.scroll-x::-webkit-scrollbar-thumb:hover) {
+		background: var(--accent);
+		box-shadow: 0 0 10px var(--accent);
+	}
+	:global(.scroll-y::-webkit-scrollbar-corner),
+	:global(.scroll-x::-webkit-scrollbar-corner) {
+		background: transparent;
+	}
+	@supports (-moz-appearance: none) {
+		:global(.scroll-y),
+		:global(.scroll-x) {
+			scrollbar-width: thin;
+			scrollbar-color: rgba(124, 247, 255, 0.4) transparent;
+		}
+	}
 	:global(html, body) {
 		margin: 0;
 		height: 100%;
@@ -98,6 +163,9 @@
 	main {
 		position: fixed;
 		inset: 0;
+		/* an app surface, not a document: drags (scrubbing, orbiting over labels) shouldn't select text */
+		user-select: none;
+		-webkit-user-select: none;
 	}
 	.attribution {
 		position: absolute;

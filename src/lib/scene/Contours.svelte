@@ -2,9 +2,10 @@
   Elevation rings from d3-contour, placed at their true XY and raised to their true height.
 -->
 <script lang="ts">
-	import { T } from '@threlte/core';
+	import { T, useTask } from '@threlte/core';
+	import { HORIZON_GLSL, horizonUniforms } from './horizon';
 	import { contours } from 'd3';
-	import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, LineBasicMaterial } from 'three';
+	import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, ShaderMaterial } from 'three';
 	import type { Tour } from '$lib/tour.svelte';
 
 	let { tour, interval = 50 }: { tour: Tour; interval?: number } = $props();
@@ -42,6 +43,10 @@
 			for (const poly of mp.coordinates)
 				for (const ring of poly)
 					for (let i = 1; i < ring.length; i++) {
+						// d3-contour closes rings along the grid's edge; those runs aren't contours, and
+						// drawn at every level they stack into a bright border round the day's area
+						const [a, b] = [ring[i - 1], ring[i]];
+						if ((a[0] === b[0] && (a[0] <= 0 || a[0] >= gc)) || (a[1] === b[1] && (a[1] <= 0 || a[1] >= gr))) continue;
 						pos.push(gx(ring[i - 1][0]), h, -gn(ring[i - 1][1]), gx(ring[i][0]), h, -gn(ring[i][1]));
 						col.push(c.r, c.g, c.b, c.r, c.g, c.b);
 					}
@@ -53,12 +58,34 @@
 	}
 
 	const rings = buildRings();
-	const ringMat = new LineBasicMaterial({
+	const ringMat = new ShaderMaterial({
 		vertexColors: true,
 		transparent: true,
-		opacity: 0.8,
 		blending: AdditiveBlending,
-		depthWrite: false
+		depthWrite: false,
+		uniforms: horizonUniforms(),
+		vertexShader: /* glsl */ `
+			${HORIZON_GLSL}
+			varying vec3 vColor;
+			varying float vFade;
+			void main() {
+				vColor = color;
+				vFade = horizonFade(position.xz);
+				gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+			}
+		`,
+		fragmentShader: /* glsl */ `
+			varying vec3 vColor;
+			varying float vFade;
+			void main() {
+				if (vFade <= 0.001) discard;
+				gl_FragColor = vec4(vColor, 0.8 * vFade);
+			}
+		`
+	});
+	useTask(() => {
+		ringMat.uniforms.uRider.value.set(tour.bike.x, -tour.bike.n);
+		ringMat.uniforms.uHorizon.value = tour.horizon;
 	});
 
 	$effect(() => () => {

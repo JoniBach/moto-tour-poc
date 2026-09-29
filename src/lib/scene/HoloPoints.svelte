@@ -1,13 +1,18 @@
 <!--
-  Hologram point cloud. Density is tiered by distance to the route (from corridor.bin):
+  Hologram point cloud. Built density is tiered by distance to the route (from corridor.bin):
   every cell near the road, every 2nd cell further out, every 4th cell for the backdrop.
+  On screen, density is capped by level of detail (pointLod.ts): zoomed out, the cloud thins to
+  a coarser regular grid so points never pile up into a white-out.
   Points inside the detail bubble fade out so the solid mesh can take over.
   With a map style active, each point takes its colour from the imagery (sampled in the
   vertex shader), so the cloud becomes a satellite / topo point cloud.
 -->
 <script lang="ts">
-	import { T, useTask } from '@threlte/core';
-	import { AdditiveBlending, BufferAttribute, BufferGeometry, ShaderMaterial, Vector2 } from 'three';
+	import { T, useTask, useThrelte } from '@threlte/core';
+	import { AdditiveBlending, BufferAttribute, BufferGeometry, PerspectiveCamera, ShaderMaterial, Vector2 } from 'three';
+	import { HORIZON_GLSL, horizonUniforms } from './horizon';
+	import { gridLevel, hash01, LOD_GLSL } from './pointLod';
+	import { pointScale } from './pointScale';
 	import type { Tour } from '$lib/tour.svelte';
 
 	let { tour }: { tour: Tour } = $props();
@@ -29,7 +34,8 @@
 		const near: number[] = [];
 		const wet: number[] = [];
 		const uv: number[] = [];
-		const steps: number[] = [];
+		const levels: number[] = [];
+		const hashes: number[] = [];
 		for (let r = 0; r < rows; r++) {
 			for (let c = 0; c < cols; c++) {
 				const i = r * cols + c;
@@ -43,7 +49,8 @@
 				pos.push(x, terrain.heights[i], -n);
 				near.push(d * spacing);
 				wet.push(lake);
-				steps.push(step);
+				levels.push(gridLevel(c, r));
+				hashes.push(hash01(i));
 				uv.push(...imagery.farUv(x, n));
 			}
 		}
@@ -52,7 +59,8 @@
 		g.setAttribute('aRoute', new BufferAttribute(new Float32Array(near), 1));
 		g.setAttribute('aLake', new BufferAttribute(new Float32Array(wet), 1));
 		g.setAttribute('aUv', new BufferAttribute(new Float32Array(uv), 2));
-		g.setAttribute('aStep', new BufferAttribute(new Float32Array(steps), 1));
+		g.setAttribute('aLevel', new BufferAttribute(new Float32Array(levels), 1));
+		g.setAttribute('aHash', new BufferAttribute(new Float32Array(hashes), 1));
 		return g;
 	}
 
@@ -64,6 +72,7 @@
 		uniforms: {
 			uBike: { value: new Vector2() },
 			uBubble: { value: 2000 },
+			...horizonUniforms(),
 			uTime: { value: 0 },
 			uMaxH: { value: maxH },
 			uWater: { value: 1 },
@@ -71,14 +80,21 @@
 			uGlow: { value: 1.4 },
 			uMap: { value: imagery.far.texture },
 			uMapMix: { value: 0 },
-			uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) }
+			uPixelRatio: { value: 1 },
+			uProj: { value: 1000 },
+			uSpacing: { value: spacing },
+			uDensity: { value: 1 }
 		},
 		vertexShader: /* glsl */ `
 			uniform vec2 uBike;
 			uniform float uBubble;
+			${HORIZON_GLSL}
 			uniform float uTime;
 			uniform float uMaxH;
 			uniform float uPixelRatio;
+			uniform float uProj; // device pixels per metre at 1 m from the camera
+			uniform float uSpacing;
+			uniform float uDensity;
 			uniform float uWater;
 			uniform float uSize;
 			uniform float uGlow;
@@ -87,7 +103,9 @@
 			attribute float aRoute;
 			attribute float aLake;
 			attribute vec2 aUv;
-			attribute float aStep; // sampling step: 1 = densest (next to the route) … 4 = backdrop
+			attribute float aLevel; // grid LOD level (see pointLod.ts)
+			attribute float aHash;
+			${LOD_GLSL}
 			varying vec3 vColor;
 			varying float vAlpha;
 
@@ -119,15 +137,11 @@
 
 				float dBike = distance(p.xz, uBike);
 				float inBubble = smoothstep(uBubble * 0.55, uBubble * 0.95, dBike);
-				// additive blending piles up where points are dense: scale alpha by sampling density
-				// (1/16 the area per point at step 1) so the corridor glows without blowing out
-				float density = aStep == 1.0 ? 0.3 : aStep == 2.0 ? 0.6 : 1.0;
-				// from far out (overview) points overlap on screen and additive blending saturates,
-				// so fade them with distance; mid-range (follow view's far field) stays at full strength
-				float range = mix(1.0, 0.45, smoothstep(12000.0, 45000.0, -mv.z));
-				vAlpha = mix(0.6 + 0.3 * nearRoute, 0.3 + 0.35 * shimmer * uWater, wet) * inBubble * density * range;
-
-				gl_PointSize = clamp(6500.0 / -mv.z, 1.4, 4.5) * uSize * uPixelRatio * (1.0 + nearRoute * 0.3);
+				// constant-size dots; how many are shown is controlled by screen density (LOD)
+				float dotPx = uSize * uPixelRatio * (1.0 + nearRoute * 0.25);
+				float keep = lodKeep(uSpacing, -mv.z, aLevel, aHash, dotPx * 1.8 / uDensity, uProj);
+				vAlpha = mix(0.6 + 0.3 * nearRoute, 0.3 + 0.35 * shimmer * uWater, wet) * inBubble * keep * horizonFade(p.xz);
+				gl_PointSize = keep > 0.01 ? dotPx : 0.0;
 			}
 		`,
 		fragmentShader: /* glsl */ `
@@ -144,14 +158,19 @@
 		`
 	});
 
+	const { camera, size, renderer } = useThrelte();
 	useTask((dt) => {
+		pointScale(material, camera.current as PerspectiveCamera, size.current.height, renderer.getPixelRatio());
 		const u = material.uniforms;
 		u.uTime.value += dt;
 		u.uBike.value.set(tour.bike.x, -tour.bike.n);
 		u.uBubble.value = tour.layers.detail ? tour.bubble : 0;
+		u.uRider.value.set(tour.bike.x, -tour.bike.n);
+		u.uHorizon.value = tour.horizon;
 		u.uWater.value = tour.layers.water ? 1 : 0;
 		u.uSize.value = tour.pointSize;
 		u.uGlow.value = tour.pointGlow;
+		u.uDensity.value = tour.pointDensity;
 		u.uMapMix.value = imagery.mix;
 	});
 

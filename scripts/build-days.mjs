@@ -23,4 +23,5 @@ for (const day of days) {
 	if (!run('build-weather', day)) failed.push(`${day} (weather)`);
 }
 run('build-tour');
+run('build-parks'); // parks record which days pass through them
 if (failed.length) console.log(`\nIncomplete: ${failed.join(', ')} — re-run those days later (results are cached).`);

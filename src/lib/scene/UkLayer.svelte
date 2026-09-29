@@ -1,10 +1,15 @@
 <!--
-  L0: Great Britain at 1 km as a hologram point cloud (land only) with a glowing coastline.
+  L0: Great Britain's glowing coastline, plus (optional, "UK backdrop points" layer) a 1 km
+  hologram point cloud of the land.
   Positions are absolute BNG metres; the parent group applies the world origin offset.
-  Points fade out inside the active day's grid so they don't double up with its own terrain.
+  Points fade out inside the active day's grid so they don't double up with its own terrain,
+  and screen density is capped by level of detail (pointLod.ts) so zooming out never white-outs.
 -->
 <script lang="ts">
-	import { T, useTask } from '@threlte/core';
+	import { T, useTask, useThrelte } from '@threlte/core';
+	import { PerspectiveCamera } from 'three';
+	import { gridLevel, hash01, LOD_GLSL } from './pointLod';
+	import { pointScale } from './pointScale';
 	import { contours } from 'd3';
 	import {
 		AdditiveBlending,
@@ -17,7 +22,12 @@
 	import type { DaySummary, Terrain } from '$lib/data';
 	import type { Settings } from '$lib/settings.svelte';
 
-	let { uk, active, settings }: { uk: Terrain; active: DaySummary | undefined; settings: Settings } = $props();
+	let {
+		uk,
+		active,
+		settings,
+		parkMask
+	}: { uk: Terrain; active: DaySummary | undefined; settings: Settings; parkMask: Uint8Array | null } = $props();
 
 	// svelte-ignore state_referenced_locally — the UK grid never changes
 	const { cols, rows, spacing, x0, n1, maxH } = uk.meta;
@@ -31,15 +41,24 @@
 
 	function buildPoints() {
 		const pos: number[] = [];
+		const levels: number[] = [];
+		const hashes: number[] = [];
+		const inPark: number[] = [];
 		for (let r = 0; r < rows; r++)
 			for (let c = 0; c < cols; c++) {
 				const i = r * cols + c;
 				const h = uk.heights[i];
 				if (h <= 0.5) continue; // sea: the coastline carries it
 				pos.push(x0 + (c + jitter(i, 1) * 0.8) * spacing, h, -(n1 - (r + jitter(i, 2) * 0.8) * spacing));
+				levels.push(gridLevel(c, r));
+				hashes.push(hash01(i));
+				inPark.push(parkMask?.[i] ? 1 : 0);
 			}
 		const g = new BufferGeometry();
 		g.setAttribute('position', new BufferAttribute(new Float32Array(pos), 3));
+		g.setAttribute('aLevel', new BufferAttribute(new Float32Array(levels), 1));
+		g.setAttribute('aHash', new BufferAttribute(new Float32Array(hashes), 1));
+		g.setAttribute('aPark', new BufferAttribute(new Float32Array(inPark), 1));
 		return g;
 	}
 
@@ -72,7 +91,11 @@
 			uSize: { value: 2 },
 			uGlow: { value: 1.6 },
 			uDay: { value: new Vector4(1, -1, 1, -1) }, // minX, maxX, minZ, maxZ (empty when no day)
-			uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) }
+			uPixelRatio: { value: 1 },
+			uProj: { value: 1000 },
+			uSpacing: { value: spacing },
+			uDensity: { value: 1 },
+			uParks: { value: 1 }
 		},
 		vertexShader: /* glsl */ `
 			uniform float uMaxH;
@@ -80,20 +103,32 @@
 			uniform float uGlow;
 			uniform vec4 uDay;
 			uniform float uPixelRatio;
+			uniform float uProj; // device pixels per metre at 1 m from the camera
+			uniform float uSpacing;
+			uniform float uDensity;
+			attribute float aLevel;
+			attribute float aPark;
+			uniform float uParks;
+			attribute float aHash;
+			${LOD_GLSL}
 			varying vec3 vColor;
 			varying float vAlpha;
 			void main() {
 				vec4 mv = modelViewMatrix * vec4(position, 1.0);
 				gl_Position = projectionMatrix * mv;
 				float h = clamp(position.y / uMaxH, 0.0, 1.0);
-				vColor = mix(vec3(0.0, 0.5, 0.75), vec3(0.75, 1.0, 1.0), pow(h, 0.6)) * uGlow;
+				vec3 base = mix(vec3(0.0, 0.5, 0.75), vec3(0.75, 1.0, 1.0), pow(h, 0.6));
+				// national parks read as green islands in the teal hologram
+				vec3 park = mix(vec3(0.15, 0.6, 0.3), vec3(0.75, 1.0, 0.7), pow(h, 0.6));
+				vColor = mix(base, park, aPark * uParks) * uGlow;
 				// fade inside the active day's grid (3 km soft edge)
 				float inX = smoothstep(uDay.x, uDay.x + 3000.0, position.x) * (1.0 - smoothstep(uDay.y - 3000.0, uDay.y, position.x));
 				float inZ = smoothstep(uDay.z, uDay.z + 3000.0, position.z) * (1.0 - smoothstep(uDay.w - 3000.0, uDay.w, position.z));
-				// from very far out every point overlaps, so dim them there too
-				float range = mix(1.0, 0.35, smoothstep(200000.0, 900000.0, -mv.z));
-				vAlpha = 0.55 * (1.0 - inX * inZ) * range;
-				gl_PointSize = clamp(260000.0 / -mv.z, 1.2, 5.0) * uSize * 0.8 * uPixelRatio;
+				// constant-size dots; how many are shown is controlled by screen density (LOD)
+				float dotPx = uSize * uPixelRatio * 0.9;
+				float keep = lodKeep(uSpacing, -mv.z, aLevel, aHash, dotPx * 1.8 / uDensity, uProj);
+				vAlpha = 0.6 * (1.0 - inX * inZ) * keep;
+				gl_PointSize = keep > 0.01 ? dotPx : 0.0;
 			}
 		`,
 		fragmentShader: /* glsl */ `
@@ -115,10 +150,14 @@
 		depthWrite: false
 	});
 
+	const { camera, size, renderer } = useThrelte();
 	useTask(() => {
+		pointScale(material, camera.current as PerspectiveCamera, size.current.height, renderer.getPixelRatio());
 		const u = material.uniforms;
 		u.uSize.value = settings.pointSize;
 		u.uGlow.value = settings.pointGlow;
+		u.uDensity.value = settings.pointDensity;
+		u.uParks.value = settings.layers.parks ? 1 : 0;
 		if (active) {
 			const { minE, maxE, minN, maxN } = active.extent;
 			u.uDay.value.set(minE, maxE, -maxN, -minN);
@@ -133,5 +172,8 @@
 	});
 </script>
 
-<T.Points geometry={points} {material} frustumCulled={false} />
+<!-- backdrop points are optional (off by default): the tour overview reads as coastline, parks and routes -->
+{#if settings.layers.ukPoints}
+	<T.Points geometry={points} {material} frustumCulled={false} />
+{/if}
 <T.LineSegments geometry={coast} material={coastMat} frustumCulled={false} />

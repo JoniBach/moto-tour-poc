@@ -27,14 +27,20 @@ await dem.prefetch([
 // The BNG box clips into Ireland, which wasn't part of the tour and leaves a hard edge: treat it
 // as sea. Two boxes cover Northern Ireland (incl. Rathlin and the Ards peninsula) without touching
 // Kintyre (-5.8, 55.3), Islay (55.6+) or the Rhins of Galloway (east of -5.2).
-const isIreland = (lon, lat) => (lon < -5.95 && lat < 55.4) || (lon < -5.35 && lat < 54.95);
+// lat > 51: Ireland's south coast is at 51.4N; without it the box swallowed the Scilly Isles (49.9N)
+const isIreland = (lon, lat) => lat > 51 && ((lon < -5.95 && lat < 55.4) || (lon < -5.35 && lat < 54.95));
+// Likewise the south-east corner reaches across the Channel: Belgium, Calais/Boulogne, and
+// Normandy + the Channel Islands. Boxes stay clear of Lowestoft (1.76E 52.5N), North Foreland
+// (1.44E 51.4N), Dover (1.31E 51.1N), Dungeness (0.97E 50.9N), Start Point (-3.64E 50.2N) and Scilly.
+const isContinent = (lon, lat) =>
+	(lon > 1.9 && lat < 51.6) || (lon > 1.45 && lat < 51.1) || (lon > -3.0 && lat < 50.3);
 
 const grid = new Int16Array(cols * rows);
 let maxH = -Infinity;
 for (let r = 0; r < rows; r++)
 	for (let c = 0; c < cols; c++) {
 		const [lon, lat] = fromBng(E0 + c * SPACING, N1 - r * SPACING);
-		const h = isIreland(lon, lat) ? -10 : dem.sample(lon, lat);
+		const h = isIreland(lon, lat) || isContinent(lon, lat) ? -10 : dem.sample(lon, lat);
 		grid[r * cols + c] = Math.round(Math.max(-3000, Math.min(3000, h)) * 10);
 		if (h > maxH) maxH = h;
 	}

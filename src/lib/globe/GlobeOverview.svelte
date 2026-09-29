@@ -1,0 +1,169 @@
+<!--
+  The globe before a day is chosen: the same plinth with a flat meadow on top (fields, hedgerows,
+  a country road) and the motorcycle parked in the middle, a few clouds drifting over. The tour's
+  name is lettered around the base. The day list (TourIntro) sits beside it; pick a day and the
+  real landscape takes the meadow's place. You can turn it like the day globes.
+-->
+<script lang="ts">
+	import { T } from '@threlte/core';
+	import { OrbitControls } from '@threlte/extras';
+	import { CanvasTexture, CylinderGeometry, SRGBColorSpace } from 'three';
+	import type { WeatherSample } from '$lib/data';
+	import Bike from '$lib/scene/Bike.svelte';
+	import type { Tour } from '$lib/tour.svelte';
+	import GlobeWeather from './GlobeWeather.svelte';
+	import Plinth from './Plinth.svelte';
+	import { GlobeState } from './state';
+
+	let { title, date }: { title: string; date: string } = $props();
+
+	const V = 1800;
+	/** the meadow stands this far above the plinth, on a band of earth */
+	const TURF = V * 0.05;
+	let width = $state(globalThis.innerWidth ?? 1);
+	let height = $state(globalThis.innerHeight ?? 1);
+	const fit = $derived(Math.max(1, 1.25 / Math.max(0.3, width / height)));
+
+	// a fair-weather sky: a few clouds on a light westerly
+	const globe = new GlobeState(V);
+	globe.weather = { cloud: 35, wind: 8, windDir: 250, precip: 0, code: 2, isDay: 1 } as WeatherSample;
+
+	// the bike, parked facing east along the road (Bike reads only these)
+	const parked = { bike: { x: 0, n: 0, h: TURF, heading: Math.PI / 2 - 0.12, lean: 0 }, exaggeration: 1 } as unknown as Tour;
+
+	function meadow() {
+		const S = 1024;
+		const c = document.createElement('canvas');
+		c.width = c.height = S;
+		const ctx = c.getContext('2d')!;
+		ctx.fillStyle = '#b9d99b';
+		ctx.fillRect(0, 0, S, S);
+		// fields: soft patches in a few greens and a hay yellow
+		const rand = (() => {
+			let s = 11;
+			return () => (s = (s * 16807) % 2147483647) / 2147483647;
+		})();
+		const tones = ['#b0d392', '#c3dfa6', '#a8cc8c', '#d8dca0', '#bfdb9f'];
+		for (let i = 0; i < 26; i++) {
+			ctx.fillStyle = tones[i % tones.length];
+			ctx.globalAlpha = 0.55;
+			ctx.beginPath();
+			const x = rand() * S;
+			const y = rand() * S;
+			const w = 120 + rand() * 220;
+			const h = 90 + rand() * 180;
+			ctx.ellipse(x, y, w / 2, h / 2, rand() * Math.PI, 0, Math.PI * 2);
+			ctx.fill();
+		}
+		ctx.globalAlpha = 1;
+		// hedgerows: a patchwork, hedges along the edges of a jittered grid (some missing, so
+		// fields merge), with the odd tree along them
+		const N = 6;
+		const cell = S / N;
+		const pt = Array.from({ length: N + 1 }, (_, r) =>
+			Array.from({ length: N + 1 }, (_, c) => [c * cell + (c % N ? (rand() - 0.5) * cell * 0.5 : 0), r * cell + (r % N ? (rand() - 0.5) * cell * 0.5 : 0)])
+		);
+		ctx.strokeStyle = '#86ab6c';
+		ctx.lineWidth = 6;
+		ctx.lineCap = 'round';
+		const trees: [number, number][] = [];
+		const hedge = (a: number[], b: number[]) => {
+			if (rand() < 0.25) return;
+			ctx.beginPath();
+			ctx.moveTo(a[0], a[1]);
+			// a slight bow, as field edges have
+			ctx.quadraticCurveTo((a[0] + b[0]) / 2 + (rand() - 0.5) * 30, (a[1] + b[1]) / 2 + (rand() - 0.5) * 30, b[0], b[1]);
+			ctx.stroke();
+			for (let k = 0; k < 2; k++) {
+				const t = rand();
+				if (rand() < 0.6) trees.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+			}
+		};
+		for (let r = 0; r <= N; r++)
+			for (let c = 0; c <= N; c++) {
+				if (c < N) hedge(pt[r][c], pt[r][c + 1]);
+				if (r < N) hedge(pt[r][c], pt[r + 1][c]);
+			}
+		ctx.fillStyle = '#6f9a58';
+		for (const [x, y] of trees) {
+			ctx.beginPath();
+			ctx.arc(x, y, 7 + rand() * 6, 0, Math.PI * 2);
+			ctx.fill();
+		}
+		// the road: west to east through the middle, a gentle S, with a dashed centre line
+		const road = (w: number, style: string, dash: number[] = []) => {
+			ctx.strokeStyle = style;
+			ctx.lineWidth = w;
+			ctx.setLineDash(dash);
+			ctx.beginPath();
+			ctx.moveTo(-20, S * 0.56);
+			ctx.bezierCurveTo(S * 0.3, S * 0.64, S * 0.4, S * 0.5, S * 0.5, S * 0.5);
+			ctx.bezierCurveTo(S * 0.62, S * 0.5, S * 0.72, S * 0.38, S + 20, S * 0.42);
+			ctx.stroke();
+			ctx.setLineDash([]);
+		};
+		road(34, '#9fb58a'); // verge
+		road(26, '#e8e3d7');
+		road(3, '#c9bfa9', [16, 16]);
+		const t = new CanvasTexture(c);
+		t.colorSpace = SRGBColorSpace;
+		t.anisotropy = 8;
+		return t;
+	}
+
+	function earth() {
+		const c = document.createElement('canvas');
+		c.width = 1024;
+		c.height = 128;
+		const ctx = c.getContext('2d')!;
+		const bands: [number, string][] = [
+			[0, '#8fb06f'], // turf
+			[0.16, '#8a6a52'], // topsoil
+			[0.42, '#c9ad8c'], // clay
+			[0.7, '#b39c82'],
+			[0.86, '#d8ccb8'] // stone
+		];
+		bands.forEach(([y, col], i) => {
+			ctx.fillStyle = col;
+			const next = bands[i + 1]?.[0] ?? 1;
+			ctx.fillRect(0, y * 128, 1024, (next - y) * 128 + 1);
+		});
+		const t = new CanvasTexture(c);
+		t.colorSpace = SRGBColorSpace;
+		return t;
+	}
+
+	const grass = meadow();
+	const soil = earth();
+	const rim = new CylinderGeometry(V, V, TURF, 160, 1, true);
+
+	$effect(() => () => {
+		grass.dispose();
+		soil.dispose();
+		rim.dispose();
+	});
+</script>
+
+<svelte:window bind:innerWidth={width} bind:innerHeight={height} />
+
+<T.PerspectiveCamera makeDefault position={[0, V * 2.1 * fit, V * 3.9 * fit]} fov={34} near={V * 0.01} far={V * 40}>
+	<OrbitControls target={[0, V * 0.02, 0]} enablePan={false} enableDamping minDistance={V * 1.3} maxDistance={V * 6 * fit} maxPolarAngle={Math.PI * 0.47} />
+</T.PerspectiveCamera>
+
+<T.HemisphereLight args={['#dfeef7', '#d8cbb4', 1.4]} />
+<T.DirectionalLight position={[-V * 1.5, V * 2.2, V * 1.2]} intensity={2.2} color="#fff4e0" />
+
+<Plinth R={V} {title} {date} shadow={0.5} />
+
+<!-- the meadow on its band of earth -->
+<T.Mesh geometry={rim} position.y={TURF / 2}>
+	<T.MeshStandardMaterial map={soil} roughness={0.95} />
+</T.Mesh>
+<T.Mesh rotation.x={-Math.PI / 2} position.y={TURF}>
+	<T.CircleGeometry args={[V, 160]} />
+	<T.MeshStandardMaterial map={grass} roughness={0.95} />
+</T.Mesh>
+
+<Bike tour={parked} beacon={false} />
+
+<GlobeWeather {globe} show />

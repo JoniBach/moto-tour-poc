@@ -40,7 +40,8 @@ export default defineConfig({
 				mode: 'hash',
 				directives: {
 					'default-src': ['self'],
-					'script-src': ['self', 'https://vercel.live'],
+					// wasm-unsafe-eval: WebAssembly may compile (a library uses it); JavaScript eval stays off
+					'script-src': ['self', 'wasm-unsafe-eval', 'https://vercel.live'],
 					// Svelte transitions and the map/3D libraries set styles at run time
 					'style-src': ['self', 'unsafe-inline'],
 					'img-src': ['self', 'data:', 'blob:', ...TILE_HOSTS, 'https://vercel.live', 'https://vercel.com'],

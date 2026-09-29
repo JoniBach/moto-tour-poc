@@ -21,7 +21,7 @@ import {
 	type TourData,
 	type TourIndex
 } from './data';
-import { on, VIEWS_ON } from './flags';
+import { DEFAULT_VIEW, on, VIEWS_ON } from './flags';
 import { Settings } from './settings.svelte';
 import { Tour } from './tour.svelte';
 
@@ -126,7 +126,7 @@ export class App {
 		return tour;
 	}
 
-	/** The view a page load starts in: the URL's ?view=, else the viewer's last choice, else 3D. */
+	/** The view a page load starts in: the URL's ?view=, else the viewer's last choice, else the default (flags.ts). */
 	static startView(params: URLSearchParams): View {
 		// only views switched on in this release (src/lib/flags.ts); the first on is the default
 		const ok = (v: string | null): v is View => VIEWS_ON.includes(v as View);
@@ -138,7 +138,7 @@ export class App {
 		} catch {
 			// no storage: default
 		}
-		return VIEWS_ON[0] ?? '3d';
+		return DEFAULT_VIEW ?? '3d';
 	}
 
 	/** The light data both experiences share (no terrain): the blog only needs this + the feed. */

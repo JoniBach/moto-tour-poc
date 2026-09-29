@@ -1,11 +1,14 @@
 <!--
   The globe view: its own chunk, loaded only when someone picks it. A transparent canvas over a
-  sky gradient that follows the time of day, with a deliberately small UI (GlobeUI).
+  sky gradient that follows the time of day, with a deliberately small UI (GlobeUI). Before a
+  day is chosen (and while one loads) it shows the overview globe: a meadow with the bike parked
+  on it, beside the day list.
 -->
 <script lang="ts">
 	import { Canvas } from '@threlte/core';
 	import { NoToneMapping, WebGLRenderer } from 'three';
 	import type { App } from '$lib/app.svelte';
+	import GlobeOverview from './GlobeOverview.svelte';
 	import GlobeScene from './GlobeScene.svelte';
 	import GlobeUI from './GlobeUI.svelte';
 
@@ -18,14 +21,20 @@
 			? new Date(summary.start * 1000).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/London' })
 			: ''
 	);
+	const days = $derived(app.index?.days.length ?? 0);
 
-	let top = $state('#bfe1f7');
-	let bottom = $state('#f3f8fb');
+	const DAY_SKY = { top: '#bfe1f7', bottom: '#f3f8fb' };
+	let top = $state(DAY_SKY.top);
+	let bottom = $state(DAY_SKY.bottom);
+	// the overview has a fair-weather daytime sky, whatever the last day's light was
+	$effect(() => {
+		if (!tour) ({ top, bottom } = DAY_SKY);
+	});
 </script>
 
 <div class="globe" style:--top={top} style:--bottom={bottom}>
-	{#if tour && summary}
-		<Canvas {dpr} toneMapping={NoToneMapping} createRenderer={(canvas) => new WebGLRenderer({ canvas, alpha: true, antialias: true })}>
+	<Canvas {dpr} toneMapping={NoToneMapping} createRenderer={(canvas) => new WebGLRenderer({ canvas, alpha: true, antialias: true })}>
+		{#if tour && summary}
 			{#key tour}
 				<GlobeScene
 					{tour}
@@ -38,12 +47,14 @@
 					onpost={(post) => (app.reading = post)}
 				/>
 			{/key}
-		</Canvas>
+		{:else}
+			<GlobeOverview title="A motorcycle tour of Britain's national parks" date={`September 2026 · ${days} days`} />
+		{/if}
+	</Canvas>
+	{#if tour}
 		{#key tour}
 			<GlobeUI {tour} />
 		{/key}
-	{:else if !app.pending}
-		<p class="pick">Pick a day to see it in the globe.</p>
 	{/if}
 </div>
 
@@ -52,17 +63,5 @@
 		position: absolute;
 		inset: 0;
 		background: linear-gradient(to bottom, var(--top), var(--bottom));
-	}
-	.pick {
-		position: absolute;
-		left: 50%;
-		bottom: 18%;
-		transform: translateX(-50%);
-		margin: 0;
-		padding: 10px 16px;
-		border-radius: 22px;
-		background: rgb(255 255 255 / 0.75);
-		color: #2c3a45;
-		font-weight: 600;
 	}
 </style>

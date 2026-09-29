@@ -162,6 +162,9 @@ day plays. **◍ Globe** in the trip bar (phones: the view button steps 3D → m
 - `GlobeUI.svelte`: deliberately small: play bar (play/pause, speed, time, weather, slider) and a
   settings card (surface, elevation lines, route, weather, places, photos, stories, relief).
 - Own chunk (`Globe3D.svelte`); needs no UK backdrop.
+- Before a day is chosen (and while one loads): `GlobeOverview.svelte`, the same plinth with a
+  flat meadow (fields, hedgerows, a country road) and the bike parked in the middle, beside the
+  day list. The globe is the default view for new visitors (`DEFAULT_VIEW` in `flags.ts`).
 
 ## Privacy zones
 
@@ -232,7 +235,7 @@ one at a time:
 - One-off overrides: `FEATURES="globe=off,photos=on" npm run deploy` (also `-globe` / `+globe`).
   Unknown names fail the build. `vite.config.ts` injects `RELEASE` and `FEATURES` into the code.
 - The views follow the flags everywhere: switchers show only views that are on, `?view=` and the
-  remembered choice fall back to the first view that's on, and the blog names that view in its
+  remembered choice fall back to the default view (`DEFAULT_VIEW`: globe, then 3D, then map, whichever is on), and the blog names that view in its
   links ("See this moment in the 3D tour" / "…on the map"). With no view on, `/` goes to the blog
   and the blog's times are plain text.
 - Photos, stories and weather are cut at the source (the app doesn't fetch them; the blog's data

@@ -65,5 +65,12 @@ export const VIEWS_ON = (
 /** Is any view of the tour itself (3D, map, globe) on? If not, the blog is the whole site. */
 export const tourOn = VIEWS_ON.length > 0;
 
-/** How the blog names the tour's default view in its links ("See this moment in the 3D tour"). */
-export const TOUR_NAME = ({ '3d': '3D tour', '2d': 'map', globe: 'globe' } as const)[VIEWS_ON[0] ?? '3d'];
+/**
+ * The view new visitors land on (the switcher keeps its own order): the first of this preference
+ * that's switched on. A viewer's own last choice, or a link's ?view=, still wins.
+ */
+const DEFAULT_ORDER = ['globe', '3d', '2d'] as const;
+export const DEFAULT_VIEW = DEFAULT_ORDER.find((v) => VIEWS_ON.includes(v)) ?? VIEWS_ON[0];
+
+/** How the blog names the tour's default view in its links ("See this moment in the globe"). */
+export const TOUR_NAME = ({ '3d': '3D tour', '2d': 'map', globe: 'globe' } as const)[DEFAULT_VIEW ?? '3d'];

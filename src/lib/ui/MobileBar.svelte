@@ -1,6 +1,7 @@
 <!--
-  Phone button strip under the trip bar: opens the bottom sheets (map & view settings, the day's
-  events, map info + credits). One sheet at a time; tapping the open one's button closes it.
+  Phone button strip under the trip bar: the views (all of them, the current one lit), then the
+  bottom sheets (map & view settings, the day's events, map info + credits). One sheet at a time;
+  tapping the open one's button closes it.
 -->
 <script lang="ts">
 	import type { App, View } from '$lib/app.svelte';
@@ -14,11 +15,19 @@
 		'2d': { icon: '🗺', name: 'flat map' },
 		globe: { icon: '◍', name: 'globe' }
 	};
-	// the next view switched on in this release, in switcher order
-	const next = $derived(VIEWS_ON[(VIEWS_ON.indexOf(app.view) + 1) % VIEWS_ON.length]);
 </script>
 
-<nav class="mbar" aria-label="Panels">
+<nav class="mbar" aria-label="Views and panels">
+	<!-- every view that's on, always in the same place; the current one lit -->
+	{#if VIEWS_ON.length > 1}
+		<div class="views" role="group" aria-label="View">
+			{#each VIEWS_ON as v (v)}
+				<button class:on={app.view === v} aria-pressed={app.view === v} onclick={() => app.setView(v)} aria-label="The {ABOUT[v].name}">
+					{ABOUT[v].icon}
+				</button>
+			{/each}
+		</div>
+	{/if}
 	{#if app.tour}
 		<button class:on={ui.sheet === 'controls'} onclick={() => ui.toggle('controls')} aria-label="Map and view settings">⚙</button>
 		{#if app.view !== 'globe'}
@@ -26,10 +35,6 @@
 				☰{#if events}<span class="n">{events}</span>{/if}
 			</button>
 		{/if}
-	{/if}
-	<!-- one button steps through the views that are on: 3D → map → globe -->
-	{#if VIEWS_ON.length > 1}
-		<button onclick={() => app.setView(next)} aria-label="Switch to the {ABOUT[next].name}">{ABOUT[next].icon}</button>
 	{/if}
 	{#if on('blog')}
 		<a class="btn" href={app.tour ? `/blog/${app.tour.data.track.day}` : '/blog'} aria-label="Read as a blog">📖</a>
@@ -62,6 +67,23 @@
 		backdrop-filter: blur(10px);
 		color: var(--text);
 		font-size: 19px;
+	}
+	/* the views as one segmented column, set apart from the panel buttons */
+	.views {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		padding: 2px;
+		margin-bottom: 6px;
+		border: 1px solid var(--line);
+		border-radius: 14px;
+		background: var(--glass);
+		backdrop-filter: blur(10px);
+	}
+	.views button {
+		border-color: transparent;
+		background: none;
+		backdrop-filter: none;
 	}
 	button.on {
 		background: var(--accent-soft);

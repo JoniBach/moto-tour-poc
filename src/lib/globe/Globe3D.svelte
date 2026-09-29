@@ -64,4 +64,12 @@
 		inset: 0;
 		background: linear-gradient(to bottom, var(--top), var(--bottom));
 	}
+	/* Touch drags turn the globe, never scroll the page. The orbit controls set this on the canvas
+	   wrapper, but three's OrbitControls resets it to `auto` when removed: swapping the overview for
+	   a day's scene (each has its own controls) could leave it `auto`, and phones then cancelled
+	   drags a moment in to scroll instead. Pinned here so nothing can undo it. */
+	.globe :global(canvas),
+	.globe :global(div:has(> canvas)) {
+		touch-action: none !important;
+	}
 </style>

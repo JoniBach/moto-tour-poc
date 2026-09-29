@@ -2,7 +2,7 @@
 // tiles the pipeline uses (AWS open data, CORS enabled). Day grids can be coarse (75 m on long
 // days); this gives the detail bubble ~22 m data everywhere without shipping it per day.
 import { makeProjection } from './bng';
-import type { TerrainMeta } from './data';
+import { despike, type TerrainMeta } from './data';
 
 const Z = 12; // ~22 m/px at UK latitudes
 const URL_OF = (x: number, y: number) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${Z}/${x}/${y}.png`;
@@ -27,18 +27,78 @@ function trim() {
 	}
 }
 
+/**
+ * The exact pixel values of an 8-bit RGB/RGBA PNG (non-interlaced, as Terrarium tiles are).
+ * Decoded here rather than through an <img> and a canvas: browsers may colour-manage images on
+ * their way into a canvas (Safari, wide-gamut screens), and one step off in the red channel is
+ * 256 m, which the 3D views drew as needles and pits dotted over the landscape.
+ */
+async function pngPixels(buf: ArrayBuffer): Promise<{ width: number; height: number; channels: number; data: Uint8Array }> {
+	const bytes = new Uint8Array(buf);
+	const view = new DataView(buf);
+	let width = 0;
+	let height = 0;
+	let channels = 0;
+	const idat: Uint8Array[] = [];
+	for (let p = 8; p < bytes.length; ) {
+		const len = view.getUint32(p);
+		const type = String.fromCharCode(...bytes.subarray(p + 4, p + 8));
+		if (type === 'IHDR') {
+			width = view.getUint32(p + 8);
+			height = view.getUint32(p + 12);
+			const depth = bytes[p + 16];
+			const colour = bytes[p + 17];
+			const interlace = bytes[p + 20];
+			channels = colour === 2 ? 3 : colour === 6 ? 4 : 0;
+			if (depth !== 8 || !channels || interlace) throw new Error('unsupported PNG');
+		} else if (type === 'IDAT') idat.push(bytes.subarray(p + 8, p + 8 + len));
+		else if (type === 'IEND') break;
+		p += 12 + len;
+	}
+	// zlib stream across the IDAT chunks
+	const raw = new Uint8Array(await new Response(new Blob(idat as BlobPart[]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
+	// undo the per-row filters (PNG spec: None, Sub, Up, Average, Paeth)
+	const stride = width * channels;
+	const out = new Uint8Array(height * stride);
+	for (let y = 0; y < height; y++) {
+		const filter = raw[y * (stride + 1)];
+		const src = y * (stride + 1) + 1;
+		const row = y * stride;
+		for (let x = 0; x < stride; x++) {
+			const a = x >= channels ? out[row + x - channels] : 0;
+			const b = y ? out[row - stride + x] : 0;
+			const c = x >= channels && y ? out[row - stride + x - channels] : 0;
+			let v = raw[src + x];
+			if (filter === 1) v += a;
+			else if (filter === 2) v += b;
+			else if (filter === 3) v += (a + b) >> 1;
+			else if (filter === 4) {
+				const p = a + b - c;
+				const pa = Math.abs(p - a);
+				const pb = Math.abs(p - b);
+				const pc = Math.abs(p - c);
+				v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+			}
+			out[row + x] = v & 255;
+		}
+	}
+	return { width, height, channels, data: out };
+}
+
 async function decode(tx: number, ty: number): Promise<Tile> {
 	try {
-		const img = new Image();
-		img.crossOrigin = 'anonymous';
-		img.src = URL_OF(tx, ty);
-		await img.decode();
-		const canvas = new OffscreenCanvas(256, 256);
-		const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
-		ctx.drawImage(img, 0, 0);
-		const d = ctx.getImageData(0, 0, 256, 256).data;
+		const r = await fetch(URL_OF(tx, ty));
+		if (!r.ok) return null;
+		const { width, height, channels, data } = await pngPixels(await r.arrayBuffer());
+		if (width !== 256 || height !== 256) return null;
 		const h = new Float32Array(256 * 256);
-		for (let i = 0; i < h.length; i++) h[i] = d[i * 4] * 256 + d[i * 4 + 1] + d[i * 4 + 2] / 256 - 32768;
+		for (let i = 0; i < h.length; i++) {
+			const o = i * channels;
+			h[i] = data[o] * 256 + data[o + 1] + data[o + 2] / 256 - 32768;
+		}
+		// belt and braces: a pixel 50 m above or below all its neighbours (~22-38 m apart in the
+		// UK) is a bad sample in the source itself
+		despike(h, 256, 256, 50);
 		return h;
 	} catch {
 		return null;

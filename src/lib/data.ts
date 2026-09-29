@@ -187,6 +187,37 @@ export interface TourIndex {
 /** A failed request as a sentence people can read (not a JSON parse error). */
 const unavailable = (what: string) => new Error(`Couldn't load ${what}. Check the connection and try again.`);
 
+/**
+ * Remove single-cell spikes and pits from a height grid, in place: a cell more than `limit`
+ * metres above (or below) all 8 of its neighbours becomes their median. Elevation sources have
+ * the odd bad sample (hundreds of metres out on one cell), which the 3D views draw as sudden
+ * cones; real summits and valleys have neighbours that follow them, so they're left alone.
+ */
+export function despike(h: Float32Array, cols: number, rows: number, limit: number) {
+	const src = h.slice();
+	const n = new Float32Array(8);
+	let fixed = 0;
+	for (let r = 1; r < rows - 1; r++)
+		for (let c = 1; c < cols - 1; c++) {
+			const i = r * cols + c;
+			let k = 0;
+			for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if (dr || dc) n[k++] = src[i + dr * cols + dc];
+			let hi = -Infinity;
+			let lo = Infinity;
+			for (const v of n) {
+				if (v > hi) hi = v;
+				if (v < lo) lo = v;
+			}
+			const v = src[i];
+			if (v - hi > limit || lo - v > limit) {
+				n.sort();
+				h[i] = (n[3] + n[4]) / 2;
+				fixed++;
+			}
+		}
+	return fixed;
+}
+
 export async function loadTourIndex(): Promise<TourIndex> {
 	const r = await fetch('/data/tour.json').catch(() => null);
 	if (!r?.ok) throw unavailable('the tour');
@@ -365,6 +396,8 @@ export async function loadTour(base: string, light = false): Promise<TourData> {
 	const raw = new Int16Array(heightsBuf);
 	const heights = new Float32Array(raw.length);
 	for (let i = 0; i < raw.length; i++) heights[i] = raw[i] * meta.scale;
+	// bad single samples: a threshold that grows with the cell size, so steep real ground stays
+	despike(heights, meta.cols, meta.rows, 50 + meta.spacing * 0.3);
 	const water = waterBuf && waterBuf.byteLength === raw.length ? new Uint8Array(waterBuf) : null;
 	return { terrain: new Terrain(meta, heights, new Uint8Array(corridorBuf), water), track, pins: pins ?? [], osm, weather };
 }

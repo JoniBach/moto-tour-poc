@@ -51,6 +51,14 @@
 		{/each}
 	</div>
 	<a class="step" class:disabled={!next} href={next ? `/day/${next.day}` : undefined} aria-label="Next day">▶</a>
+	<button
+		type="button"
+		class="blog"
+		onclick={() => app.setView(app.view === '3d' ? '2d' : '3d')}
+		title={app.view === '3d' ? 'Show the tour on a flat street map' : 'Show the tour in 3D'}
+	>
+		{app.view === '3d' ? '🗺 2D map' : '⛰ 3D'}
+	</button>
 	<a class="blog" href={activeDay ? `/blog/${activeDay}` : '/blog'} title="Read the tour as a simple blog">📖 Blog</a>
 	{#if app.pending}
 		<span class="busy">Loading Day {app.pending.index + 1}…</span>
@@ -94,6 +102,9 @@
 		background: var(--accent-soft);
 	}
 	.blog {
+		font: inherit;
+		cursor: pointer;
+		background: none;
 		flex-shrink: 0;
 		padding: 5px 9px;
 		border-radius: 8px;

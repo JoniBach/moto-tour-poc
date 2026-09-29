@@ -36,7 +36,10 @@
 			{#if d.photos}<li><strong>{d.photos}</strong> photos</li>{/if}
 			{#if d.parks.length}<li>{d.parks.join(', ')}</li>{/if}
 		</ul>
-		<p><a class="dx" href="/day/{d.day}">Ride this day in the 3D tour<span aria-hidden="true"> ↗</span></a></p>
+		<p class="go">
+			<a class="dx" href="/day/{d.day}?view=3d">Ride this day in the 3D tour<span aria-hidden="true"> ↗</span></a>
+			<a class="dx alt" href="/day/{d.day}?view=2d">See it on a map<span aria-hidden="true"> ↗</span></a>
+		</p>
 		<ViewControls {shown} total={d.events.length} />
 	</header>
 
@@ -113,6 +116,16 @@
 	}
 	.none {
 		font-size: 1.1rem;
+	}
+	.go {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.6rem;
+	}
+	.dx.alt {
+		background: var(--b-card);
+		color: var(--b-accent) !important;
+		border: 1px solid var(--b-accent);
 	}
 	.dx {
 		display: inline-flex;

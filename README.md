@@ -99,6 +99,28 @@ not hidden by the sticky header, reflow at 320 px, ← / → between photos. To 
 changes, build, run `npx vite preview`, then audit with axe-core (`wcag2aaa` + `wcag22aa` tags);
 axe can't check target size, reflow, text spacing or focus visibility, so test those by hand.
 
+## The 2D map
+
+The same tour on a flat street map, for anyone who'd rather not fly around in 3D (or whose
+device struggles with it). **🗺 2D map / ⛰ 3D** in the trip bar (phones: the button strip)
+switches between them in place: same day, same moment, same panels (scrubber, events, gallery,
+reader, pins), same shareable URLs with `?view=2d` added. The choice is remembered per browser
+(`localStorage`); a URL's `?view=` wins. The blog's day pages link to both.
+
+- `src/lib/map/Map2D.svelte`: MapLibre GL over [OpenFreeMap](https://openfreemap.org) vector
+  tiles (free, no key; attribution from the style). Draws every day's route (click one to open
+  it), the active day's track (ridden part solid), the bike, national parks, photo clusters
+  (click: gallery), stories, pins and day markers (the markers are real buttons: keyboard and
+  screen-reader reachable). Follows the bike until you drag; "Follow the bike" brings it back.
+  No tilt or rotation, on purpose.
+- `src/lib/map/features.ts`: BNG → lon/lat GeoJSON from the same privacy-filtered data.
+- Each view is its own chunk (`Scene3D.svelte` / `Map2D.svelte`, loaded with dynamic
+  `import()`), and the UK terrain backdrop only loads for 3D, so the 2D map never downloads the
+  3D scene. MapLibre's worker is bundled via `?worker&url` + `setWorkerUrl`.
+- Map tiles come from openfreemap.org, so viewers' browsers talk to that service; the base map
+  covers everywhere (it's just a map), while the tour's own routes, photos and posts are the
+  same privacy-filtered data as the 3D view.
+
 ## Privacy zones
 
 `data/privacy.json` lists circles (town centre + radius) where nothing personal may appear:

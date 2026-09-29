@@ -3,6 +3,7 @@
 //   /day/2026-09-16?t=10:40&post=2026-09-16-whinlatter   …with a blog post open
 //   /day/2026-09-16?photo=20260916_104035           …with a photo open (t defaults to its time)
 //   /?post=… or /?photo=…                           from the tour overview
+//   …&view=2d                                       on the flat map instead of the 3D scene
 // The layout keeps the URL in step (replaceState, no history spam); the pages read it on load.
 import type { App } from './app.svelte';
 import { bisect } from './data';
@@ -64,6 +65,7 @@ export function momentUrl(
 	const photo = extra.photo ?? (app.gallery ? app.gallery.photos[app.gallery.index]?.id : undefined);
 	if (post) url.searchParams.set('post', post);
 	if (photo) url.searchParams.set('photo', photo);
+	if (app.view === '2d') url.searchParams.set('view', '2d');
 	return url.toString();
 }
 

@@ -42,6 +42,7 @@
 		"@threlte/core": "^8.6.1",
 		"@threlte/extras": "^9.22.0",
 		"d3": "^7.9.0",
+		"maplibre-gl": "^6.11.2",
 		"marked": "^18.0.14",
 		"proj4": "^2.22.0",
 		"three": "^0.186.1"

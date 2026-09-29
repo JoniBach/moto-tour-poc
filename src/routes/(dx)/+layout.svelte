@@ -6,10 +6,8 @@
 	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { momentUrl } from '$lib/moment';
-	import { Canvas } from '@threlte/core';
 	import { onMount } from 'svelte';
-	import { app } from '$lib/app.svelte';
-	import WorldScene from '$lib/scene/WorldScene.svelte';
+	import { App, app } from '$lib/app.svelte';
 	import BlogReader from '$lib/ui/BlogReader.svelte';
 	import ControlPanel from '$lib/ui/ControlPanel.svelte';
 	import EventsDrawer from '$lib/ui/EventsDrawer.svelte';
@@ -32,6 +30,7 @@
 		app.onAdvance = openDay;
 		// dev only: lets browser tests drive the app
 		if (import.meta.env.DEV) (window as unknown as { __app: typeof app }).__app = app;
+		app.view = App.startView(new URLSearchParams(location.search));
 		app.init().catch((e) => (app.error = String(e)));
 		// an app surface: no page scroll or pull-to-refresh bounce while the 3D view is open
 		document.documentElement.classList.add('app-surface');
@@ -85,14 +84,21 @@
 <svelte:window {onkeydown} />
 
 <main>
-	{#if app.index && app.uk}
-		<Canvas {dpr}>
-			<WorldScene {app} onselect={openDay} />
-		</Canvas>
+	{#if app.index && (app.view === '2d' || app.uk)}
+		<!-- each view is its own chunk: the 2D map never downloads the 3D scene, and vice versa -->
+		{#if app.view === '3d'}
+			{#await import('$lib/scene/Scene3D.svelte') then { default: Scene3D }}
+				<Scene3D {app} {dpr} onselect={openDay} />
+			{/await}
+		{:else}
+			{#await import('$lib/map/Map2D.svelte') then { default: Map2D }}
+				<Map2D {app} onselect={openDay} />
+			{/await}
+		{/if}
 		<TripBar {app} />
 		{#if tour}
 			{#key tour}
-				<ControlPanel {tour} />
+				<ControlPanel {tour} flat={app.view === '2d'} />
 				<PinCard {tour} />
 				<Scrubber {tour} />
 				<PhotoPopups {tour} />
@@ -115,7 +121,11 @@
 			<MobileBar {app} events={eventCount} />
 			<Sheet open={ui.sheet === 'info'} title="About this map" onclose={() => (ui.sheet = null)} maxHeight="50dvh">
 				<div class="info">
-					<p><b>Getting around</b><br />Drag to orbit · pinch to zoom · two fingers to pan. Tap pins and photos to open them.</p>
+					<p>
+						<b>Getting around</b><br />{app.view === '2d'
+							? 'Drag to move · pinch to zoom.'
+							: 'Drag to orbit · pinch to zoom · two fingers to pan.'} Tap pins and photos to open them.
+					</p>
 					<p class="credits">{@render credits()}</p>
 				</div>
 			</Sheet>

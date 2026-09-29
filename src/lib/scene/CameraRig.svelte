@@ -115,6 +115,9 @@
 		if (import.meta.env.DEV) (window as unknown as { __rig: object }).__rig = { camera: cam, controls: ctl };
 		return () => {
 			app.camera = null;
+			// switched to the 2D map mid-flight: let the waiting day change carry on
+			flight?.done();
+			flight = null;
 		};
 	});
 

@@ -5,7 +5,8 @@
 	import { ui } from '$lib/ui.svelte';
 	import Sheet from './Sheet.svelte';
 
-	let { tour }: { tour: Tour } = $props();
+	/** flat: the 2D map, which has no camera, terrain or point cloud to tune */
+	let { tour, flat = false }: { tour: Tour; flat?: boolean } = $props();
 	// start collapsed on tablets, where it would cover much of the map
 	let open = $state(globalThis.innerWidth > 1100);
 	const tr = $derived(tour.data.track);
@@ -36,6 +37,8 @@
 		{ id: 'lean', label: 'Lean' },
 		{ id: 'gradient', label: 'Gradient' }
 	];
+	// what the flat map draws
+	const FLAT_LAYERS = ['route', 'parks', 'photos', 'blog', 'pins'];
 	const layerLabels: Record<keyof Tour['layers'], string> = {
 		points: 'Hologram points',
 		contours: 'Contour rings',
@@ -56,6 +59,7 @@
 </script>
 
 {#snippet controls()}
+	{#if !flat}
 	<section>
 		<h2>Camera</h2>
 		<div class="seg">
@@ -97,18 +101,19 @@
 		<h2>Point glow <output>{tour.pointGlow.toFixed(1)}×</output></h2>
 		<input type="range" min="0.4" max="3" step="0.1" bind:value={tour.pointGlow} />
 	</section>
+	{/if}
 
 	<section>
 		<h2>Layers</h2>
 		<div class="layers">
-			{#each Object.keys(layerLabels) as key (key)}
+			{#each Object.keys(layerLabels).filter((k) => !flat || FLAT_LAYERS.includes(k)) as key (key)}
 				{@const k = key as keyof Tour['layers']}
 				<label class="check"><input type="checkbox" bind:checked={tour.layers[k]} /> {layerLabels[k]}</label>
 			{/each}
 		</div>
 	</section>
 
-	{#if !ui.mobile}<p class="hint">Space: play/pause · ←/→: skip 30 s · drag to orbit</p>{/if}
+	{#if !ui.mobile}<p class="hint">Space: play/pause · ←/→: skip 30 s · drag to {flat ? 'move' : 'orbit'}</p>{/if}
 {/snippet}
 
 {#if ui.mobile}

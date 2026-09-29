@@ -35,6 +35,9 @@ export interface CameraController {
 	readonly target: Vector3;
 }
 
+export type View = '3d' | '2d';
+const VIEW_KEY = 'moto-tour:view';
+
 // the middle of Great Britain, used as the origin on the tour overview
 const UK_CENTRE = { e: 380_000, n: 620_000 };
 
@@ -67,10 +70,42 @@ export class App {
 	private days = new Map<string, Promise<TourData>>();
 	private wanted: string | null | undefined = undefined;
 
-	/** Everything the 3D experience needs. Safe to call again: only fetches what's missing. */
+	/** 3D scene or flat 2D map: same tour, same panels, same URLs (?view=2d) */
+	view = $state<View>('3d');
+
+	/** Everything the tour needs. Safe to call again: only fetches what's missing. */
 	async init() {
 		await this.initShared();
-		if (!this.uk) this.uk = await loadUk();
+		await this.ensureView();
+	}
+
+	/** The 3D view also needs the UK terrain backdrop; the 2D map doesn't. */
+	async ensureView() {
+		if (this.view === '3d' && !this.uk) this.uk = await loadUk();
+	}
+
+	/** Switch between 3D and 2D, remembering the choice for next time. */
+	setView(view: View) {
+		this.view = view;
+		try {
+			localStorage.setItem(VIEW_KEY, view);
+		} catch {
+			// private mode: fine, just not remembered
+		}
+		this.ensureView().catch((e) => (this.error = String(e)));
+	}
+
+	/** The view a page load starts in: the URL's ?view=, else the viewer's last choice, else 3D. */
+	static startView(params: URLSearchParams): View {
+		const asked = params.get('view');
+		if (asked === '2d' || asked === '3d') return asked;
+		try {
+			const saved = localStorage.getItem(VIEW_KEY);
+			if (saved === '2d' || saved === '3d') return saved;
+		} catch {
+			// no storage: default
+		}
+		return '3d';
 	}
 
 	/** The light data both experiences share (no terrain): the blog only needs this + the feed. */

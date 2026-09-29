@@ -16,6 +16,9 @@
 			☰{#if events}<span class="n">{events}</span>{/if}
 		</button>
 	{/if}
+	<button onclick={() => app.setView(app.view === '3d' ? '2d' : '3d')} aria-label={app.view === '3d' ? 'Show on a flat map' : 'Show in 3D'}>
+		{app.view === '3d' ? '🗺' : '⛰'}
+	</button>
 	<a class="btn" href={app.tour ? `/blog/${app.tour.data.track.day}` : '/blog'} aria-label="Read as a blog">📖</a>
 	<button class:on={ui.sheet === 'info'} onclick={() => ui.toggle('info')} aria-label="Map info and credits">ⓘ</button>
 </nav>

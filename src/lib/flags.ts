@@ -25,7 +25,7 @@ type FlagSet = Record<Flag, boolean>;
 const SETS: Record<'preview' | 'production', FlagSet> = {
 	preview: { blog: true, map: true, dx3d: true, globe: true, photos: true, stories: true, weather: true, blogFilters: true },
 	// the release plan: switch features on here as they launch
-	production: { blog: true, map: true, dx3d: false, globe: false, photos: true, stories: true, weather: true, blogFilters: true }
+	production: { blog: true, map: true, dx3d: true, globe: true, photos: true, stories: true, weather: true, blogFilters: true }
 };
 
 // injected by vite.config.ts from the build's environment

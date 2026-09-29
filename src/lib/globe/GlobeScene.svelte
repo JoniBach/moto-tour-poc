@@ -6,13 +6,15 @@
 -->
 <script lang="ts">
 	import { T, useTask } from '@threlte/core';
-	import { OrbitControls } from '@threlte/extras';
+	import { interactivity, OrbitControls } from '@threlte/extras';
 	import { CanvasTexture, Color, Group, Mesh, ShaderMaterial, SphereGeometry, Sprite, SpriteMaterial, Vector3 } from 'three';
 	import { fromBng } from '$lib/bng';
 	import { weatherAt, type BlogPost, type Photo } from '$lib/data';
 	import Bike from '$lib/scene/Bike.svelte';
 	import type { Tour } from '$lib/tour.svelte';
 	import DioramaTerrain from './DioramaTerrain.svelte';
+	import GlobeControls from './GlobeControls.svelte';
+	import { km, plinthLayout } from './layout';
 	import GlobeLabels from './GlobeLabels.svelte';
 	import GlobePins from './GlobePins.svelte';
 	import GlobeWeather from './GlobeWeather.svelte';
@@ -48,6 +50,9 @@
 	// pull back on tall, narrow screens so the whole globe fits across
 	const fit = Math.max(1, 1.25 / Math.max(0.3, (globalThis.innerWidth ?? 1) / (globalThis.innerHeight ?? 1)));
 	const globe = new GlobeState(V);
+	const L = plinthLayout(V);
+	// clicks and hovers on the controls built into the base
+	interactivity();
 	const RAD = Math.PI / 180;
 
 	// the landscape group: moves so the bike is always at the centre, floor at y = 0
@@ -172,7 +177,7 @@
 
 <T.PerspectiveCamera makeDefault position={[0, V * 2.1 * fit, V * 3.9 * fit]} fov={34} near={V * 0.01} far={V * 40}>
 	<OrbitControls
-		target={[0, V * 0.05, 0]}
+		target={[0, V * 0.02, 0]}
 		enablePan={false}
 		enableDamping
 		minDistance={V * 1.3}
@@ -184,7 +189,8 @@
 <T.HemisphereLight bind:ref={hemi} args={['#dfeef7', '#d8cbb4', 1.2]} />
 <T.DirectionalLight bind:ref={sunLight} position={[V, V * 2, V]} intensity={2} />
 
-<Plinth R={V} {title} {date} {shadow} />
+<Plinth R={V} {L} {title} {date} {shadow} size={km(R)} relief={`${+tour.exaggeration.toFixed(2)}×`} />
+<GlobeControls {tour} {L} {V} />
 
 <T is={land}>
 	<!-- a new size rebuilds what's cut to the circle; the floor eases to its new level -->

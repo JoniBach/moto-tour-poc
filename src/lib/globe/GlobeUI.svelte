@@ -1,7 +1,8 @@
 <!--
   The globe's deliberately small UI: a play bar (play/pause, speed, the time, the weather, a
-  slider through the day) and a little settings card (surface, elevation lines, weather, pins,
-  relief). On phones the card opens as the settings sheet.
+  slider through the day). The settings are built into the globe's base (GlobeControls); the
+  same settings live here too as a panel for keyboards and screen readers, hidden until focus
+  reaches it, and as the settings sheet on phones (the base's switches are small for fingers).
 -->
 <script lang="ts">
 	import { weatherAt, weatherLabel } from '$lib/data';
@@ -13,7 +14,6 @@
 
 	let { tour }: { tour: Tour } = $props();
 
-	let open = $state(globalThis.innerWidth > 1100);
 	const surfaces: { id: MapStyle; label: string }[] = [
 		{ id: 'hologram', label: 'Plain' },
 		{ id: 'satellite', label: 'Satellite' },
@@ -72,7 +72,7 @@
 		<span>Relief <output>{tour.exaggeration.toFixed(1)}×</output></span>
 		<input type="range" min="1" max="4" step="0.1" bind:value={tour.exaggeration} />
 	</label>
-	<p class="hint">Drag to turn the globe · scroll or pinch to zoom · Space to play</p>
+	<p class="hint">Drag to turn the globe · scroll or pinch to zoom · Space to play. The same switches are on the globe's base.</p>
 {/snippet}
 
 {#if ui.mobile}
@@ -80,12 +80,10 @@
 		<div class="card sheet">{@render settings()}</div>
 	</Sheet>
 {:else}
-	<aside class="card side" aria-label="Globe settings">
-		<header>
-			<h2>{tour.data.track.title}</h2>
-			<button type="button" class="more" aria-expanded={open} onclick={() => (open = !open)} aria-label="Globe settings">{open ? '–' : '+'}</button>
-		</header>
-		{#if open}{@render settings()}{/if}
+	<!-- appears only while it has keyboard focus: pointers use the globe's own switches -->
+	<aside class="card side kb" aria-label="Globe settings">
+		<h2>Globe settings</h2>
+		{@render settings()}
 	</aside>
 {/if}
 
@@ -129,26 +127,20 @@
 	.sheet {
 		color: var(--text);
 	}
-	header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 8px;
+	/* keyboard panel: out of sight until focus is inside it */
+	.kb:not(:focus-within) {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
 	}
 	h2 {
 		margin: 0;
 		font-size: 15px;
 		font-weight: 650;
-	}
-	.more {
-		width: 32px;
-		height: 32px;
-		border: 0;
-		border-radius: 8px;
-		background: none;
-		color: inherit;
-		font-size: 18px;
-		cursor: pointer;
 	}
 	fieldset {
 		margin: 10px 0 0;

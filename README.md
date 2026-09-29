@@ -156,8 +156,14 @@ day plays. **◍ Globe** in the trip bar (phones: the view button steps 3D → m
 - `RouteRibbon.svelte`: the route as a ribbon on the land, terracotta behind the bike and chalk
   ahead, re-draped on the landscape's own heights each re-sample.
 - `Plinth.svelte`: engraved compass ring and the day's name and date lettered around the front.
-- `GlobeUI.svelte`: deliberately small: play bar (play/pause, speed, time, weather, slider) and a
-  settings card (surface, elevation lines, route, weather, places, photos, stories, relief).
+- Controls are built into the base (`GlobeControls.svelte`, positions in `layout.ts`, labels
+  engraved by `Plinth.svelte` on the ledge's top): four surface keys (the chosen one stays down),
+  lever switches with indicator lights (lines, route, weather, names, places, photos, stories)
+  and − / + buttons for size and relief, whose values are engraved beside them. Clicks come from
+  Threlte's `interactivity()`; each control has a larger invisible hit box.
+- `GlobeUI.svelte`: the play bar (play/pause, speed, time, weather, slider). The same settings
+  are also an HTML panel for keyboards and screen readers, hidden until focus reaches it (Tab),
+  and the ⚙ sheet on phones, where the base's switches are small for fingers.
 - Own chunk (`Globe3D.svelte`); needs no UK backdrop.
 
 ## Privacy zones

@@ -121,6 +121,45 @@ reader, pins), same shareable URLs with `?view=2d` added. The choice is remember
   covers everywhere (it's just a map), while the tour's own routes, photos and posts are the
   same privacy-filtered data as the 3D view.
 
+## The globe
+
+A third, artistic view, grown from the 3D view's detail bubble: the day's landscape as a round
+diorama on a plinth, with the bike always at the centre while the land slides beneath it as the
+day plays. **◍ Globe** in the trip bar (phones: the view button steps 3D → map → globe);
+`?view=globe` in links.
+
+- North never moves (the far side, as the globe first appears); you turn the globe by dragging,
+  it never turns itself. Zoom, no pan, no looking from underneath.
+- `DioramaTerrain.svelte`: a 20 m grid re-sampled as the bike drifts (day grid, then full-res
+  Terrarium tiles, as in the detail bubble), cut to a circle that follows the bike exactly, with
+  a wall of layered earth around the rim down to the plinth. The floor eases to the lowest ground
+  in reach, so hills stand up out of the base. Pastel by height ("Plain") or the 3D view's
+  imagery (satellite / Sentinel-2 / topo), elevation lines every 20 m (bold every 100 m).
+- `sky.ts`: the real sun and moon positions for the bike's place and moment (suncalc-style
+  formulas). They sit on an arc around the globe, set the light's direction and colour, and the
+  sky gradient behind (night, blue hour, golden hour, day), greyed by cloud. The moon is lit by
+  the sun, so it shows its phase.
+- `GlobeWeather.svelte`: clouds from the recorded cover, drifting with the recorded wind; rain
+  from the recorded precipitation (drizzle gets a floor), slanted by the wind.
+- `GlobePins.svelte`: places, photos (round thumbnails, grouped when taken together) and stories
+  grow in as they come over the rim and shrink away as they leave; only those inside can be
+  clicked or tabbed to.
+- `GlobeLabels.svelte`: OSM names (peaks with heights, lakes, towns, villages, hamlets; small
+  localities only on small globes), fading in and out at the rim like the pins, at most 14 at
+  once by importance.
+- Size: 0.8–6 km from the bike to the rim (`settings.globeRadius`, kept across days). The globe
+  stays the same size on screen (scene units `V`); the landscape is scaled to fit, so a bigger
+  globe shows more land with flatter hills. A new size remounts what's cut to the circle; the
+  floor eases to its new level.
+- Buttons over the scene need `{@attach clickThroughControls}` (the orbit controls capture the
+  pointer), and the globe pins' Threlte wrappers are click-through so shifted pins stay clickable.
+- `RouteRibbon.svelte`: the route as a ribbon on the land, terracotta behind the bike and chalk
+  ahead, re-draped on the landscape's own heights each re-sample.
+- `Plinth.svelte`: engraved compass ring and the day's name and date lettered around the front.
+- `GlobeUI.svelte`: deliberately small: play bar (play/pause, speed, time, weather, slider) and a
+  settings card (surface, elevation lines, route, weather, places, photos, stories, relief).
+- Own chunk (`Globe3D.svelte`); needs no UK backdrop.
+
 ## Privacy zones
 
 `data/privacy.json` lists circles (town centre + radius) where nothing personal may appear:

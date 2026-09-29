@@ -7,18 +7,25 @@
 	import { ui } from '$lib/ui.svelte';
 
 	let { app, events }: { app: App; events: number } = $props();
+
+	const NEXT = {
+		'3d': { id: '2d', icon: '🗺', name: 'flat map' },
+		'2d': { id: 'globe', icon: '◍', name: 'globe' },
+		globe: { id: '3d', icon: '⛰', name: '3D view' }
+	} as const;
 </script>
 
 <nav class="mbar" aria-label="Panels">
 	{#if app.tour}
 		<button class:on={ui.sheet === 'controls'} onclick={() => ui.toggle('controls')} aria-label="Map and view settings">⚙</button>
-		<button class:on={ui.sheet === 'events'} onclick={() => ui.toggle('events')} aria-label="Day events">
-			☰{#if events}<span class="n">{events}</span>{/if}
-		</button>
+		{#if app.view !== 'globe'}
+			<button class:on={ui.sheet === 'events'} onclick={() => ui.toggle('events')} aria-label="Day events">
+				☰{#if events}<span class="n">{events}</span>{/if}
+			</button>
+		{/if}
 	{/if}
-	<button onclick={() => app.setView(app.view === '3d' ? '2d' : '3d')} aria-label={app.view === '3d' ? 'Show on a flat map' : 'Show in 3D'}>
-		{app.view === '3d' ? '🗺' : '⛰'}
-	</button>
+	<!-- one button steps through the views: 3D → map → globe -->
+	<button onclick={() => app.setView(NEXT[app.view].id)} aria-label="Switch to the {NEXT[app.view].name}">{NEXT[app.view].icon}</button>
 	<a class="btn" href={app.tour ? `/blog/${app.tour.data.track.day}` : '/blog'} aria-label="Read as a blog">📖</a>
 	<button class:on={ui.sheet === 'info'} onclick={() => ui.toggle('info')} aria-label="Map info and credits">ⓘ</button>
 </nav>

@@ -35,7 +35,7 @@ export interface CameraController {
 	readonly target: Vector3;
 }
 
-export type View = '3d' | '2d';
+export type View = '3d' | '2d' | 'globe';
 const VIEW_KEY = 'moto-tour:view';
 
 // the middle of Great Britain, used as the origin on the tour overview
@@ -70,7 +70,7 @@ export class App {
 	private days = new Map<string, Promise<TourData>>();
 	private wanted: string | null | undefined = undefined;
 
-	/** 3D scene or flat 2D map: same tour, same panels, same URLs (?view=2d) */
+	/** 3D scene, flat 2D map or the globe: same tour and URLs (?view=2d / ?view=globe) */
 	view = $state<View>('3d');
 
 	/** Everything the tour needs. Safe to call again: only fetches what's missing. */
@@ -98,10 +98,10 @@ export class App {
 	/** The view a page load starts in: the URL's ?view=, else the viewer's last choice, else 3D. */
 	static startView(params: URLSearchParams): View {
 		const asked = params.get('view');
-		if (asked === '2d' || asked === '3d') return asked;
+		if (asked === '2d' || asked === '3d' || asked === 'globe') return asked;
 		try {
 			const saved = localStorage.getItem(VIEW_KEY);
-			if (saved === '2d' || saved === '3d') return saved;
+			if (saved === '2d' || saved === '3d' || saved === 'globe') return saved;
 		} catch {
 			// no storage: default
 		}

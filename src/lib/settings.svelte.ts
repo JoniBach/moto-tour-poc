@@ -19,6 +19,8 @@ export class Settings {
 	pointDensity = $state(1);
 	/** carry on into the next day when a day's playback ends */
 	autoAdvance = $state(true);
+	/** the globe view: metres of landscape from the bike to the rim */
+	globeRadius = $state(1800);
 	/** the events drawer on the right */
 	eventsOpen = $state(false);
 	layers = $state({

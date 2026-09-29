@@ -8,6 +8,12 @@
 
 	let { app }: { app: App } = $props();
 
+	const VIEWS: { id: import('$lib/app.svelte').View; label: string; title: string }[] = [
+		{ id: '3d', label: '⛰ 3D', title: 'The tour in 3D' },
+		{ id: '2d', label: '🗺 Map', title: 'The tour on a flat street map' },
+		{ id: 'globe', label: '◍ Globe', title: 'The ride as a little globe: the landscape turns under the bike' }
+	];
+
 	const days = $derived(app.index?.days ?? []);
 	// the day on screen, or the one we're flying to while the scene is empty
 	const activeDay = $derived(app.currentDay);
@@ -51,14 +57,11 @@
 		{/each}
 	</div>
 	<a class="step" class:disabled={!next} href={next ? `/day/${next.day}` : undefined} aria-label="Next day">▶</a>
-	<button
-		type="button"
-		class="blog"
-		onclick={() => app.setView(app.view === '3d' ? '2d' : '3d')}
-		title={app.view === '3d' ? 'Show the tour on a flat street map' : 'Show the tour in 3D'}
-	>
-		{app.view === '3d' ? '🗺 2D map' : '⛰ 3D'}
-	</button>
+	<div class="views" role="group" aria-label="View">
+		{#each VIEWS as v (v.id)}
+			<button type="button" aria-pressed={app.view === v.id} title={v.title} onclick={() => app.setView(v.id)}>{v.label}</button>
+		{/each}
+	</div>
 	<a class="blog" href={activeDay ? `/blog/${activeDay}` : '/blog'} title="Read the tour as a simple blog">📖 Blog</a>
 	{#if app.pending}
 		<span class="busy">Loading Day {app.pending.index + 1}…</span>
@@ -101,10 +104,30 @@
 		color: var(--text);
 		background: var(--accent-soft);
 	}
-	.blog {
-		font: inherit;
-		cursor: pointer;
+	.views {
+		display: flex;
+		flex-shrink: 0;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		overflow: hidden;
+	}
+	.views button {
+		padding: 5px 8px;
+		border: 0;
 		background: none;
+		color: var(--muted);
+		font: inherit;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+	.views button[aria-pressed='true'] {
+		background: var(--accent-soft);
+		color: var(--text);
+	}
+	.views button:hover {
+		color: var(--text);
+	}
+	.blog {
 		flex-shrink: 0;
 		padding: 5px 9px;
 		border-radius: 8px;
@@ -184,6 +207,7 @@
 			padding: 4px 4px;
 		}
 		.busy,
+		.views,
 		.blog {
 			display: none; /* on phones it's in the button strip */
 		}

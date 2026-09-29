@@ -84,25 +84,32 @@
 <svelte:window {onkeydown} />
 
 <main>
-	{#if app.index && (app.view === '2d' || app.uk)}
+	{#if app.index && (app.view !== '3d' || app.uk)}
 		<!-- each view is its own chunk: the 2D map never downloads the 3D scene, and vice versa -->
 		{#if app.view === '3d'}
 			{#await import('$lib/scene/Scene3D.svelte') then { default: Scene3D }}
 				<Scene3D {app} {dpr} onselect={openDay} />
 			{/await}
-		{:else}
+		{:else if app.view === '2d'}
 			{#await import('$lib/map/Map2D.svelte') then { default: Map2D }}
 				<Map2D {app} onselect={openDay} />
+			{/await}
+		{:else}
+			{#await import('$lib/globe/Globe3D.svelte') then { default: Globe3D }}
+				<Globe3D {app} {dpr} />
 			{/await}
 		{/if}
 		<TripBar {app} />
 		{#if tour}
 			{#key tour}
-				<ControlPanel {tour} flat={app.view === '2d'} />
+				<!-- the globe keeps its UI small: its own play bar and settings card -->
+				{#if app.view !== 'globe'}
+					<ControlPanel {tour} flat={app.view === '2d'} />
+					<Scrubber {tour} />
+					<EventsDrawer {tour} />
+				{/if}
 				<PinCard {tour} />
-				<Scrubber {tour} />
 				<PhotoPopups {tour} />
-				<EventsDrawer {tour} />
 			{/key}
 		{:else if !app.pending}
 			<!-- not while flying between days: the scene is briefly empty, the card would flash -->
@@ -124,7 +131,9 @@
 					<p>
 						<b>Getting around</b><br />{app.view === '2d'
 							? 'Drag to move · pinch to zoom.'
-							: 'Drag to orbit · pinch to zoom · two fingers to pan.'} Tap pins and photos to open them.
+							: app.view === 'globe'
+								? 'Drag to turn the globe · pinch to zoom.'
+								: 'Drag to orbit · pinch to zoom · two fingers to pan.'} Tap pins and photos to open them.
 					</p>
 					<p class="credits">{@render credits()}</p>
 				</div>

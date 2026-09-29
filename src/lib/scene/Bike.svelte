@@ -8,7 +8,20 @@
 	import { AdditiveBlending, Group, Mesh, Vector3 } from 'three';
 	import type { Tour } from '$lib/tour.svelte';
 
-	let { tour }: { tour: Tour } = $props();
+	let {
+		tour,
+		beacon = true,
+		grow = 1,
+		groundAt
+	}: {
+		tour: Tour;
+		/** the marker beam for zoomed-out views (the globe has no need of it) */
+		beacon?: boolean;
+		/** extra size factor (the globe shrinks the landscape, and would shrink the bike with it) */
+		grow?: number;
+		/** stand on this ground instead of the day grid's (the globe's sharper terrain) */
+		groundAt?: (x: number, n: number) => number;
+	} = $props();
 	const { camera } = useThrelte();
 
 	const outer = new Group();
@@ -18,14 +31,14 @@
 
 	useTask(() => {
 		const b = tour.bike;
-		outer.position.set(b.x, b.h * tour.exaggeration, -b.n);
+		outer.position.set(b.x, (groundAt ? groundAt(b.x, b.n) : b.h) * tour.exaggeration, -b.n);
 		outer.rotation.y = -b.heading;
 		if (leanGroup) leanGroup.rotation.z = -b.lean;
 		const dist = camera.current.getWorldPosition(tmp).distanceTo(outer.position);
 		const s = Math.min(60, Math.max(1, dist / 45));
-		outer.scale.setScalar(s);
+		outer.scale.setScalar(s * grow);
 		// the marker beam only helps when zoomed out; hide it for close-ups
-		if (beam) beam.visible = s > 6;
+		if (beam) beam.visible = beacon && s > 6;
 	});
 
 	const body = { color: '#0c1a22', emissive: '#00c8ff', emissiveIntensity: 0.35, roughness: 0.4, metalness: 0.6 };

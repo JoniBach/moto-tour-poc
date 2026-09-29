@@ -3,6 +3,11 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+	// release flags (src/lib/flags.ts): which set, and any one-off overrides
+	define: {
+		__RELEASE__: JSON.stringify(process.env.RELEASE ?? 'preview'),
+		__FEATURES__: JSON.stringify(process.env.FEATURES ?? '')
+	},
 	plugins: [
 		sveltekit({
 			compilerOptions: {

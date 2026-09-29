@@ -1,5 +1,6 @@
 <!-- One photo as a page: the picture, when and where, previous / next within the day. -->
 <script lang="ts">
+	import { tourOn, TOUR_NAME } from '$lib/flags';
 	import { goto } from '$app/navigation';
 	import { iso, longDate, mapLink, time } from '$lib/blog';
 	import Photo from '$lib/blog/Photo.svelte';
@@ -44,7 +45,7 @@
 <p class="hint">Tip: the left and right arrow keys move between photos.</p>
 <p class="links">
 	<a href="/blog/{day.day}">Back to Day {day.index + 1}</a>
-	<a class="dx" href={mapLink(day.day, photo.t, { photo: photo.id })}>See where it was taken in the 3D tour<span aria-hidden="true"> ↗</span></a>
+	{#if tourOn}<a class="dx" href={mapLink(day.day, photo.t, { photo: photo.id })}>See where it was taken in the {TOUR_NAME}<span aria-hidden="true"> ↗</span></a>{/if}
 </p>
 
 <style>

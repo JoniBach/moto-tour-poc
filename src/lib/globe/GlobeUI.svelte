@@ -4,11 +4,13 @@
   relief). On phones the card opens as the settings sheet.
 -->
 <script lang="ts">
+	import { layerAvailable } from '$lib/flagLayers';
 	import { weatherAt, weatherLabel } from '$lib/data';
 	import type { MapStyle } from '$lib/imagery';
 	import { ukClock } from '$lib/time';
 	import type { Tour } from '$lib/tour.svelte';
 	import Sheet from '$lib/ui/Sheet.svelte';
+	import GlobeBanner from './GlobeBanner.svelte';
 	import { ui } from '$lib/ui.svelte';
 
 	let { tour }: { tour: Tour } = $props();
@@ -28,7 +30,7 @@
 		{ key: 'pins', label: 'Places' },
 		{ key: 'photos', label: 'Photos' },
 		{ key: 'blog', label: 'Stories' }
-	];
+	].filter((t) => layerAvailable(t.key)) as { key: keyof Tour['layers']; label: string }[];
 
 	// size: shown live while dragging, applied on release (a new size rebuilds the landscape)
 	// svelte-ignore state_referenced_locally — the settings object is shared and fixed; the slider starts from it
@@ -89,6 +91,8 @@
 	</aside>
 {/if}
 
+<div class="dock">
+<GlobeBanner {tour} />
 <div class="play" role="group" aria-label="Playback">
 	<button type="button" class="pp" onclick={() => tour.togglePlay()} aria-label={tour.playing ? 'Pause' : 'Play'}>{tour.playing ? '❚❚' : '▶'}</button>
 	<select bind:value={tour.rate} aria-label="Playback speed">
@@ -107,6 +111,7 @@
 		aria-label="Through the day"
 		aria-valuetext={clock}
 	/>
+</div>
 </div>
 
 <style>
@@ -207,16 +212,23 @@
 		font-size: 12px;
 		opacity: 0.7;
 	}
-	.play {
+	/* the event banner above the play bar, both centred along the bottom */
+	.dock {
 		position: absolute;
 		z-index: 100;
 		left: 50%;
 		bottom: 18px;
 		transform: translateX(-50%);
 		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		width: min(720px, calc(100% - 32px));
+	}
+	.play {
+		display: flex;
 		align-items: center;
 		gap: 12px;
-		width: min(720px, calc(100% - 32px));
+		box-sizing: border-box;
 		padding: 8px 16px 8px 8px;
 		border-radius: 999px;
 		background: rgb(255 255 255 / 0.75);
@@ -260,8 +272,10 @@
 		min-width: 60px;
 	}
 	@media (max-width: 900px) {
-		.play {
+		.dock {
 			bottom: 12px;
+		}
+		.play {
 			gap: 8px;
 		}
 		.wxt {

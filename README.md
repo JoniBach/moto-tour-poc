@@ -156,6 +156,9 @@ day plays. **◍ Globe** in the trip bar (phones: the view button steps 3D → m
 - `RouteRibbon.svelte`: the route as a ribbon on the land, terracotta behind the bike and chalk
   ahead, re-draped on the landscape's own heights each re-sample.
 - `Plinth.svelte`: engraved compass ring and the day's name and date lettered around the front.
+- `GlobeBanner.svelte`: instead of the pop-up cards, one thin line above the play bar names the
+  latest moment passed (set off, break, place, photos, story) with a small thumbnail at its end;
+  each new one fades in in place. Photos and stories open on click.
 - `GlobeUI.svelte`: deliberately small: play bar (play/pause, speed, time, weather, slider) and a
   settings card (surface, elevation lines, route, weather, places, photos, stories, relief).
 - Own chunk (`Globe3D.svelte`); needs no UK backdrop.
@@ -176,6 +179,37 @@ tour lines, photos, stray photo files); the deploy refuses to run if it finds an
 files as `.gz` (275 MB -> 86 MB; the app decompresses them), runs the privacy audit, builds with
 every page prerendered as static files, and uploads with `--prebuilt`. Uploads resume, so on a
 flaky connection just re-run. `node scripts/deploy.mjs --prod` would publish publicly.
+
+## Release flags (phased release)
+
+`src/lib/flags.ts` decides at build time which parts of the site exist, so features can launch
+one at a time:
+
+| Flag | What it switches |
+| --- | --- |
+| `blog` | the blog: `/blog` pages (not built; URLs 404) and every 📖 link to them |
+| `map` | the 2D map view |
+| `dx3d` | the 3D view |
+| `globe` | the globe view |
+| `photos` | photos everywhere: pins, gallery, pop-ups, the blog's photo events and pages |
+| `stories` | blog posts everywhere: pins, reader, banner, story cards and pages |
+| `weather` | recorded weather: readouts, rain, clouds, the blog's temperatures |
+| `blogFilters` | the blog's filter and group panel |
+
+- Two sets in `flags.ts`: `preview` (dev and `npm run deploy`: everything on, for testing) and
+  `production` (the release plan, used by `deploy --prod`). Launching a feature = flip it in the
+  production set, deploy with `--prod`.
+- One-off overrides: `FEATURES="globe=off,photos=on" npm run deploy` (also `-globe` / `+globe`).
+  Unknown names fail the build. `vite.config.ts` injects `RELEASE` and `FEATURES` into the code.
+- The views follow the flags everywhere: switchers show only views that are on, `?view=` and the
+  remembered choice fall back to the first view that's on, and the blog names that view in its
+  links ("See this moment in the 3D tour" / "…on the map"). With no view on, `/` goes to the blog
+  and the blog's times are plain text.
+- Photos, stories and weather are cut at the source (the app doesn't fetch them; the blog's data
+  drops them), so every view follows without its own checks.
+- These hide features; they don't make them secret (switched-off code can still be in a shared
+  bundle, and the repo is public). Private previews stay the place for unreleased work.
+- Speed figures keep their own levels in `src/lib/config.ts`.
 
 ## Multi-day architecture: phased resolution, one page per day
 

@@ -18,7 +18,8 @@
 		head,
 		children
 	}: {
-		href: string;
+		/** the moment in the tour; without one (no view released) the time is plain text */
+		href?: string;
 		t: number;
 		icon: string;
 		cls: string;
@@ -35,11 +36,19 @@
 </script>
 
 <li class="event {cls}" class:shut={foldable && !open}>
-	<a class="when" {href} title="View on the map">
-		<time datetime={iso(t)}>{time(t)}</time><span class="sr">, view on the map</span>
-	</a>
+	{#if href}
+		<a class="when" {href} title="View on the map">
+			<time datetime={iso(t)}>{time(t)}</time><span class="sr">, view on the map</span>
+		</a>
+	{:else}
+		<span class="when plain"><time datetime={iso(t)}>{time(t)}</time></span>
+	{/if}
 	<!-- same link as the time, for pointers; kept out of the tab order so keyboards meet it once -->
-	<a class="dot" {href} tabindex="-1" aria-hidden="true" title="View on the map">{icon}</a>
+	{#if href}
+		<a class="dot" {href} tabindex="-1" aria-hidden="true" title="View on the map">{icon}</a>
+	{:else}
+		<span class="dot" aria-hidden="true">{icon}</span>
+	{/if}
 	<div class="what">
 		<div class="head">
 			{@render head()}
@@ -108,7 +117,11 @@
 		position: absolute;
 		inset: -8px;
 	}
-	.dot:hover {
+	.when.plain {
+		font-weight: 600;
+		color: var(--b-muted);
+	}
+	a.dot:hover {
 		background: var(--b-card);
 		border-color: var(--b-accent);
 	}

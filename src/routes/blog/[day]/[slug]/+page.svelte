@@ -1,5 +1,6 @@
 <!-- A blog post as a normal article page. -->
 <script lang="ts">
+	import { tourOn, TOUR_NAME } from '$lib/flags';
 	import { iso, longDate, mapLink, time } from '$lib/blog';
 	import Photo from '$lib/blog/Photo.svelte';
 
@@ -36,7 +37,7 @@
 		<!-- the author's own Markdown, rendered at build time (scripts/build-blog.mjs) -->
 		{@html post.html}
 	</div>
-	<p><a class="dx" href={mapLink(day.day, post.t, { post: post.slug })}>See this moment in the 3D tour<span aria-hidden="true"> ↗</span></a></p>
+	{#if tourOn}<p><a class="dx" href={mapLink(day.day, post.t, { post: post.slug })}>See this moment in the {TOUR_NAME}<span aria-hidden="true"> ↗</span></a></p>{/if}
 	<nav class="pager" aria-label="Other stories">
 		{#if prev}<a rel="prev" href="/blog/{prev.day}/{prev.slug}"><span aria-hidden="true">← </span>{prev.title}</a>{:else}<span></span>{/if}
 		{#if next}<a rel="next" href="/blog/{next.day}/{next.slug}">{next.title}<span aria-hidden="true"> →</span></a>{/if}

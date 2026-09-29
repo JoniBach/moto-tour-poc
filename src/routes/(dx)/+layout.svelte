@@ -3,6 +3,7 @@
   animates within one scene instead of remounting it. Pages only say which day to show.
 -->
 <script lang="ts">
+	import { on, tourOn } from '$lib/flags';
 	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { momentUrl } from '$lib/moment';
@@ -27,6 +28,11 @@
 	const openDay = (day: string) => goto(`/day/${day}`);
 
 	onMount(() => {
+		// every view of the tour switched off in this release: the blog is the whole site
+		if (!tourOn) {
+			if (on('blog')) location.replace('/blog');
+			return;
+		}
 		app.onAdvance = openDay;
 		// dev only: lets browser tests drive the app
 		if (import.meta.env.DEV) (window as unknown as { __app: typeof app }).__app = app;
@@ -109,7 +115,8 @@
 					<EventsDrawer {tour} />
 				{/if}
 				<PinCard {tour} />
-				<PhotoPopups {tour} />
+				<!-- the globe has its own quiet event banner instead of the pop-up cards -->
+				{#if app.view !== 'globe'}<PhotoPopups {tour} />{/if}
 			{/key}
 		{:else if !app.pending}
 			<!-- not while flying between days: the scene is briefly empty, the card would flash -->

@@ -9,6 +9,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const prod = process.argv.includes('--prod');
+// which set of release flags the build uses (src/lib/flags.ts); FEATURES passes straight through
+process.env.RELEASE = prod ? 'production' : 'preview';
+console.log(`Release flags: ${process.env.RELEASE} set${process.env.FEATURES ? `, overrides: ${process.env.FEATURES}` : ''}`);
 const sh = (cmd) => execSync(cmd, { stdio: 'inherit' });
 const vercel = (args) => sh(`npx --yes vercel@latest ${args}`);
 

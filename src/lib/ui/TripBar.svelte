@@ -3,16 +3,20 @@
   Days are pages (/day/<date>), so this is just links; the app animates the move.
 -->
 <script lang="ts">
+	import { on, VIEWS_ON } from '$lib/flags';
 	import type { App } from '$lib/app.svelte';
 	import { dayColor } from '$lib/colors';
 
 	let { app }: { app: App } = $props();
 
-	const VIEWS: { id: import('$lib/app.svelte').View; label: string; title: string }[] = [
-		{ id: '3d', label: '⛰ 3D', title: 'The tour in 3D' },
-		{ id: '2d', label: '🗺 Map', title: 'The tour on a flat street map' },
-		{ id: 'globe', label: '◍ Globe', title: 'The ride as a little globe: the landscape turns under the bike' }
-	];
+	// only the views switched on in this release (src/lib/flags.ts)
+	const VIEWS = (
+		[
+			{ id: '3d', label: '⛰ 3D', title: 'The tour in 3D' },
+			{ id: '2d', label: '🗺 Map', title: 'The tour on a flat street map' },
+			{ id: 'globe', label: '◍ Globe', title: 'The ride as a little globe: the landscape turns under the bike' }
+		] as const
+	).filter((v) => VIEWS_ON.includes(v.id));
 
 	const days = $derived(app.index?.days ?? []);
 	// the day on screen, or the one we're flying to while the scene is empty
@@ -57,12 +61,14 @@
 		{/each}
 	</div>
 	<a class="step" class:disabled={!next} href={next ? `/day/${next.day}` : undefined} aria-label="Next day">▶</a>
-	<div class="views" role="group" aria-label="View">
-		{#each VIEWS as v (v.id)}
-			<button type="button" aria-pressed={app.view === v.id} title={v.title} onclick={() => app.setView(v.id)}>{v.label}</button>
-		{/each}
-	</div>
-	<a class="blog" href={activeDay ? `/blog/${activeDay}` : '/blog'} title="Read the tour as a simple blog">📖 Blog</a>
+	{#if VIEWS.length > 1}
+		<div class="views" role="group" aria-label="View">
+			{#each VIEWS as v (v.id)}
+				<button type="button" aria-pressed={app.view === v.id} title={v.title} onclick={() => app.setView(v.id)}>{v.label}</button>
+			{/each}
+		</div>
+	{/if}
+	{#if on('blog')}<a class="blog" href={activeDay ? `/blog/${activeDay}` : '/blog'} title="Read the tour as a simple blog">📖 Blog</a>{/if}
 	{#if app.pending}
 		<span class="busy">Loading Day {app.pending.index + 1}…</span>
 	{:else if app.busy}

@@ -3,6 +3,7 @@
   Starts closed (that's the point of grouping); the chevron opens it to the events themselves.
 -->
 <script lang="ts">
+	import { tourOn } from '$lib/flags';
 	import { mapLink, time } from '$lib/blog';
 	import type { BlogEvent } from '$lib/server/blog-data';
 	import EventItem from './EventItem.svelte';
@@ -15,7 +16,7 @@
 	const first = $derived(events[0]);
 	const last = $derived(events[events.length - 1]);
 	const kind = $derived(first.kind);
-	const here = $derived(mapLink(day, first.t, { photo: first.kind === 'photos' ? first.photos[0] : undefined }));
+	const here = $derived(!tourOn ? undefined : mapLink(day, first.t, { photo: first.kind === 'photos' ? first.photos[0] : undefined }));
 	const label = $derived(`${title}, ${time(first.t)} to ${time(last.t)}`);
 
 	let open = $state(false);

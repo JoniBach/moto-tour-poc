@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { layerAvailable } from '$lib/flagLayers';
 	import { speedShade } from '$lib/config';
 	import type { MapStyle } from '$lib/imagery';
 	import type { CameraMode, ColorBy, Tour } from '$lib/tour.svelte';
@@ -106,7 +107,7 @@
 	<section>
 		<h2>Layers</h2>
 		<div class="layers">
-			{#each Object.keys(layerLabels).filter((k) => !flat || FLAT_LAYERS.includes(k)) as key (key)}
+			{#each Object.keys(layerLabels).filter((k) => (!flat || FLAT_LAYERS.includes(k)) && layerAvailable(k)) as key (key)}
 				{@const k = key as keyof Tour['layers']}
 				<label class="check"><input type="checkbox" bind:checked={tour.layers[k]} /> {layerLabels[k]}</label>
 			{/each}

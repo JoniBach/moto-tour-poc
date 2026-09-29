@@ -21,6 +21,7 @@ import {
 	type TourData,
 	type TourIndex
 } from './data';
+import { on, VIEWS_ON } from './flags';
 import { Settings } from './settings.svelte';
 import { Tour } from './tour.svelte';
 
@@ -86,6 +87,7 @@ export class App {
 
 	/** Switch between 3D and 2D, remembering the choice for next time. */
 	setView(view: View) {
+		if (!VIEWS_ON.includes(view)) return; // switched off in this release
 		this.view = view;
 		try {
 			localStorage.setItem(VIEW_KEY, view);
@@ -97,21 +99,30 @@ export class App {
 
 	/** The view a page load starts in: the URL's ?view=, else the viewer's last choice, else 3D. */
 	static startView(params: URLSearchParams): View {
+		// only views switched on in this release (src/lib/flags.ts); the first on is the default
+		const ok = (v: string | null): v is View => VIEWS_ON.includes(v as View);
 		const asked = params.get('view');
-		if (asked === '2d' || asked === '3d' || asked === 'globe') return asked;
+		if (ok(asked)) return asked;
 		try {
 			const saved = localStorage.getItem(VIEW_KEY);
-			if (saved === '2d' || saved === '3d' || saved === 'globe') return saved;
+			if (ok(saved)) return saved;
 		} catch {
 			// no storage: default
 		}
-		return '3d';
+		return VIEWS_ON[0] ?? '3d';
 	}
 
 	/** The light data both experiences share (no terrain): the blog only needs this + the feed. */
 	async initShared() {
 		if (this.index) return;
-		const [index, parks, photos, posts] = await Promise.all([loadTourIndex(), loadParks(), loadPhotos(), loadBlog()]);
+		// photos and stories switched off in this release aren't even fetched: every view then
+		// simply has none (no pins, gallery, reader, pop-ups)
+		const [index, parks, photos, posts] = await Promise.all([
+			loadTourIndex(),
+			loadParks(),
+			on('photos') ? loadPhotos() : Promise.resolve([]),
+			on('stories') ? loadBlog() : Promise.resolve([])
+		]);
 		this.posts = posts;
 		this.parks = parks;
 		this.photos = photos;
@@ -217,6 +228,8 @@ export class App {
 		}
 
 		// 3. move the origin and bring the new day in; shift the camera by the same amount (no jump)
+		// weather switched off: the day simply has none (no readouts, rain, clouds)
+		if (data && !on('weather')) data = { ...data, weather: null };
 		const delta = new Vector3(-(newOrigin.e - this.origin.e), 0, newOrigin.n - this.origin.n);
 		this.origin = newOrigin;
 		cam?.shift(delta);

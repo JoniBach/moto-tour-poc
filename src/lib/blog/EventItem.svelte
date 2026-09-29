@@ -5,6 +5,7 @@
   fold: their card always shows.
 -->
 <script lang="ts">
+	import { tourOn } from '$lib/flags';
 	import { eventSentence, mapLink, time } from '$lib/blog';
 	import type { BlogEvent } from '$lib/server/blog-data';
 	import { fold } from './fold.svelte';
@@ -17,7 +18,7 @@
 	const card = $derived(e.kind === 'post' ? e.card : undefined);
 	const shown = $derived(e.kind === 'photos' ? e.photos.slice(0, large ? 12 : 6) : []);
 	const where = $derived(e.place ? ` near ${e.place}` : '');
-	const here = $derived(mapLink(day, e.t, { post: card?.slug, photo: e.kind === 'photos' ? e.photos[0] : undefined }));
+	const here = $derived(!tourOn ? undefined : mapLink(day, e.t, { post: card?.slug, photo: e.kind === 'photos' ? e.photos[0] : undefined }));
 	const title = $derived(card ? card.title : e.kind === 'pin' ? `${s.label}: ${e.pin.title}` : s.text);
 	// plain moments (set off, break, arrived) are all title, nothing to fold; stories are the
 	// heart of the blog and always show in full, so folding the rest quietens the page around them

@@ -1,5 +1,6 @@
 <!-- The whole tour as a blog: every day and every one of its events, in order. -->
 <script lang="ts">
+	import { on, tourOn, TOUR_NAME } from '$lib/flags';
 	import { iso, longDate, shortDate } from '$lib/blog';
 	import EventGroup from '$lib/blog/EventGroup.svelte';
 	import EventItem from '$lib/blog/EventItem.svelte';
@@ -26,16 +27,16 @@
 	<title>UK Tour · September 2026 · Blog</title>
 	<meta
 		name="description"
-		content="A motorcycle tour of Britain's national parks: {totals.days} days and {totals.miles} miles, day by day, with photos and stories."
+		content="A motorcycle tour of Britain's national parks: {totals.days} days and {totals.miles} miles, day by day."
 	/>
 </svelte:head>
 
 <header class="intro">
 	<h1>A motorcycle tour of Britain's national parks</h1>
 	<p class="lede">
-		{totals.days} days, {totals.miles.toLocaleString('en-GB')} miles, {totals.parks} national parks, {totals.photos} photos
-		and {totals.stories} stories, from Pembrokeshire to the Cairngorms and back. Every moment below links to the same
-		spot in the 3D tour.
+		{totals.days} days, {totals.miles.toLocaleString('en-GB')} miles and {totals.parks} national parks{#if totals.photos},
+			{totals.photos} photos{/if}{#if totals.stories}{' '}and {totals.stories} stories{/if}, from Pembrokeshire to the Cairngorms and
+		back.{#if tourOn}{' '}Every moment below links to the same spot in the {TOUR_NAME}.{/if}
 	</p>
 	<nav aria-label="Jump to a day" class="jump">
 		<ul>
@@ -48,7 +49,7 @@
 			{/each}
 		</ul>
 	</nav>
-	<ViewControls days={dayOptions} {shown} {total} />
+	{#if on('blogFilters')}<ViewControls days={dayOptions} {shown} {total} />{/if}
 </header>
 
 {#each visible as { d, rows } (d.day)}

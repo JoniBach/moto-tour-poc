@@ -3,6 +3,7 @@
 // photo list or the 3D app.
 import fs from 'node:fs';
 import type { BlogPost, Feed, FeedDay, FeedEvent, Photo } from '$lib/data';
+import { on } from '$lib/flags';
 
 const cache = new Map<string, unknown>();
 function read<T>(file: string, fallback: T): T {
@@ -12,9 +13,22 @@ function read<T>(file: string, fallback: T): T {
 	}
 	return cache.get(file) as T;
 }
-const feed = () => read<Feed>('feed.json', { days: [] });
-const posts = () => read<{ posts: BlogPost[] }>('blog.json', { posts: [] }).posts;
-const photos = () => read<{ photos: Photo[] }>('photos.json', { photos: [] }).photos;
+const rawFeed = () => read<Feed>('feed.json', { days: [] });
+const posts = () => (on('stories') ? read<{ posts: BlogPost[] }>('blog.json', { posts: [] }).posts : []);
+const photos = () => (on('photos') ? read<{ photos: Photo[] }>('photos.json', { photos: [] }).photos : []);
+
+/** The feed as released (src/lib/flags.ts): without the photos, stories or weather that are switched off. */
+const keep = (e: FeedEvent) => (e.kind === 'photos' ? on('photos') : e.kind === 'post' ? on('stories') : true);
+let released: Feed | null = null;
+const feed = (): Feed =>
+	(released ??= {
+		days: rawFeed().days.map((d) => ({
+			...d,
+			photos: on('photos') ? d.photos : 0,
+			weather: on('weather') ? d.weather : null,
+			events: d.events.filter(keep)
+		}))
+	});
 
 /** What a post looks like in a feed card (no body HTML). */
 export type PostCard = Pick<BlogPost, 'slug' | 'title' | 'excerpt' | 'minutes' | 'cover'>;

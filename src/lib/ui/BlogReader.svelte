@@ -4,6 +4,7 @@
   Photos embedded in the post open the gallery. Esc or × closes it.
 -->
 <script lang="ts">
+	import { on } from '$lib/flags';
 	import type { App } from '$lib/app.svelte';
 	import { clock } from '$lib/data';
 	import { copyLink, momentUrl } from '$lib/moment';
@@ -75,7 +76,7 @@
 			<span class="actions">
 				<button class="ride" onclick={() => app.rideTo(post, onride)}>▶ Ride here</button>
 				<button class="link" onclick={share} title="Copy a link to this post">{linked ? '✓ Copied' : '🔗 Link'}</button>
-				<a class="link" href="/blog/{post.day}/{post.slug}">📖 Read in the blog</a>
+				{#if on('blog')}<a class="link" href="/blog/{post.day}/{post.slug}">📖 Read in the blog</a>{/if}
 			</span>
 			<nav>
 				<button disabled={!prev} onclick={() => (app.reading = prev)} title={prev?.title}>‹ Previous</button>

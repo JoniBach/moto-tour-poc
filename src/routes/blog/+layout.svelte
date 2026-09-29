@@ -4,11 +4,12 @@
   browser zoom, and every moment links back into the 3D view.
 -->
 <script lang="ts">
+	import { tourOn, TOUR_NAME } from '$lib/flags';
 	import { page } from '$app/state';
 
 	let { children } = $props();
 
-	// "Open the 3D tour" at the day you're reading (or the whole tour)
+	// "Open the 3D tour" (or map / globe: the default view) at the day you're reading
 	const tourHref = $derived(page.params.day ? `/day/${page.params.day}` : '/');
 </script>
 
@@ -22,7 +23,7 @@
 			</a>
 			<nav aria-label="Site">
 				<a href="/blog" aria-current={page.url.pathname === '/blog' ? 'page' : undefined}>All days</a>
-				<a class="dx" href={tourHref}>Open the 3D tour ↗</a>
+				{#if tourOn}<a class="dx" href={tourHref}>Open the {TOUR_NAME} ↗</a>{/if}
 			</nav>
 		</div>
 	</header>

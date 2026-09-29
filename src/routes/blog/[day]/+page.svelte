@@ -1,5 +1,6 @@
 <!-- One day of the tour as a blog page: its details, then every event with larger photos. -->
 <script lang="ts">
+	import { on } from '$lib/flags';
 	import { iso, longDate } from '$lib/blog';
 	import EventGroup from '$lib/blog/EventGroup.svelte';
 	import EventItem from '$lib/blog/EventItem.svelte';
@@ -37,10 +38,11 @@
 			{#if d.parks.length}<li>{d.parks.join(', ')}</li>{/if}
 		</ul>
 		<p class="go">
-			<a class="dx" href="/day/{d.day}?view=3d">Ride this day in the 3D tour<span aria-hidden="true"> ↗</span></a>
-			<a class="dx alt" href="/day/{d.day}?view=2d">See it on a map<span aria-hidden="true"> ↗</span></a>
+			{#if on('dx3d')}<a class="dx" href="/day/{d.day}?view=3d">Ride this day in the 3D tour<span aria-hidden="true"> ↗</span></a>{/if}
+			{#if on('map')}<a class="dx alt" href="/day/{d.day}?view=2d">See it on a map<span aria-hidden="true"> ↗</span></a>{/if}
+			{#if on('globe')}<a class="dx alt" href="/day/{d.day}?view=globe">Watch it as a globe<span aria-hidden="true"> ↗</span></a>{/if}
 		</p>
-		<ViewControls {shown} total={d.events.length} />
+		{#if on('blogFilters')}<ViewControls {shown} total={d.events.length} />{/if}
 	</header>
 
 	<h2 class="sr">The day, moment by moment</h2>

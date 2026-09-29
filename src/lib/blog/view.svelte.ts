@@ -4,16 +4,19 @@
 // filtered view can be linked to. Pages are prerendered with everything showing; the URL is
 // applied once the page is running.
 import type { FeedEvent } from '$lib/data';
+import { on } from '$lib/flags';
 import { duration, eventSentence, plural } from '$lib/blog';
 
-export const TYPES = [
+const ALL_TYPES = [
 	{ key: 'ride', label: 'Set off and arrived', icon: '▶' },
 	{ key: 'break', label: 'Breaks', icon: '⏸' },
 	{ key: 'photos', label: 'Photos', icon: '📷' },
 	{ key: 'pin', label: 'Notes and places', icon: '▲' },
 	{ key: 'post', label: 'Stories', icon: '✎' }
 ] as const;
-export type TypeKey = (typeof TYPES)[number]['key'];
+export type TypeKey = (typeof ALL_TYPES)[number]['key'];
+/** the kinds offered: photos and stories only when released (src/lib/flags.ts) */
+export const TYPES = ALL_TYPES.filter((t) => (t.key === 'photos' ? on('photos') : t.key === 'post' ? on('stories') : true));
 
 export const typeOf = (e: FeedEvent): TypeKey => (e.kind === 'start' || e.kind === 'finish' ? 'ride' : e.kind);
 

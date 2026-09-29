@@ -127,6 +127,12 @@
 				>{tour?.data.osm?.attribution ?? '© OpenStreetMap contributors'}</a
 			>
 			{#if tour?.imagery.attribution} · {tour.imagery.attribution}{/if}
+			<!-- the 3D terrain and the globe's landscape are built from these elevation tiles -->
+			{#if app.view !== '2d'}
+				· Elevation <a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md" target="_blank" rel="noreferrer"
+					>Terrain Tiles (Mapzen, AWS)</a
+				>: contains OS data © Crown copyright and database right; Copernicus EU-DEM; SRTM (NASA)
+			{/if}
 			{#if tour?.data.weather}
 				· <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">{tour.data.weather.attribution}</a>
 			{/if}

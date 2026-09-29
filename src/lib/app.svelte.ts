@@ -95,6 +95,35 @@ export class App {
 			// private mode: fine, just not remembered
 		}
 		this.ensureView().catch((e) => (this.error = String(e)));
+		// the day was loaded light for the map: the 3D views need its landscape
+		if (view !== '2d' && this.tour?.data.light) this.reloadFull().catch((e) => (this.error = String(e)));
+	}
+
+	/** Swap a light day (2D map) for the full one, at the same moment. */
+	private async reloadFull() {
+		const old = this.tour!;
+		const day = old.data.track.day;
+		this.pending = this.summary(day) ?? null;
+		this.tour = null;
+		const data = await this.fetchDay(day);
+		if (this.tour || this.pending?.day !== day) return; // moved on meanwhile
+		this.tour = this.makeTour(day, data, old.playing);
+		this.tour.seek(old.rt);
+		this.pending = null;
+	}
+
+	private makeTour(day: string, loaded: TourData, playing: boolean) {
+		// weather switched off: the day simply has none (no readouts, rain, clouds)
+		const data = on('weather') ? loaded : { ...loaded, weather: null };
+		const tour = new Tour(data, this.settings);
+		tour.photos = this.photos.filter((ph) => ph.day === day && ph.rt != null);
+		tour.posts = this.posts.filter((po) => po.day === day);
+		tour.playing = playing;
+		tour.onEnded = () => {
+			const next = this.neighbour(1);
+			if (next && this.settings.autoAdvance) this.onAdvance?.(next.day);
+		};
+		return tour;
 	}
 
 	/** The view a page load starts in: the URL's ?view=, else the viewer's last choice, else 3D. */
@@ -169,12 +198,14 @@ export class App {
 		return new Vector3(e - this.origin.e, h, -(n - this.origin.n));
 	}
 
-	private fetchDay(day: string) {
-		let p = this.days.get(day);
+	/** A day's data, cached; `light` for the 2D map (see loadTour). */
+	private fetchDay(day: string, light = false) {
+		const key = light ? `${day}:light` : day;
+		let p = this.days.get(key);
 		if (!p) {
-			p = loadDay(day);
-			this.days.set(day, p);
-			p.catch(() => this.days.delete(day));
+			p = loadDay(day, light);
+			this.days.set(key, p);
+			p.catch(() => this.days.delete(key));
 		}
 		return p;
 	}
@@ -205,7 +236,8 @@ export class App {
 		const hadDay = !!this.tour;
 		const wasPlaying = this.tour?.playing ?? false;
 		// start the download now; it runs while the camera climbs
-		const loading = day ? this.fetchDay(day) : Promise.resolve(null);
+		const light = this.view === '2d';
+		const loading = day ? this.fetchDay(day, light) : Promise.resolve(null);
 
 		// 1. clear the old day straight away: only the UK backdrop and the route lines remain
 		this.pending = summary ?? null;
@@ -228,29 +260,23 @@ export class App {
 		}
 
 		// 3. move the origin and bring the new day in; shift the camera by the same amount (no jump)
-		// weather switched off: the day simply has none (no readouts, rain, clouds)
-		if (data && !on('weather')) data = { ...data, weather: null };
 		const delta = new Vector3(-(newOrigin.e - this.origin.e), 0, newOrigin.n - this.origin.n);
 		this.origin = newOrigin;
 		cam?.shift(delta);
-		if (data) {
-			const tour = new Tour(data, this.settings);
-			tour.photos = this.photos.filter((ph) => ph.day === day && ph.rt != null);
-			tour.posts = this.posts.filter((po) => po.day === day);
-			tour.playing = wasPlaying;
+		if (data && day) {
+			const tour = this.makeTour(day, data, wasPlaying);
 			if (this.pendingSeek != null) {
 				tour.seek(this.pendingSeek);
 				tour.playing = false;
 				this.pendingSeek = null;
 			}
-			tour.onEnded = () => {
-				const next = this.neighbour(1);
-				if (next && this.settings.autoAdvance) this.onAdvance?.(next.day);
-			};
 			this.tour = tour;
 			// warm the cache for the next day so the following transition is instant
 			const next = this.neighbour(1);
-			if (next) this.fetchDay(next.day);
+			if (next) this.fetchDay(next.day, light);
+			// keep only this day and its neighbours: a day is several MB, a whole tour would fill a phone
+			const keep = new Set([day, next?.day, this.neighbour(-1)?.day]);
+			for (const key of this.days.keys()) if (!keep.has(key.split(':')[0])) this.days.delete(key);
 		}
 		this.pending = null;
 

@@ -1,0 +1,18 @@
+# Type-check on every push and pull request. The site's data (routes, photos, privacy zones) is
+# personal and never in the repo, so building, the privacy audit and the smoke tests run locally
+# (npm run deploy runs the audit before anything is uploaded; npm run test:smoke against a server).
+name: check
+on:
+  push:
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check

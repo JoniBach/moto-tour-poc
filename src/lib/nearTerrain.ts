@@ -16,6 +16,16 @@ const pxY = (lat: number) => {
 
 type Tile = Float32Array | null; // null = failed, so we don't retry forever
 const tiles = new Map<string, Tile | Promise<Tile>>();
+/** decoded tiles kept (256 KB each): a patch needs a handful, a whole tour would need thousands */
+const MAX_TILES = 64;
+
+/** Drop the oldest landed tiles beyond the cap (Map keeps insertion order); ensure() refetches. */
+function trim() {
+	for (const [key, t] of tiles) {
+		if (tiles.size <= MAX_TILES) break;
+		if (!(t instanceof Promise)) tiles.delete(key);
+	}
+}
 
 async function decode(tx: number, ty: number): Promise<Tile> {
 	try {
@@ -68,7 +78,12 @@ export class NearTerrain {
 				const key = `${tx}/${ty}`;
 				let t = tiles.get(key);
 				if (t === undefined) {
-					t = decode(tx, ty).then((h) => (tiles.set(key, h), h));
+					t = decode(tx, ty).then((h) => {
+						tiles.delete(key); // re-insert: newest last
+						tiles.set(key, h);
+						trim();
+						return h;
+					});
 					tiles.set(key, t);
 				}
 				if (t instanceof Promise) jobs.push(t);

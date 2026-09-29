@@ -6,11 +6,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { dayEventsCore } from '../src/lib/events-core.js';
-import { makeProjection, nearPrivacyZone } from './lib/geo.mjs';
+import { makeProjection, nearPrivacyZone, PRIVACY_MARGIN } from './lib/geo.mjs';
 
 const DAYS = 'static/data/days';
 const PLACE_WITHIN = 6000; // metres: nearest town/village used as "near …"
-const PRIVACY_MARGIN = 8000; // metres beyond a privacy zone where no place names are given
 
 const read = (f, fallback) => (fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : fallback);
 const tour = read('static/data/tour.json', { days: [] });

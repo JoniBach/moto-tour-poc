@@ -170,8 +170,38 @@ day plays. **◍ Globe** in the trip bar (phones: the view button steps 3D → m
 becomes separate pieces, never joined across it), `build-terrain` sizes the day grid from what's
 left, pins inside a zone are dropped, and `build-photos` withholds (and deletes the resized copies
 of) any photo taken inside a zone, judged from the *unfiltered* GPS at the moment it was taken.
-`node scripts/audit-privacy.mjs` checks every served position (tracks, route rasters, pins,
-tour lines, photos, stray photo files); the deploy refuses to run if it finds anything.
+Words count too: each zone has a `name`, and no place name is published within 8 km of a zone
+(`PRIVACY_MARGIN` in `scripts/lib/geo.mjs`: `build-osm` drops those labels, `build-feed` gives no
+"near …" there). Day titles are yours to keep clean (`data/day-titles.json`: "Setting off",
+"Journey's end"). `scripts/scrub-places.mjs` applies both rules to days built before them.
+
+`npm run audit:privacy` (`scripts/audit-privacy.mjs`) checks every served position (tracks, route
+rasters, pins, tour lines, photos, stray photo files, place labels near a zone) and every word
+people read (day titles, the feed, pins, stories, place labels) for a zone's name; the deploy
+refuses to run if it finds anything.
+
+## Checks
+
+- `npm run check`: types (also on GitHub, `.github/workflows/check.yml`, on every push).
+- `npm run audit:privacy`: see above (needs the personal data, so local only; deploy runs it).
+- `npm run test:smoke`: against a running site (`BASE=http://localhost:5199`): each released view
+  loads and plays without errors or Content Security Policy blocks, the blog passes axe at WCAG 2.2
+  AAA, unknown URLs get the friendly 404. Needs Chrome (`CHROME=` to point at it).
+
+## Security and hosting
+
+- `vercel.json`: `nosniff`, a strict referrer policy, no camera/microphone/location, HSTS, and
+  no framing by other sites; long caching for photos, an hour for data.
+- Content Security Policy (`vite.config.ts`, SvelteKit `csp` in hash mode): scripts only from the
+  site itself (SvelteKit's inline start-up by hash), everything else only from the services the
+  views use (`TILE_HOSTS`). A new map or imagery source must be added there.
+- Deploys pin the Vercel CLI (`scripts/deploy.mjs`) and retry interrupted uploads.
+- Memory on long sessions: the app keeps only the current day and its neighbours, and at most 64
+  elevation tiles. The 2D map loads days light (no terrain, rasters or OSM: ~5 MB less a day) and
+  only animates while playing; the UK backdrop and parks are served gzipped.
+- Third-party map terms to settle before a busy public launch: Esri World Imagery (an ArcGIS
+  account for public apps), OpenTopoMap (not for use as an app's default map), EOX Sentinel-2
+  2023 (CC BY-NC-SA: non-commercial, credited).
 
 ## Deploy
 

@@ -27,7 +27,8 @@ export const MAP_SOURCES: Record<Exclude<MapStyle, 'hologram'>, TileSource> = {
 		label: 'Sentinel-2',
 		url: (z, x, y) => `https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/g/${z}/${y}/${x}.jpg`,
 		nearZoom: 14, // 10 m native resolution; no point going deeper
-		attribution: 'Sentinel-2 cloudless 2023 by EOX IT Services GmbH (modified Copernicus Sentinel data)'
+		// the 2018+ editions are CC BY-NC-SA 4.0: non-commercial use, licence named
+		attribution: 'Sentinel-2 cloudless 2023 by EOX IT Services GmbH (modified Copernicus Sentinel data), CC BY-NC-SA 4.0'
 	},
 	topo: {
 		label: 'Topo',

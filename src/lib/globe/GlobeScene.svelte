@@ -46,7 +46,10 @@
 	/** metres of landscape from the bike to the rim (a setting) */
 	const R = $derived(tour.settings.globeRadius);
 	// pull back on tall, narrow screens so the whole globe fits across
-	const fit = Math.max(1, 1.25 / Math.max(0.3, (globalThis.innerWidth ?? 1) / (globalThis.innerHeight ?? 1)));
+	// (follows the window: turning a phone re-frames the globe)
+	let width = $state(globalThis.innerWidth ?? 1);
+	let height = $state(globalThis.innerHeight ?? 1);
+	const fit = $derived(Math.max(1, 1.25 / Math.max(0.3, width / height)));
 	const globe = new GlobeState(V);
 	const RAD = Math.PI / 180;
 
@@ -169,6 +172,8 @@
 		moonMat.dispose();
 	});
 </script>
+
+<svelte:window bind:innerWidth={width} bind:innerHeight={height} />
 
 <T.PerspectiveCamera makeDefault position={[0, V * 2.1 * fit, V * 3.9 * fit]} fov={34} near={V * 0.01} far={V * 40}>
 	<OrbitControls

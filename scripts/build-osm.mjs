@@ -7,7 +7,7 @@
 // Output (per day): osm.json, water.bin
 // Data © OpenMapTiles © OpenStreetMap contributors (ODbL) — the app shows attribution.
 import fs from 'node:fs';
-import { TerrariumSampler, dayContext, loadTerrainGrid, makeProjection } from './lib/geo.mjs';
+import { TerrariumSampler, dayContext, loadTerrainGrid, makeProjection, nearPrivacyZone, PRIVACY_MARGIN } from './lib/geo.mjs';
 import { readTiles, tileOf, tilesAround } from './lib/vtiles.mjs';
 
 // metres between draped vertices: fine on detailed days, no finer than the grid on coarse ones
@@ -109,6 +109,8 @@ const rivers = [];
 const placeMap = new Map(); // dedupe labels that appear in several tiles / both bands
 function addPlace(kind, name, lon, lat, ele = null) {
 	if (!name) return;
+	// no place names in or near a privacy zone: a label there would say where family live
+	if (nearPrivacyZone(lon, lat, PRIVACY_MARGIN)) return;
 	const [x, n] = proj.forward(lon, lat);
 	if (!inside(x, n)) return;
 	// water names repeat along rivers in every tile, so they dedupe over a wider area

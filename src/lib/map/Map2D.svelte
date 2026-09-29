@@ -68,26 +68,44 @@
 			loaded = true;
 		});
 
-		let raf = 0;
-		let last = performance.now();
-		const tick = (now: number) => {
-			const dt = (now - last) / 1000;
-			last = now;
-			app.tour?.advance(Math.min(dt, 0.1));
-			if (loaded) frame();
-			raf = requestAnimationFrame(tick);
-		};
-		raf = requestAnimationFrame(tick);
 		// dev only: lets browser tests reach the map
 		if (import.meta.env.DEV) (window as unknown as { __map: MlMap }).__map = map;
 
 		return () => {
+			stopped = true;
 			cancelAnimationFrame(raf);
 			for (const m of markers) m.remove();
 			bike?.remove();
 			map?.remove();
 			map = null;
 		};
+	});
+
+	// ---- the frame loop: runs only while the ride plays (MapLibre redraws itself on demand) ------
+
+	let raf = 0;
+	let last = 0;
+	let stopped = false;
+	function tick(now: number) {
+		const dt = (now - last) / 1000;
+		last = now;
+		app.tour?.advance(Math.min(dt, 0.1));
+		if (loaded) frame();
+		// keep going only while playing: a paused map costs nothing
+		raf = app.tour?.playing && !stopped ? requestAnimationFrame(tick) : 0;
+	}
+	/** one frame now (a seek, a new day), or the loop again when play starts */
+	function kick() {
+		if (raf || stopped) return;
+		last = performance.now();
+		raf = requestAnimationFrame(tick);
+	}
+	$effect(() => {
+		// anything that moves the bike or starts playback
+		void app.tour?.rt;
+		void app.tour?.playing;
+		void loaded;
+		kick();
 	});
 
 	// ---- static layers (added once the style is in) ----------------------------------------

@@ -4,7 +4,7 @@
   browser zoom, and every moment links back into the 3D view.
 -->
 <script lang="ts">
-	import { tourOn, TOUR_NAME } from '$lib/flags';
+	import { on, tourOn, TOUR_NAME } from '$lib/flags';
 	import { page } from '$app/state';
 
 	let { children } = $props();
@@ -35,8 +35,8 @@
 	<footer class="site">
 		<div class="inner">
 			<p>
-				Place names from <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a> ·
-				weather by <a href="https://open-meteo.com/">Open-Meteo.com</a>
+				Place names and national parks from <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a
+				>{#if on('weather')}{' · '}weather by <a href="https://open-meteo.com/">Open-Meteo.com</a>{/if}
 			</p>
 		</div>
 	</footer>

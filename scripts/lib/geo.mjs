@@ -319,6 +319,12 @@ export function parseUkTime(s) {
 	return (asUtc - (london - utc)) / 1000;
 }
 
+/** metres beyond a privacy zone where no place names are published (labels, "near …") */
+export const PRIVACY_MARGIN = 8000;
+
+/** The zones' own names (towns): must never appear in anything published. */
+export const privacyZoneNames = () => privacyZones.map((z) => z.name).filter(Boolean);
+
 /** True if a lon/lat is inside a privacy zone or within `margin` metres of one. */
 export const nearPrivacyZone = (lon, lat, margin) =>
 	privacyZones.some((z) => haversine(lon, lat, z.lon, z.lat) < z.radius + margin);

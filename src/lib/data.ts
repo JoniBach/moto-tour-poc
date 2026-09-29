@@ -86,6 +86,7 @@ export class Terrain {
 
 	/** Bilinear ground height at local metres (x east, n north). */
 	heightAt(x: number, n: number): number {
+		if (!this.heights.length) return 0; // a light day (2D map): no terrain loaded
 		const { x0, n1, spacing, cols, rows } = this.meta;
 		const fc = Math.max(0, Math.min(cols - 1.001, (x - x0) / spacing));
 		const fr = Math.max(0, Math.min(rows - 1.001, (n1 - n) / spacing));
@@ -158,6 +159,8 @@ export interface TourData {
 	pins: Pin[];
 	osm: Osm | null;
 	weather: Weather | null;
+	/** loaded for the 2D map only: no terrain heights, rasters or OSM */
+	light?: boolean;
 }
 
 // ---------- tour index + UK backdrop ----------
@@ -181,14 +184,20 @@ export interface TourIndex {
 	days: DaySummary[];
 }
 
-export const loadTourIndex = () => fetch('/data/tour.json').then((r) => r.json() as Promise<TourIndex>);
+/** A failed request as a sentence people can read (not a JSON parse error). */
+const unavailable = (what: string) => new Error(`Couldn't load ${what}. Check the connection and try again.`);
+
+export async function loadTourIndex(): Promise<TourIndex> {
+	const r = await fetch('/data/tour.json').catch(() => null);
+	if (!r?.ok) throw unavailable('the tour');
+	return r.json();
+}
 
 /** L0: all of Great Britain at 1 km. Same shape as a day grid, with origin at BNG 0,0. */
 export async function loadUk(): Promise<Terrain> {
-	const [meta, buf] = await Promise.all([
-		fetch('/data/uk/terrain.json').then((r) => r.json() as Promise<TerrainMeta>),
-		fetch('/data/uk/terrain.bin').then((r) => r.arrayBuffer())
-	]);
+	// packed like the day files (scripts/pack.mjs): the .bin isn't compressed by the host
+	const [meta, buf] = await Promise.all([packedJson<TerrainMeta>('/data/uk/terrain.json'), fetchPacked('/data/uk/terrain.bin')]);
+	if (!meta || !buf) throw unavailable('the map of Britain');
 	const raw = new Int16Array(buf);
 	const heights = Float32Array.from(raw, (v) => v * meta.scale);
 	return new Terrain(meta, heights, new Uint8Array(0), null);
@@ -213,10 +222,8 @@ export interface Parks {
 
 export async function loadParks(): Promise<Parks | null> {
 	try {
-		const [json, buf] = await Promise.all([
-			fetch('/data/uk/parks.json').then((r) => (r.ok ? r.json() : Promise.reject())),
-			fetch('/data/uk/parks.bin').then((r) => (r.ok ? r.arrayBuffer() : Promise.reject()))
-		]);
+		const [json, buf] = await Promise.all([packedJson<{ parks: Park[] }>('/data/uk/parks.json'), fetchPacked('/data/uk/parks.bin')]);
+		if (!json || !buf) return null;
 		return { parks: json.parks, mask: new Uint8Array(buf) };
 	} catch {
 		return null; // optional layer: the tour works without build-parks
@@ -310,7 +317,7 @@ export async function loadFeed(): Promise<Feed> {
 }
 
 /** L1: one day's bundle. */
-export const loadDay = (day: string) => loadTour(`/data/days/${day}`);
+export const loadDay = (day: string, light = false) => loadTour(`/data/days/${day}`, light);
 
 /**
  * Fetch a day file, preferring the gzipped copy made for deployment (<name>.gz, see
@@ -335,19 +342,26 @@ const packedJson = async <T>(url: string): Promise<T | null> => {
 	return buf ? (JSON.parse(new TextDecoder().decode(buf)) as T) : null;
 };
 
-export async function loadTour(base: string): Promise<TourData> {
+/**
+ * One day's data. `light` (the 2D map) skips what only the 3D views draw: the terrain, water and
+ * corridor rasters, most of a day's download; the terrain then has its metadata but no heights.
+ */
+export async function loadTour(base: string, light = false): Promise<TourData> {
+	const none = Promise.resolve(null);
 	const [meta, heightsBuf, corridorBuf, track, pins, osm, waterBuf, weather] = await Promise.all([
 		packedJson<TerrainMeta>(`${base}/terrain.json`),
-		fetchPacked(`${base}/terrain.bin`),
-		fetchPacked(`${base}/corridor.bin`),
+		light ? none : fetchPacked(`${base}/terrain.bin`),
+		light ? none : fetchPacked(`${base}/corridor.bin`),
 		packedJson<Track>(`${base}/track.json`),
 		packedJson<Pin[]>(`${base}/pins.json`),
 		// roads, water and weather are optional: the tour works without them
-		packedJson<Osm>(`${base}/osm.json`),
-		fetchPacked(`${base}/water.bin`),
+		packedJson<Osm>(`${base}/osm.json`), // small packed; the scrubber names the road from it
+		light ? none : fetchPacked(`${base}/water.bin`),
 		packedJson<Weather>(`${base}/weather.json`)
 	]);
-	if (!meta || !heightsBuf || !corridorBuf || !track) throw new Error(`Day data missing under ${base}`);
+	if (!meta || !track) throw new Error(`Couldn't load this day. Check the connection and try again.`);
+	if (light) return { terrain: new Terrain(meta, new Float32Array(0), new Uint8Array(0), null), track, pins: pins ?? [], osm, weather, light: true };
+	if (!heightsBuf || !corridorBuf) throw new Error(`Couldn't load this day's landscape. Check the connection and try again.`);
 	const raw = new Int16Array(heightsBuf);
 	const heights = new Float32Array(raw.length);
 	for (let i = 0; i < raw.length; i++) heights[i] = raw[i] * meta.scale;

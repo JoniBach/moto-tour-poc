@@ -13,7 +13,9 @@ const prod = process.argv.includes('--prod');
 process.env.RELEASE = prod ? 'production' : 'preview';
 console.log(`Release flags: ${process.env.RELEASE} set${process.env.FEATURES ? `, overrides: ${process.env.FEATURES}` : ''}`);
 const sh = (cmd) => execSync(cmd, { stdio: 'inherit' });
-const vercel = (args) => sh(`npx --yes vercel@latest ${args}`);
+// pinned: a deploy shouldn't change because a new CLI came out (bump deliberately)
+const VERCEL = 'vercel@61.0.0';
+const vercel = (args) => sh(`npx --yes ${VERCEL} ${args}`);
 
 if (!fs.existsSync('.vercel/project.json')) vercel('link --yes');
 vercel(`pull --yes --environment=${prod ? 'production' : 'preview'}`);
@@ -35,4 +37,13 @@ const size = (dir) =>
 	fs.readdirSync(dir, { withFileTypes: true }).reduce((a, e) => a + (e.isDirectory() ? size(path.join(dir, e.name)) : fs.statSync(path.join(dir, e.name)).size), 0);
 console.log(`Dropped ${dropped} plain day files; output is ${(size('.vercel/output') / 1e6).toFixed(0)} MB`);
 
-vercel(`deploy --prebuilt${prod ? ' --prod' : ''}`);
+// uploads resume, so a dropped connection just means trying again
+for (let attempt = 1; ; attempt++) {
+	try {
+		vercel(`deploy --prebuilt${prod ? ' --prod' : ''}`);
+		break;
+	} catch (e) {
+		if (attempt >= 8) throw e;
+		console.log(`Upload interrupted; retrying (${attempt + 1} of 8)…`);
+	}
+}

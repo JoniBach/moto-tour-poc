@@ -49,6 +49,43 @@
 		--font-display: 'Fraunces Variable', Georgia, serif;
 		--font-ui: 'Figtree Variable', system-ui, sans-serif;
 	}
+	/* the blog's palette and reading typography (the blog, and the story editor's preview);
+	   every text colour ≥ 7:1 (WCAG AAA) */
+	:global(.blog-palette) {
+		--b-bg: #fbf6ec;
+		--b-card: #fffdf8;
+		--b-text: #263238;
+		--b-muted: #3d494f;
+		--b-line: #e8dfcd;
+		--b-line-strong: #a5998a;
+		--b-accent: #7a2e0f;
+		--b-link: #7a2e0f;
+		--b-warm: #c9a227;
+		--b-warm-text: #524008;
+		--b-soft: #f9e2d6;
+		--b-tint: 30%;
+		font-size: 1.0625rem;
+		line-height: 1.6;
+		color: var(--b-text);
+	}
+	:global(.blog-palette p) {
+		margin-block: 0 1.5em;
+	}
+	:global(.blog-palette h1),
+	:global(.blog-palette h2),
+	:global(.blog-palette h3) {
+		font-family: var(--font-display);
+		font-variation-settings:
+			'SOFT' 100,
+			'WONK' 1;
+		font-weight: 650;
+		letter-spacing: -0.01em;
+		line-height: 1.15;
+	}
+	:global(.blog-palette a) {
+		color: var(--b-link);
+		text-underline-offset: 0.18em;
+	}
 	/* the 3D view's night-time hologram panels */
 	:global(.theme-night) {
 		--glass: rgb(4 12 20 / 0.72);

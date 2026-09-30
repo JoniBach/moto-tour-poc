@@ -15,4 +15,5 @@ Write in **Markdown**. Embed tour photos by id:
 ![A caption for the photo](photo:20260916_115051)
 
 Then run `node scripts/build-blog.mjs`, or use "✎ Post here" in the app (dev only) to copy a
-ready-made header for the moment you're looking at.
+ready-made header for the moment you're looking at. Or write it in the story editor at /wysiwyg,
+which shows it exactly as it will read and saves the file.

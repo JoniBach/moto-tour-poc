@@ -1,0 +1,95 @@
+// A story's Markdown, as the build (scripts/build-blog.mjs) and the story editor (/wysiwyg) both
+// read and render it, so what the editor previews is exactly what gets published. Plain JS: the
+// build scripts import it too.
+//
+//   ---
+//   title: Up and over Honister
+//   time: 2026-09-16 11:30        # the tour's local time; the story goes where the bike was
+//   cover: 20260916_113010        # optional: a photo id for the header image
+//   slug: 2026-09-16-honister     # optional: its address (default: the file name)
+//   ---
+//   Markdown body. Tour photos by id: ![Looking down Borrowdale](photo:20260916_115051)
+import { Marked } from 'marked';
+
+/** "key: value" lines between --- fences; the rest is the body. @param {string} text */
+export function frontmatter(text) {
+	const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
+	if (!m) return { data: {}, body: text };
+	/** @type {Record<string, string>} */
+	const data = {};
+	for (const line of m[1].split(/\r?\n/)) {
+		const kv = /^([\w-]+)\s*:\s*(.*?)\s*(?:#.*)?$/.exec(line);
+		if (kv) data[kv[1]] = kv[2].replace(/^["']|["']$/g, '');
+	}
+	return { data, body: text.slice(m[0].length) };
+}
+
+/**
+ * The file for a story: its header (only the fields that are set) and body.
+ * @param {{ title?: string, time?: string, cover?: string, slug?: string }} head
+ * @param {string} body
+ */
+export function storyFile({ title = '', time = '', cover = '', slug = '' }, body) {
+	const lines = ['---', `title: ${title}`, `time: ${time}`];
+	if (cover) lines.push(`cover: ${cover}`);
+	if (slug) lines.push(`slug: ${slug}`);
+	lines.push('---', '');
+	return `${lines.join('\n')}\n${body.replace(/^\n+/, '')}`;
+}
+
+/**
+ * "Up and over Honister!" on 2026-09-16 -> "2026-09-16-up-and-over-honister"
+ * @param {string} date @param {string} title
+ */
+export function slugFor(date, title) {
+	const words = title
+		.toLowerCase()
+		.normalize('NFKD')
+		.replace(/[̀-ͯ]/g, '')
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-+|-+$/g, '')
+		.split('-')
+		.slice(0, 6)
+		.join('-');
+	return [date, words].filter(Boolean).join('-');
+}
+
+/**
+ * Markdown -> the story's HTML. Photo embeds (![caption](photo:ID)) become figures with the
+ * gallery-size image; ones not in `photos` (unknown, or withheld for privacy) are dropped and
+ * listed in `withheld`.
+ * @param {string} body
+ * @param {{ photos: Map<string, { id: string, w: number, h: number }>, src: (id: string) => string }} opts
+ */
+export function renderStory(body, { photos, src }) {
+	/** @type {string[]} */
+	const withheld = [];
+	const md = new Marked({
+		renderer: {
+			image({ href, text }) {
+				if (!href?.startsWith('photo:')) return false; // default rendering for normal images
+				const p = photos.get(href.slice(6));
+				if (!p) {
+					withheld.push(href.slice(6));
+					return '';
+				}
+				const alt = text.replace(/"/g, '&quot;');
+				return `<figure><img src="${src(p.id)}" width="${p.w}" height="${p.h}" alt="${alt}" loading="lazy" data-photo="${p.id}">${text ? `<figcaption>${text}</figcaption>` : ''}</figure>`;
+			}
+		}
+	});
+	return { html: /** @type {string} */ (md.parse(body)), withheld };
+}
+
+/** The story as plain words: for its excerpt and reading time. @param {string} body */
+export function plainText(body) {
+	return body
+		.replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+		.replace(/[#*_>`[\]()-]/g, '')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+/** @param {string} text */
+export const excerptOf = (text) => (text.length > 160 ? `${text.slice(0, 157).replace(/\s+\S*$/, '')}…` : text);
+/** @param {string} text */
+export const minutesOf = (text) => Math.max(1, Math.round(text.split(' ').length / 200));

@@ -94,6 +94,16 @@ so the overview outlines their mountains with a line every 1,000 m instead.
 
 ## Blog posts
 
+**Writing on the move: the story editor** at `/wysiwyg` (https://gt-retrospective.vercel.app/wysiwyg,
+not linked from the site and not indexed). Pick the day and time, write in Markdown with a
+toolbar, add photos from that day by tapping them, and see the story exactly as it will read (the
+build's own renderer, `src/lib/story.js`, and the story page's own article, `StoryArticle`),
+placed on the day's route. Nothing leaves the device: "Open .md" loads a file, "Save a copy"
+downloads a new timestamped copy (`<slug> (saved 2026-10-01 14.30).md`; its `slug:` header keeps the
+address, so the file name doesn't matter), and the draft stays in the browser between visits.
+Drop the saved file into `tours/<id>/blog/` and build as below.
+
+
 Write Markdown in `tours/<id>/blog/` (committed), one file per post, tied to a moment of the ride:
 
 ```md

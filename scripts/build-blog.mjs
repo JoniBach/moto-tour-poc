@@ -4,6 +4,7 @@
 //   title: Up and over Honister
 //   time: 2026-09-16 11:30        # the tour's local time (or full ISO); the post goes where the bike was
 //   cover: 20260916_113010        # optional: a photo id for the header image
+//   slug: 2026-09-16-honister     # optional: its address (default: the file name)
 //   ---
 //   Markdown body. Photos from the tour can be embedded by id:
 //   ![Looking down Borrowdale](photo:20260916_115051)
@@ -14,7 +15,7 @@
 // Files starting with "_" are drafts and skipped.
 import fs from 'node:fs';
 import path from 'node:path';
-import { marked } from 'marked';
+import { excerptOf, frontmatter, minutesOf, plainText, renderStory } from '../src/lib/story.js';
 import { inPrivacyZoneAt, parseTourTime, tourDate } from './lib/geo.mjs';
 import { PATHS, TOUR } from './lib/tour.mjs';
 
@@ -24,18 +25,6 @@ const DAYS = PATHS.days;
 const photos = fs.existsSync(PATHS.photosJson)
 	? new Map(JSON.parse(fs.readFileSync(PATHS.photosJson, 'utf8')).photos.map((p) => [p.id, p]))
 	: new Map();
-
-/** Minimal frontmatter: "key: value" lines between --- fences. */
-function frontmatter(text) {
-	const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
-	if (!m) return { data: {}, body: text };
-	const data = {};
-	for (const line of m[1].split(/\r?\n/)) {
-		const kv = /^([\w-]+)\s*:\s*(.*?)\s*(?:#.*)?$/.exec(line);
-		if (kv) data[kv[1]] = kv[2].replace(/^["']|["']$/g, '');
-	}
-	return { data, body: text.slice(m[0].length) };
-}
 
 const lastLE = (arr, v) => {
 	let lo = 0;
@@ -64,28 +53,15 @@ function track(day) {
 	return tracks.get(day);
 }
 
-// photo embeds: ![caption](photo:ID) -> the gallery-size image (dropped if withheld/unknown)
-const withheld = [];
-marked.use({
-	renderer: {
-		image({ href, text }) {
-			if (!href?.startsWith('photo:')) return false; // default rendering for normal images
-			const p = photos.get(href.slice(6));
-			if (!p) {
-				withheld.push(href.slice(6));
-				return '';
-			}
-			const alt = text.replace(/"/g, '&quot;');
-			return `<figure><img src="/${TOUR.slug ?? TOUR.id}/photos/${TOUR.id}/large/${p.id}.webp" width="${p.w}" height="${p.h}" alt="${alt}" loading="lazy" data-photo="${p.id}">${text ? `<figcaption>${text}</figcaption>` : ''}</figure>`;
-		}
-	}
-});
+// photo embeds: ![caption](photo:ID) -> the gallery-size image (src/lib/story.js)
+const photoSrc = (id) => `/${TOUR.slug ?? TOUR.id}/photos/${TOUR.id}/large/${id}.webp`;
 
 fs.mkdirSync(SRC, { recursive: true });
 const posts = [];
 for (const file of fs.readdirSync(SRC).filter((f) => f.endsWith('.md') && !f.startsWith('_')).sort()) {
 	const { data, body } = frontmatter(fs.readFileSync(path.join(SRC, file), 'utf8'));
-	const slug = file.replace(/\.md$/, '');
+	// the header's slug if it has one (the story editor saves timestamped copies), else the file name
+	const slug = data.slug || file.replace(/\.md$/, '');
 	const t = parseTourTime(data.time ?? '');
 	if (!data.title || !Number.isFinite(t)) {
 		console.log(`  skipped ${file}: needs "title" and "time" (e.g. time: 2026-09-16 11:30)`);
@@ -104,10 +80,9 @@ for (const file of fs.readdirSync(SRC).filter((f) => f.endsWith('.md') && !f.sta
 	const { tr, meta } = d;
 	const rel = t - tr.t0;
 	const i = rel <= 0 ? 0 : lastLE(tr.t, rel);
-	withheld.length = 0;
-	const html = marked.parse(body);
+	const { html, withheld } = renderStory(body, { photos, src: photoSrc });
 	if (withheld.length) console.log(`  ${file}: removed photo(s) ${withheld.join(', ')} (unknown or withheld)`);
-	const text = body.replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/[#*_>`[\]()-]/g, '').replace(/\s+/g, ' ').trim();
+	const text = plainText(body);
 	const cover = data.cover && photos.has(data.cover) ? data.cover : null;
 	posts.push({
 		slug,
@@ -119,8 +94,8 @@ for (const file of fs.readdirSync(SRC).filter((f) => f.endsWith('.md') && !f.sta
 		e: Math.round(tr.x[i] + meta.originE),
 		n: Math.round(tr.n[i] + meta.originN),
 		cover,
-		excerpt: text.length > 160 ? `${text.slice(0, 157).replace(/\s+\S*$/, '')}…` : text,
-		minutes: Math.max(1, Math.round(text.split(' ').length / 200)),
+		excerpt: excerptOf(text),
+		minutes: minutesOf(text),
 		html
 	});
 }

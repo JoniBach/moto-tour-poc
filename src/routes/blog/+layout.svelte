@@ -23,7 +23,7 @@
 	).filter((v) => VIEWS_ON.includes(v.id));
 </script>
 
-<div class="blog">
+<div class="blog blog-palette">
 	<a class="skip" href="#content">Skip to content</a>
 	<header class="site">
 		<a class="pill brand" href="{base}/" title="The tour">
@@ -56,20 +56,9 @@
 </div>
 
 <style>
+	/* the palette and reading typography are .blog-palette, in the root layout (shared with the
+	   story editor's preview) */
 	.blog {
-		/* the tour's postcard palette (light, like the globe); every text colour ≥ 7:1 (WCAG AAA) */
-		--b-bg: #fbf6ec;
-		--b-card: #fffdf8;
-		--b-text: #263238;
-		--b-muted: #3d494f;
-		--b-line: #e8dfcd;
-		--b-line-strong: #a5998a;
-		--b-accent: #7a2e0f;
-		--b-link: #7a2e0f;
-		--b-warm: #c9a227;
-		--b-warm-text: #524008;
-		--b-soft: #f9e2d6;
-		--b-tint: 30%;
 		color-scheme: light;
 		min-height: 100vh;
 		/* the globe's sky at the top, settling into paper */
@@ -187,24 +176,6 @@
 	:global(html:has(.blog)) {
 		scroll-padding-top: 5rem;
 		scroll-padding-bottom: 1.5rem;
-	}
-	.blog :global(p) {
-		margin-block: 0 1.5em;
-	}
-	.blog :global(h1),
-	.blog :global(h2),
-	.blog :global(h3) {
-		font-family: var(--font-display);
-		font-variation-settings:
-			'SOFT' 100,
-			'WONK' 1;
-		font-weight: 650;
-		letter-spacing: -0.01em;
-		line-height: 1.15;
-	}
-	.blog :global(a) {
-		color: var(--b-link);
-		text-underline-offset: 0.18em;
 	}
 	.blog :global(a:focus-visible),
 	.blog :global(button:focus-visible) {

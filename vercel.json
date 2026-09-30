@@ -52,6 +52,17 @@
 			"source": "/blog/:path*",
 			"destination": "/the-parks-26/blog/:path*",
 			"permanent": true
+		},
+		{
+			"source": "/wysiwyg",
+			"destination": "/the-parks-26/wysiwyg",
+			"permanent": false
+		}
+	],
+	"rewrites": [
+		{
+			"source": "/robots.txt",
+			"destination": "/the-parks-26/robots.txt"
 		}
 	],
 	"headers": [

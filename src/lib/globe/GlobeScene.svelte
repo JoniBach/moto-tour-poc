@@ -4,6 +4,15 @@
   camera, it never turns itself. The sun and moon sit where they really were for that place and
   moment, and set the light, the shadows' direction and (via onsky) the sky behind.
 -->
+<script lang="ts" module>
+	import { Vector3 as V3 } from 'three';
+	/**
+	 * Where the sun and moon last were on screen, carried from one day's globe to the next so they
+	 * glide to their new places instead of jumping (null before the first day).
+	 */
+	const carried: { sun: V3 | null; moon: V3 | null } = { sun: null, moon: null };
+</script>
+
 <script lang="ts">
 	import { T, useTask } from '@threlte/core';
 	import { OrbitControls } from '@threlte/extras';
@@ -143,6 +152,10 @@
 	sunBody.scale.setScalar(V * 0.32);
 	const moonBody = new Mesh(moonGeo, moonMat);
 	let shadow = $state(0.5);
+	const sunGoal = new Vector3();
+	const moonGoal = new Vector3();
+	let sunNow: Vector3 | null = null;
+	let moonNow: Vector3 | null = null;
 
 	let sunLight = $state<import('three').DirectionalLight>();
 	let hemi = $state<import('three').HemisphereLight>();
@@ -172,12 +185,30 @@
 		const [lon, lat] = fromGrid(b.x + originE, b.n + originN);
 		const sun = sunAt(b.time, lat, lon);
 		const moon = moonAt(b.time, lat, lon);
-		globe.sunDir.set(...direction(sun));
-		globe.moonDir.set(...direction(moon));
+		// glide from where they were (the last day's sky) to where they really are, on a big arc;
+		// once there, follow the ride closely (quick enough for fast playback)
+		sunGoal.set(...direction(sun));
+		moonGoal.set(...direction(moon));
+		if (!sunNow) sunNow = (carried.sun ?? sunGoal).clone();
+		if (!moonNow) moonNow = (carried.moon ?? moonGoal).clone();
+		const glide = (now: Vector3, goal: Vector3) => {
+			const far = now.angleTo(goal);
+			now.lerp(goal, Math.min(1, dt * (far > 0.05 ? 2.2 : 12))).normalize();
+		};
+		glide(sunNow, sunGoal);
+		glide(moonNow, moonGoal);
+		carried.sun = sunNow.clone();
+		carried.moon = moonNow.clone();
+		globe.sunDir.copy(sunNow);
+		globe.moonDir.copy(moonNow);
 		sunBody.position.copy(globe.sunDir).multiplyScalar(ORBIT);
 		moonBody.position.copy(globe.moonDir).multiplyScalar(ORBIT);
-		sunBody.visible = sun.alt > -2 * RAD;
-		moonBody.visible = moon.alt > -2 * RAD && sun.alt < 12 * RAD;
+		// up when above the horizon, and in or out with the land between days (the overview has none)
+		const here = Math.min(1, risen() * 1.5);
+		sunBody.visible = globe.sunDir.y > Math.sin(-2 * RAD) && here > 0.01;
+		sunBody.material.opacity = here;
+		moonBody.visible = globe.moonDir.y > Math.sin(-2 * RAD) && sun.alt < 12 * RAD && here > 0.01;
+		moonBody.scale.setScalar(Math.max(0.001, here));
 		moonMat.uniforms.uSun.value.copy(globe.sunDir);
 
 		// light: the sun by day; the moon (or a faint sky glow) by night

@@ -2,20 +2,21 @@
 // src/lib/events-core.js) with light, readable context — nearest town/village, the day's
 // national parks and weather — so the blog never has to load the heavy 3D day data.
 // Place names are left out near privacy zones. No coordinates are written.
-// Output: static/data/feed.json. Run after build-tour, build-photos, build-blog and build-parks.
+// Output: static/data/tours/<id>/feed.json. Run after build-tour, build-photos, build-blog and build-parks.
 import fs from 'node:fs';
 import path from 'node:path';
 import { dayEventsCore } from '../src/lib/events-core.js';
 import { makeProjection, nearPrivacyZone, PRIVACY_MARGIN } from './lib/geo.mjs';
+import { PATHS } from './lib/tour.mjs';
 
-const DAYS = 'static/data/days';
+const DAYS = PATHS.days;
 const PLACE_WITHIN = 6000; // metres: nearest town/village used as "near …"
 
 const read = (f, fallback) => (fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : fallback);
-const tour = read('static/data/tour.json', { days: [] });
-const photos = read('static/data/photos.json', { photos: [] }).photos;
-const posts = read('static/data/blog.json', { posts: [] }).posts;
-const parks = read('static/data/uk/parks.json', { parks: [] }).parks;
+const tour = read(PATHS.tourJson, { days: [] });
+const photos = read(PATHS.photosJson, { photos: [] }).photos;
+const posts = read(PATHS.blogJson, { posts: [] }).posts;
+const parks = read(PATHS.parksJson, { parks: [] }).parks;
 
 const days = tour.days.map((d) => {
 	const dir = path.join(DAYS, d.day);
@@ -81,6 +82,6 @@ const days = tour.days.map((d) => {
 	};
 });
 
-fs.writeFileSync('static/data/feed.json', JSON.stringify({ days }));
+fs.writeFileSync(PATHS.feedJson, JSON.stringify({ days }));
 const n = days.reduce((a, d) => a + d.events.length, 0);
-console.log(`Wrote static/data/feed.json: ${days.length} days, ${n} events (${(fs.statSync('static/data/feed.json').size / 1024).toFixed(0)} KB)`);
+console.log(`Wrote ${PATHS.feedJson}: ${days.length} days, ${n} events (${(fs.statSync(PATHS.feedJson).size / 1024).toFixed(0)} KB)`);

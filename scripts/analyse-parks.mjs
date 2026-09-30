@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { makeProjection } from './lib/geo.mjs';
 import { readTiles, tilesAround } from './lib/vtiles.mjs';
+import { PATHS } from './lib/tour.mjs';
 
 const inRing = (ring, lon, lat) => {
 	let inside = false;
@@ -18,8 +19,8 @@ const inRing = (ring, lon, lat) => {
 };
 const inPoly = (poly, lon, lat) => inRing(poly[0], lon, lat) && !poly.slice(1).some((h) => inRing(h, lon, lat));
 
-for (const day of fs.readdirSync('static/data/days').sort()) {
-	const dir = path.join('static/data/days', day);
+for (const day of fs.readdirSync(PATHS.days).sort()) {
+	const dir = path.join(PATHS.days, day);
 	const read = (f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
 	const meta = read('terrain.json');
 	const track = read('track.json');

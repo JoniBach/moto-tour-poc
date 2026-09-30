@@ -4,6 +4,7 @@
   unless it's the page's main image (then it's fetched first).
 -->
 <script lang="ts">
+	import { photoSrc } from '$lib/tourConfig';
 	let {
 		id,
 		alt,
@@ -20,14 +21,14 @@
 		class?: string;
 	} = $props();
 
-	const srcset = $derived(`/photos/thumb/${id}.webp 320w, /photos/medium/${id}.webp 800w, /photos/large/${id}.webp 1600w`);
+	const srcset = $derived(`${photoSrc('thumb', id)} 320w, ${photoSrc('medium', id)} 800w, ${photoSrc('large', id)} 1600w`);
 	// the stored size is the 1600 px image's; its ratio is all the browser needs
 	const [w, h] = $derived(size ?? [4, 3]);
 </script>
 
 <img
 	class={cls}
-	src="/photos/medium/{id}.webp"
+	src={photoSrc('medium', id)}
 	{srcset}
 	{sizes}
 	width={w}

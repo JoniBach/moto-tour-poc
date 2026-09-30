@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import proj4 from 'proj4';
 import { PNG } from 'pngjs';
+import { PATHS, TOUR } from './tour.mjs';
 
 const R = 6371008.8;
 const RAD = Math.PI / 180;
@@ -221,7 +222,7 @@ export function readAllGpx(files) {
 
 // ---------- day context ----------
 
-export const GPX_DIR = process.env.GPX_DIR ?? 'data/beeline';
+export const GPX_DIR = PATHS.gpx;
 
 /** All ride dates available in GPX_DIR ("2026-09-16", …), from the file-name prefix. */
 export function listDays() {
@@ -241,14 +242,14 @@ export function dayContext() {
 		.sort()
 		.map((f) => path.join(GPX_DIR, f));
 	if (!files.length) throw new Error(`No GPX files for ${day} in ${GPX_DIR}`);
-	const out = path.join('static/data/days', day);
+	const out = path.join(PATHS.days, day);
 	fs.mkdirSync(out, { recursive: true });
 	return { day, files, out, file: (name) => path.join(out, name) };
 }
 
 // ---------- privacy zones ----------
 
-const PRIVACY_FILE = 'data/privacy.json';
+const PRIVACY_FILE = PATHS.privacy;
 const privacyZones = fs.existsSync(PRIVACY_FILE) ? JSON.parse(fs.readFileSync(PRIVACY_FILE, 'utf8')).zones : [];
 
 /** True if a lon/lat falls inside any privacy zone (data/privacy.json). */
@@ -304,7 +305,7 @@ export function inPrivacyZoneAt(t) {
 }
 
 /** The calendar date in UK time ("2026-09-16") for epoch seconds. */
-export const ukDate = (sec) => new Date(sec * 1000).toLocaleDateString('en-CA', { timeZone: 'Europe/London' });
+export const ukDate = (sec) => new Date(sec * 1000).toLocaleDateString('en-CA', { timeZone: TOUR.timeZone });
 
 /** Parse "2026-09-16 11:30" (UK local time, BST/GMT handled) or a full ISO string to epoch seconds. */
 export function parseUkTime(s) {
@@ -314,7 +315,7 @@ export function parseUkTime(s) {
 	if (!m) return NaN;
 	const asUtc = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] ?? 0));
 	// offset of Europe/London at that moment (BST +60, GMT 0)
-	const london = new Date(new Date(asUtc).toLocaleString('en-US', { timeZone: 'Europe/London' }));
+	const london = new Date(new Date(asUtc).toLocaleString('en-US', { timeZone: TOUR.timeZone }));
 	const utc = new Date(new Date(asUtc).toLocaleString('en-US', { timeZone: 'UTC' }));
 	return (asUtc - (london - utc)) / 1000;
 }

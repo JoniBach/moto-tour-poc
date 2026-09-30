@@ -1,5 +1,6 @@
 <!-- Any page that isn't there (or fails): say so plainly and offer the ways back in. -->
 <script lang="ts">
+	import { TOUR } from '$lib/tourConfig';
 	import { page } from '$app/state';
 	import { on, tourOn, TOUR_NAME } from '$lib/flags';
 
@@ -7,7 +8,7 @@
 </script>
 
 <svelte:head>
-	<title>{missing ? 'Not found' : 'Something went wrong'} · UK Tour</title>
+	<title>{missing ? 'Not found' : 'Something went wrong'} · {TOUR.name}</title>
 </svelte:head>
 
 <main class="err">

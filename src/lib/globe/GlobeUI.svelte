@@ -4,6 +4,8 @@
   relief). On phones the card opens as the settings sheet.
 -->
 <script lang="ts">
+	import { TOUR } from '$lib/tourConfig';
+	import { tempRound, tempUnit } from '$lib/units';
 	import { layerAvailable } from '$lib/flagLayers';
 	import { weatherAt, weatherLabel } from '$lib/data';
 	import type { MapStyle } from '$lib/imagery';
@@ -63,7 +65,7 @@
 
 	const clock = $derived(ukClock(tour.bike.time).slice(0, 5));
 	const wx = $derived(weatherAt(tour.data.weather, tour.rt));
-	const wxText = $derived(wx ? `${weatherLabel(wx.code, wx.isDay).label}, ${wx.temp?.toFixed(0)}°C` : '');
+	const wxText = $derived(wx ? `${weatherLabel(wx.code, wx.isDay).label}, ${tempRound(wx.temp ?? 0)}${tempUnit}` : '');
 	const wxIcon = $derived(wx ? weatherLabel(wx.code, wx.isDay).icon : '');
 </script>
 
@@ -133,7 +135,7 @@
 {/if}
 
 <div class="dock">
-{#if park && tour.layers.parks}<p class="park"><span aria-hidden="true">⛰</span> {park} National Park</p>{/if}
+{#if park && tour.layers.parks}<p class="park"><span aria-hidden="true">⛰</span> {park} {TOUR.protectedAreas.one}</p>{/if}
 <GlobeBanner {tour} />
 <div class="play" role="group" aria-label="Playback">
 	<button type="button" class="pp" onclick={() => tour.togglePlay()} aria-label={tour.playing ? 'Pause' : 'Play'}>{tour.playing ? '❚❚' : '▶'}</button>

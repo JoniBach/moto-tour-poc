@@ -3,6 +3,7 @@
   is down at a day (closer than ~60 km), except for days that aren't the active one.
 -->
 <script lang="ts">
+	import { TOUR } from '$lib/tourConfig';
 	import { T, useTask, useThrelte } from '@threlte/core';
 	import { HTML } from '@threlte/extras';
 	import { Vector3 } from 'three';
@@ -47,7 +48,7 @@
 	});
 
 	const date = (s: number) =>
-		new Date(s * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Europe/London' });
+		new Date(s * 1000).toLocaleDateString(TOUR.locale, { day: 'numeric', month: 'short', timeZone: TOUR.timeZone });
 </script>
 
 {#each markers as m (m.d.day)}

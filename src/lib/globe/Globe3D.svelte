@@ -5,6 +5,7 @@
   on it, beside the day list.
 -->
 <script lang="ts">
+	import { TOUR } from '$lib/tourConfig';
 	import { Canvas } from '@threlte/core';
 	import { NoToneMapping, WebGLRenderer } from 'three';
 	import type { App } from '$lib/app.svelte';
@@ -20,7 +21,7 @@
 	const summary = $derived(app.summary(tour?.data.track.day));
 	const date = $derived(
 		summary
-			? new Date(summary.start * 1000).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/London' })
+			? new Date(summary.start * 1000).toLocaleDateString(TOUR.locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: TOUR.timeZone })
 			: ''
 	);
 	const days = $derived(app.index?.days.length ?? 0);
@@ -51,7 +52,7 @@
 				/>
 			{/key}
 		{:else}
-			<GlobeOverview title="A motorcycle tour of Britain's national parks" date={`September 2026 · ${days} days`} />
+			<GlobeOverview title={TOUR.title} date={`${TOUR.when} · ${days} days`} />
 		{/if}
 	</Canvas>
 	{#if tour}

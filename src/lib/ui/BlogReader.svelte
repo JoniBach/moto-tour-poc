@@ -4,6 +4,8 @@
   Photos embedded in the post open the gallery. Esc or × closes it.
 -->
 <script lang="ts">
+	import { TOUR } from '$lib/tourConfig';
+	import { photoSrc } from '$lib/tourConfig';
 	import { on } from '$lib/flags';
 	import type { App } from '$lib/app.svelte';
 	import { clock } from '$lib/data';
@@ -28,7 +30,7 @@
 	const prev = $derived(k > 0 ? app.posts[k - 1] : null);
 	const next = $derived(k >= 0 && k < app.posts.length - 1 ? app.posts[k + 1] : null);
 	const date = (s: number) =>
-		new Date(s * 1000).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/London' });
+		new Date(s * 1000).toLocaleDateString(TOUR.locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: TOUR.timeZone });
 
 	let body = $state<HTMLElement>();
 	$effect(() => {
@@ -58,7 +60,7 @@
 		<!-- zero-height sticky bar: the close button floats over the cover without taking space -->
 		<div class="close-bar"><button class="close" onclick={() => (app.reading = null)} aria-label="Close">×</button></div>
 		{#if post.cover}
-			<img class="cover" src="/photos/large/{post.cover}.webp" alt="" />
+			<img class="cover" src={photoSrc('large', post.cover)} alt="" />
 		{/if}
 		<p class="kicker">
 			✎ Story{#if day} · <b>Day {day.index + 1}</b> · {day.title}{/if}

@@ -5,9 +5,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { makeProjection, nearPrivacyZone, PRIVACY_MARGIN } from './lib/geo.mjs';
+import { PATHS } from './lib/tour.mjs';
 
-const DAYS = 'static/data/days';
-const titles = fs.existsSync('data/day-titles.json') ? JSON.parse(fs.readFileSync('data/day-titles.json', 'utf8')) : {};
+const DAYS = PATHS.days;
+const titles = fs.existsSync(PATHS.dayTitles) ? JSON.parse(fs.readFileSync(PATHS.dayTitles, 'utf8')) : {};
 let dropped = 0;
 let retitled = 0;
 

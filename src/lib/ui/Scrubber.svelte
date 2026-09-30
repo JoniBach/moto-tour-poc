@@ -4,6 +4,8 @@
   and a row of photo ticks (hover to preview, click to jump there and open the photo).
 -->
 <script lang="ts">
+	import { distance, distUnit, tempRound, tempUnit, wind, windUnit } from '$lib/units';
+	import { TOUR } from '$lib/tourConfig';
 	import { area, line, scaleLinear } from 'd3';
 	import { app } from '$lib/app.svelte';
 	import { clock, mph, photoUrl, PIN_META, roadAtFix, weatherAt, weatherLabel, type Photo } from '$lib/data';
@@ -124,8 +126,8 @@
 	async function copyPostHeader() {
 		const t = tour.bike.time;
 		const d = new Date(t * 1000);
-		const part = (o: Intl.DateTimeFormatOptions) => d.toLocaleString('en-GB', { timeZone: 'Europe/London', ...o });
-		const stamp = `${d.toLocaleDateString('en-CA', { timeZone: 'Europe/London' })} ${part({ hour: '2-digit', minute: '2-digit', hour12: false })}`;
+		const part = (o: Intl.DateTimeFormatOptions) => d.toLocaleString(TOUR.locale, { timeZone: TOUR.timeZone, ...o });
+		const stamp = `${d.toLocaleDateString('en-CA', { timeZone: TOUR.timeZone })} ${part({ hour: '2-digit', minute: '2-digit', hour12: false })}`;
 		const near = [...tour.photos].sort((a, b) => Math.abs(a.t - t) - Math.abs(b.t - t))[0];
 		const cover = near && Math.abs(near.t - t) < 1800 ? `
 cover: ${near.id}` : '';
@@ -158,13 +160,13 @@ time: ${stamp}${cover}
 		</label>
 		<div class="clock">{clock(b.time)}</div>
 		{#if wx && wxLabel}
-			<div class="wx" title="{wxLabel.label}, cloud {wx.cloud}%, gusts {wx.gust?.toFixed(0)} mph">
+			<div class="wx" title="{wxLabel.label}, cloud {wx.cloud}%, gusts {wind(wx.gust ?? 0).toFixed(0)} {windUnit}">
 				<span class="wx-icon">{wxLabel.icon}</span>
 				<span class="wx-main">
-					<span class="wx-temp">{wx.temp?.toFixed(0)}°C</span>
+					<span class="wx-temp">{tempRound(wx.temp ?? 0)}{tempUnit}</span>
 					<small>
 						{wxLabel.label} · <span class="arrow" style:transform="rotate({wx.windDir + 180}deg)">↑</span>
-						{wx.wind?.toFixed(0)} mph{#if (wx.precip ?? 0) > 0} · {wx.precip} mm/h{/if}
+						{wind(wx.wind ?? 0).toFixed(0)} {windUnit}{#if (wx.precip ?? 0) > 0} · {wx.precip} mm/h{/if}
 					</small>
 				</span>
 			</div>
@@ -175,13 +177,13 @@ time: ${stamp}${cover}
 		</div>
 		<dl class="readouts">
 			{#if speedFigures()}
-				<div><dt>Speed</dt><dd>{mph(b.speed).toFixed(0)}<small>mph</small></dd></div>
+				<div><dt>Speed</dt><dd>{wind(mph(b.speed)).toFixed(0)}<small>{windUnit}</small></dd></div>
 			{/if}
 			<div><dt>Ground</dt><dd>{b.h.toFixed(0)}<small>m</small></dd></div>
 			<div><dt>GPS alt</dt><dd>{b.ele.toFixed(0)}<small>m</small></dd></div>
 			<div><dt>Lean</dt><dd>{Math.abs((b.lean * 180) / Math.PI).toFixed(0)}<small>°</small></dd></div>
 			<div><dt>Gradient</dt><dd>{(gradientAt(tr, b.i) * 100).toFixed(0)}<small>%</small></dd></div>
-			<div><dt>Distance</dt><dd>{(b.dist / 1609.34).toFixed(1)}<small>mi</small></dd></div>
+			<div><dt>Distance</dt><dd>{distance(b.dist / 1000).toFixed(1)}<small>{distUnit}</small></dd></div>
 		</dl>
 		<button class="share" onclick={shareMoment} title="Copy a link to this moment of the ride">
 			{linked ? '✓ Copied' : '🔗 Share moment'}

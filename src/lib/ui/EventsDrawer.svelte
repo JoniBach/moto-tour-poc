@@ -4,6 +4,7 @@
   (photos also open the gallery, pins open their card). A tab on the right edge opens and closes it.
 -->
 <script lang="ts">
+	import { photoSrc } from '$lib/tourConfig';
 	import { app } from '$lib/app.svelte';
 	import { clock, photoUrl } from '$lib/data';
 	import { dayEvents, eventLabel, type TourEvent } from '$lib/events';
@@ -57,7 +58,7 @@
 				e.kind === 'photos'
 					? e.photos.slice(0, 4).map((p) => photoUrl(p, 'thumb'))
 					: e.kind === 'post' && e.post.cover
-						? [`/photos/thumb/${e.post.cover}.webp`]
+						? [photoSrc('thumb', e.post.cover)]
 						: undefined,
 			more: e.kind === 'photos' && e.photos.length > 4 ? e.photos.length - 4 : undefined,
 			onclick: () => go(e)

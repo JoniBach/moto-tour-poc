@@ -4,11 +4,13 @@
 import fs from 'node:fs';
 import type { BlogPost, Feed, FeedDay, FeedEvent, Photo } from '$lib/data';
 import { on } from '$lib/flags';
+import { DATA_DIR } from '$lib/tourConfig';
+import { distRound } from '../units';
 
 const cache = new Map<string, unknown>();
 function read<T>(file: string, fallback: T): T {
 	if (!cache.has(file)) {
-		const path = `static/data/${file}`;
+		const path = `${DATA_DIR}/${file}`;
 		cache.set(file, fs.existsSync(path) ? JSON.parse(fs.readFileSync(path, 'utf8')) : fallback);
 	}
 	return cache.get(file) as T;
@@ -70,7 +72,7 @@ export function indexPage() {
 		days: days.map((d) => resolve(d, 6)),
 		totals: {
 			days: days.length,
-			miles: Math.round(days.reduce((a, d) => a + d.km, 0) / 1.609),
+			distance: distRound(days.reduce((a, d) => a + d.km, 0)),
 			parks: new Set(days.flatMap((d) => d.parks)).size,
 			photos: days.reduce((a, d) => a + d.photos, 0),
 			stories: posts().length

@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { fromBng, inPrivacyZone, nearPrivacyZone, PRIVACY_MARGIN, privacyZoneNames } from './lib/geo.mjs';
+import { PATHS } from './lib/tour.mjs';
 
 let leaks = 0;
 let checked = 0;
@@ -22,7 +23,7 @@ const read = (file) => {
 	return file.endsWith('.gz') ? zlib.gunzipSync(buf) : buf;
 };
 
-const DAYS = 'static/data/days';
+const DAYS = PATHS.days;
 for (const day of fs.readdirSync(DAYS)) {
 	for (const variant of ['', '.gz']) {
 		const f = (name) => path.join(DAYS, day, name + variant);
@@ -38,20 +39,20 @@ for (const day of fs.readdirSync(DAYS)) {
 				if (cor[r * meta.cols + c] === 0) check(`${day} corridor${variant}`, meta.originE + meta.x0 + c * meta.spacing, meta.originN + meta.n1 - r * meta.spacing);
 	}
 }
-const tour = JSON.parse(fs.readFileSync('static/data/tour.json', 'utf8'));
+const tour = JSON.parse(fs.readFileSync(PATHS.tourJson, 'utf8'));
 for (const d of tour.days) for (const line of d.lines) for (let k = 0; k < line.length; k += 2) check(`tour line ${d.day}`, line[k], line[k + 1]);
 
-if (fs.existsSync('static/data/blog.json'))
-	for (const p of JSON.parse(fs.readFileSync('static/data/blog.json', 'utf8')).posts) check(`post ${p.slug}`, p.e, p.n);
+if (fs.existsSync(PATHS.blogJson))
+	for (const p of JSON.parse(fs.readFileSync(PATHS.blogJson, 'utf8')).posts) check(`post ${p.slug}`, p.e, p.n);
 
-const photos = JSON.parse(fs.readFileSync('static/data/photos.json', 'utf8')).photos;
+const photos = JSON.parse(fs.readFileSync(PATHS.photosJson, 'utf8')).photos;
 for (const p of photos) check(`photo ${p.id}`, p.e, p.n);
 const listed = new Set(photos.map((p) => p.id));
 for (const size of ['thumb', 'medium', 'large'])
-	for (const f of fs.readdirSync(`static/photos/${size}`))
+	for (const f of fs.readdirSync(`${PATHS.photos}/${size}`))
 		if (!listed.has(path.basename(f, '.webp'))) {
 			leaks++;
-			console.log(`LEAK unlisted photo file static/photos/${size}/${f}`);
+			console.log(`LEAK unlisted photo file ${PATHS.photos}/${size}/${f}`);
 		}
 
 // ---- words: the zones' names, and place labels near them ----
@@ -70,13 +71,13 @@ const named = (what, text, exact = false) => {
 };
 let labels = 0;
 for (const d of tour.days) named(`tour title ${d.day}`, d.title);
-if (fs.existsSync('static/data/feed.json'))
-	for (const d of JSON.parse(fs.readFileSync('static/data/feed.json', 'utf8')).days) {
+if (fs.existsSync(PATHS.feedJson))
+	for (const d of JSON.parse(fs.readFileSync(PATHS.feedJson, 'utf8')).days) {
 		named(`feed title ${d.day}`, d.title);
 		for (const e of d.events) named(`feed ${d.day}`, [e.place, e.pin?.title, e.pin?.body].filter(Boolean).join(' · '));
 	}
-if (fs.existsSync('static/data/blog.json'))
-	for (const p of JSON.parse(fs.readFileSync('static/data/blog.json', 'utf8')).posts) named(`post ${p.slug}`, `${p.title} ${p.excerpt} ${p.html}`);
+if (fs.existsSync(PATHS.blogJson))
+	for (const p of JSON.parse(fs.readFileSync(PATHS.blogJson, 'utf8')).posts) named(`post ${p.slug}`, `${p.title} ${p.excerpt} ${p.html}`);
 for (const day of fs.readdirSync(DAYS)) {
 	const f = (name) => path.join(DAYS, day, name);
 	const meta = JSON.parse(read(f('terrain.json')));

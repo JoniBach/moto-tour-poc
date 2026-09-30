@@ -1,0 +1,14 @@
+{
+	"$comment": "Everything about this tour the site and pipeline need that isn't in its data. Public (committed); private inputs live beside it, git-ignored: gpx/, photos-src/, privacy.json.",
+	"id": "uk-2026",
+	"name": "UK Tour",
+	"when": "September 2026",
+	"title": "A motorcycle tour of Britain's national parks",
+	"summary": "from Pembrokeshire to the Cairngorms and back",
+	"activity": "motorcycle",
+	"locale": "en-GB",
+	"timeZone": "Europe/London",
+	"units": { "distance": "mi", "temperature": "C" },
+	"speed": 1,
+	"protectedAreas": { "one": "National Park", "many": "national parks" }
+}

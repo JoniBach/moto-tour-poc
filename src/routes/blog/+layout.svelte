@@ -4,6 +4,7 @@
   browser zoom, and every moment links back into the 3D view.
 -->
 <script lang="ts">
+	import { TOUR } from '$lib/tourConfig';
 	import { on, tourOn, TOUR_NAME } from '$lib/flags';
 	import { page } from '$app/state';
 
@@ -19,7 +20,7 @@
 		<div class="inner">
 			<a class="brand" href="/blog">
 				<span class="mark" aria-hidden="true">◉</span>
-				<span>UK Tour <small>· September 2026</small></span>
+				<span>{TOUR.name} <small>· {TOUR.when}</small></span>
 			</a>
 			<nav aria-label="Site">
 				<a href="/blog" aria-current={page.url.pathname === '/blog' ? 'page' : undefined}>All days</a>

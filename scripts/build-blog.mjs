@@ -9,19 +9,20 @@
 //   ![Looking down Borrowdale](photo:20260916_115051)
 //
 // Each post is placed by its time against that day's track (like photos), rendered to HTML, and
-// written to static/data/blog.json. Posts whose moment falls inside a privacy zone are refused
+// written to static/data/tours/<id>/blog.json. Posts whose moment falls inside a privacy zone are refused
 // (with a message), and photos withheld for privacy are removed from posts.
 // Files starting with "_" are drafts and skipped.
 import fs from 'node:fs';
 import path from 'node:path';
 import { marked } from 'marked';
 import { inPrivacyZoneAt, parseUkTime, ukDate } from './lib/geo.mjs';
+import { PATHS, TOUR } from './lib/tour.mjs';
 
-const SRC = 'content/blog';
-const DAYS = 'static/data/days';
+const SRC = PATHS.blogSrc;
+const DAYS = PATHS.days;
 
-const photos = fs.existsSync('static/data/photos.json')
-	? new Map(JSON.parse(fs.readFileSync('static/data/photos.json', 'utf8')).photos.map((p) => [p.id, p]))
+const photos = fs.existsSync(PATHS.photosJson)
+	? new Map(JSON.parse(fs.readFileSync(PATHS.photosJson, 'utf8')).photos.map((p) => [p.id, p]))
 	: new Map();
 
 /** Minimal frontmatter: "key: value" lines between --- fences. */
@@ -75,7 +76,7 @@ marked.use({
 				return '';
 			}
 			const alt = text.replace(/"/g, '&quot;');
-			return `<figure><img src="/photos/large/${p.id}.webp" width="${p.w}" height="${p.h}" alt="${alt}" loading="lazy" data-photo="${p.id}">${text ? `<figcaption>${text}</figcaption>` : ''}</figure>`;
+			return `<figure><img src="/photos/${TOUR.id}/large/${p.id}.webp" width="${p.w}" height="${p.h}" alt="${alt}" loading="lazy" data-photo="${p.id}">${text ? `<figcaption>${text}</figcaption>` : ''}</figure>`;
 		}
 	}
 });
@@ -124,6 +125,6 @@ for (const file of fs.readdirSync(SRC).filter((f) => f.endsWith('.md') && !f.sta
 	});
 }
 posts.sort((a, b) => a.t - b.t);
-fs.writeFileSync('static/data/blog.json', JSON.stringify({ posts }));
-console.log(`Wrote static/data/blog.json: ${posts.length} post(s)`);
-for (const p of posts) console.log(`  ${p.day} ${new Date(p.t * 1000).toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' })}  ${p.title}`);
+fs.writeFileSync(PATHS.blogJson, JSON.stringify({ posts }));
+console.log(`Wrote ${PATHS.blogJson}: ${posts.length} post(s)`);
+for (const p of posts) console.log(`  ${p.day} ${new Date(p.t * 1000).toLocaleTimeString('en-GB', { timeZone: TOUR.timeZone, hour: '2-digit', minute: '2-digit' })}  ${p.title}`);

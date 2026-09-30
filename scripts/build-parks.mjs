@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import { contours } from 'd3';
 import { fromBng, toBng } from './lib/geo.mjs';
 import { readTiles, tileOf } from './lib/vtiles.mjs';
+import { PATHS } from './lib/tour.mjs';
 
 const RES = 200; // metres per cell of each park's raster
 const SIMPLIFY = 350; // metres between kept outline points
@@ -74,7 +75,7 @@ function fillPolys(polys, grid, cols, rows, e0, n1) {
 	}
 }
 
-const tour = JSON.parse(fs.readFileSync('static/data/tour.json', 'utf8'));
+const tour = JSON.parse(fs.readFileSync(PATHS.tourJson, 'utf8'));
 const parks = [];
 for (const [name, polys] of [...pieces].sort()) {
 	let [e0, s0, e1, n1] = [Infinity, Infinity, -Infinity, -Infinity];
@@ -153,11 +154,11 @@ parks.forEach((p, idx) => {
 	}
 });
 
-fs.writeFileSync('static/data/uk/parks.bin', Buffer.from(mask.buffer));
+fs.writeFileSync(PATHS.parksBin, Buffer.from(mask.buffer));
 fs.writeFileSync(
-	'static/data/uk/parks.json',
+	PATHS.parksJson,
 	JSON.stringify({ parks: parks.map(({ _raster, ...p }) => p) })
 );
 console.log(
-	`Wrote static/data/uk/parks.json (${(fs.statSync('static/data/uk/parks.json').size / 1024).toFixed(0)} KB): ${parks.length} parks, ${parks.filter((p) => p.visited).length} on the route`
+	`Wrote ${PATHS.parksJson} (${(fs.statSync(PATHS.parksJson).size / 1024).toFixed(0)} KB): ${parks.length} parks, ${parks.filter((p) => p.visited).length} on the route`
 );

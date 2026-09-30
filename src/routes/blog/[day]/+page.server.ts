@@ -3,8 +3,9 @@ import { error } from '@sveltejs/kit';
 import fs from 'node:fs';
 import { on } from '$lib/flags';
 import { dayPage } from '$lib/server/blog-data';
+import { DATA_DIR } from '$lib/tourConfig';
 
-const FEED = 'static/data/feed.json';
+const FEED = `${DATA_DIR}/feed.json`;
 
 export const entries = () =>
 	on('blog') && fs.existsSync(FEED) ? (JSON.parse(fs.readFileSync(FEED, 'utf8')).days as { day: string }[]).map(({ day }) => ({ day })) : [];

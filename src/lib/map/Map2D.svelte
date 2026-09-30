@@ -5,6 +5,7 @@
   the bike, national parks, photos, stories, pins and day markers; plays the day like the 3D view.
 -->
 <script lang="ts">
+	import { distUnit } from '$lib/units';
 	import {
 		Map as MlMap,
 		Marker,
@@ -61,7 +62,7 @@
 		map.touchZoomRotate.disableRotation();
 		map.keyboard.disableRotation();
 		map.addControl(new NavigationControl({ showCompass: false }), 'top-right');
-		map.addControl(new ScaleControl({ unit: 'imperial' }), 'bottom-left');
+		map.addControl(new ScaleControl({ unit: distUnit === 'mi' ? 'imperial' : 'metric' }), 'bottom-left');
 		map.on('dragstart', () => (follow = false));
 		map.on('load', () => {
 			addLayers(map!);

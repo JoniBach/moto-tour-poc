@@ -1,5 +1,7 @@
 <!-- One day of the tour as a blog page: its details, then every event with larger photos. -->
 <script lang="ts">
+	import { TOUR } from '$lib/tourConfig';
+	import { distRound, distWord, tempRound, tempUnit } from '$lib/units';
 	import { on } from '$lib/flags';
 	import { iso, longDate } from '$lib/blog';
 	import EventGroup from '$lib/blog/EventGroup.svelte';
@@ -15,8 +17,8 @@
 </script>
 
 <svelte:head>
-	<title>Day {d.index + 1}: {d.title} · UK Tour blog</title>
-	<meta name="description" content="Day {d.index + 1} of a motorcycle tour of Britain's national parks: {d.title}, {Math.round(d.km / 1.609)} miles." />
+	<title>Day {d.index + 1}: {d.title} · {TOUR.name} blog</title>
+	<meta name="description" content="Day {d.index + 1} of {TOUR.title.replace(/^A /, 'a ')}: {d.title}, {distRound(d.km)} {distWord}." />
 </svelte:head>
 
 <article style:--c={dayColor(d.index, dayCount)}>
@@ -30,9 +32,9 @@
 		<p class="daynum">Day {d.index + 1} · <time datetime={iso(d.start)}>{longDate(d.start)}</time></p>
 		<h1>{d.title}</h1>
 		<ul class="facts">
-			<li><strong>{Math.round(d.km / 1.609)}</strong> miles{#if d.rides > 1} over {d.rides} rides{/if}</li>
+			<li><strong>{distRound(d.km)}</strong> {distWord}{#if d.rides > 1} over {d.rides} rides{/if}</li>
 			{#if d.weather}<li>
-					<strong>{d.weather.minTemp.toFixed(0)} to {d.weather.maxTemp.toFixed(0)} °C</strong>{#if d.weather.wettestHourMm > 0.2}, some rain{/if}
+					<strong>{tempRound(d.weather.minTemp)} to {tempRound(d.weather.maxTemp)} {tempUnit}</strong>{#if d.weather.wettestHourMm > 0.2}, some rain{/if}
 				</li>{/if}
 			{#if d.photos}<li><strong>{d.photos}</strong> photos</li>{/if}
 			{#if d.parks.length}<li>{d.parks.join(', ')}</li>{/if}

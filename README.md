@@ -16,34 +16,75 @@ npm run dev            # http://localhost:5173
 
 `/` is the whole tour over Great Britain; `/day/2026-09-09` … `/day/2026-09-26` are the 18 days.
 
-**The personal data is not in git.** Day bundles (`static/data/days/`), `tour.json`,
-`photos.json` and `static/photos/` are generated from private sources (the Beeline export in
-`data/beeline/`, originals in `data/photos-src/jpg/`, privacy zones in `data/privacy.json`) and
-git-ignored. To rebuild on a fresh checkout, put those in place, then:
+**The personal data is not in git.** Everything under `static/data/tours/` and `static/photos/`
+is generated from private sources (the rides in `tours/<id>/gpx/`, originals in
+`tours/<id>/photos-src/jpg/`, privacy zones in `tours/<id>/privacy.json`) and git-ignored (see
+[Tours](#tours)). To rebuild on a fresh checkout, put those in place, then:
 
 ```sh
 npm run data                         # all days, tour index, parks
 node scripts/build-photos.mjs        # resize + place photos
 ```
 
-Only the UK backdrop and parks (`static/data/uk/`, public map data) are committed.
+Only the tour configs, titles, pins and stories, and the GB backdrop (`static/data/uk/`, public map
+data) are committed.
+
+## Tours
+
+Everything tour-specific lives in `tours/<id>/`; the site and scripts are the same for every
+tour. `TOUR=<id>` picks one for the data scripts, `vite dev`/`build` and the deploy (default
+`uk-2026`); a build carries only that tour.
+
+```
+tours/uk-2026/
+  tour.config.json   name, wording, locale, time zone, units, speed policy   (committed)
+  day-titles.json    day title overrides                                     (committed)
+  pins.json          authored pins                                           (committed)
+  blog/              stories, Markdown                                       (committed)
+  gpx/               the rides (Beeline export)                              (git-ignored)
+  photos-src/jpg/    original photos                                         (git-ignored)
+  privacy.json       privacy zones                                           (git-ignored)
+```
+
+Outputs go to `static/data/tours/<id>/` (days, `tour.json`, `photos.json`, `blog.json`,
+`feed.json`, `parks.*`) and `static/photos/<id>/`, all git-ignored. `static/data/uk/` (the GB
+terrain backdrop) is shared.
+
+`tour.config.json`:
+
+| Field | Example | Used for |
+| --- | --- | --- |
+| `id` | `uk-2026` | folder names and URLs of data and photos |
+| `name`, `when` | `UK Tour`, `September 2026` | site name, titles, headers |
+| `title`, `summary` | `A motorcycle tour of Britain's national parks`, `from Pembrokeshire to the Cairngorms and back` | blog headline and intro, globe overview |
+| `activity` | `motorcycle` | (reserved: wording and icons per activity) |
+| `locale` | `en-GB` | `<html lang>`, dates and numbers |
+| `timeZone` | `Europe/London` | every clock and date, in the site and the scripts |
+| `units` | `{ "distance": "mi", "temperature": "C" }` | `mi`/`km`, `C`/`F` (data stays metric) |
+| `speed` | `1` | 0 no speed, 1 relative shade only, 2 figures |
+| `protectedAreas` | `{ "one": "National Park", "many": "national parks" }` | park wording |
+
+A new tour: copy `tours/uk-2026/` without its private folders, edit the config, drop in the GPX,
+photos and privacy zones, then `TOUR=<id> npm run data`, `TOUR=<id> npm run data:photos`,
+`TOUR=<id> npm run dev`. The terrain backdrop, projection (British National Grid) and parks
+source are still GB-only; tours elsewhere need those generalised first.
 
 ## Blog posts
 
-Write Markdown in `content/blog/` (committed), one file per post, tied to a moment of the ride:
+Write Markdown in `tours/<id>/blog/` (committed), one file per post, tied to a moment of the ride:
 
 ```md
 ---
 title: Honister Pass
-time: 2026-09-16 11:30      # UK local time; the post appears where the bike was then
+time: 2026-09-16 11:30      # the tour's local time; the post appears where the bike was then
 cover: 20260916_113010      # optional photo id (file name without extension)
 ---
 Markdown body. Embed tour photos by id: ![caption](photo:20260916_115051)
 ```
 
 `npm run data:blog` places each post against the track (like photos), renders it, and writes
-`static/data/blog.json` (git-ignored). Files starting with `_` are drafts (see
-`content/blog/_template.md`). Posts appear as ✎ markers on the map, entries in the events
+`static/data/tours/<id>/blog.json` (git-ignored). Files starting with `_` are drafts (see
+`tours/<id>/blog/_template.md`). Posts appear as ✎ markers on the map, entries in the events
 drawer, ticks on the scrubber and pop-ups during playback, and open in a reader with "Ride here"
 and previous/next. In dev, **✎ Post here** on the scrubber copies a ready-made header for the moment
 on screen (with the nearest photo as cover). Posts whose moment is inside a privacy zone are
@@ -187,14 +228,14 @@ day plays. **◍ Globe** in the trip bar (phones: the view button steps 3D → m
 
 ## Privacy zones
 
-`data/privacy.json` lists circles (town centre + radius) where nothing personal may appear:
+`tours/<id>/privacy.json` lists circles (town centre + radius) where nothing personal may appear:
 `build-track` drops every GPS fix inside them before anything else (a ride through a zone
 becomes separate pieces, never joined across it), `build-terrain` sizes the day grid from what's
 left, pins inside a zone are dropped, and `build-photos` withholds (and deletes the resized copies
 of) any photo taken inside a zone, judged from the *unfiltered* GPS at the moment it was taken.
 Words count too: each zone has a `name`, and no place name is published within 8 km of a zone
 (`PRIVACY_MARGIN` in `scripts/lib/geo.mjs`: `build-osm` drops those labels, `build-feed` gives no
-"near …" there). Day titles are yours to keep clean (`data/day-titles.json`: "Setting off",
+"near …" there). Day titles are yours to keep clean (`tours/<id>/day-titles.json`: "Setting off",
 "Journey's end"). `scripts/scrub-places.mjs` applies both rules to days built before them.
 
 `npm run audit:privacy` (`scripts/audit-privacy.mjs`) checks every served position (tracks, route
@@ -231,6 +272,7 @@ refuses to run if it finds anything.
 files as `.gz` (275 MB -> 86 MB; the app decompresses them), runs the privacy audit, builds with
 every page prerendered as static files, and uploads with `--prebuilt`. Uploads resume, so on a
 flaky connection just re-run. `node scripts/deploy.mjs --prod` would publish publicly.
+`TOUR=<id>` deploys another tour; only that tour's data and photos are uploaded.
 
 ## Release flags (phased release)
 
@@ -268,7 +310,7 @@ one at a time:
 | Level | What | Loaded |
 | --- | --- | --- |
 | **L0 UK** | Great Britain at 1 km (`static/data/uk/`), every day's simplified route (`tour.json`) | Always: home page and backdrop |
-| **L1 Day** | A day bundle (`static/data/days/<date>/`): terrain grid, corridor, track, OSM, water, weather, pins. Grid spacing adapts to the day's size (25 m for the Lakes loop, 75 m for the 225 km run to Dunbar) | One day at a time; the next day is prefetched |
+| **L1 Day** | A day bundle (`static/data/tours/<id>/days/<date>/`): terrain grid, corridor, track, OSM, water, weather, pins. Grid spacing adapts to the day's size (25 m for the Lakes loop, 75 m for the 225 km run to Dunbar) | One day at a time; the next day is prefetched |
 | **L2 Near bike** | Full-resolution Terrarium tiles streamed in the browser around the bike (`nearTerrain.ts`), feeding a fixed 25 m detail mesh | Continuously, around the rider |
 
 - **One world:** everything is in British National Grid metres. Each day's data is stored relative to its own origin (whole km), and the world origin is the *active* day's origin, so the day renders untransformed with full float precision. The UK layer and the other days' routes are offset against it.
@@ -279,16 +321,16 @@ one at a time:
 ## Data pipeline
 
 ```sh
-npm run data                         # every day in data/beeline/, then the tour index
+npm run data                         # every day in tours/<id>/gpx/, then the tour index
 node scripts/build-days.mjs 2026-09-18 2026-09-19   # just these days
 npm run data:uk                      # L0 UK grid (once)
 npm run data:tour                    # rebuild tour.json from the built days
 ```
 
-The Beeline export lives in `data/beeline/` (git-ignored); files are grouped into days by their
+The Beeline export lives in `tours/<id>/gpx/` (git-ignored); files are grouped into days by their
 date prefix, so a day with several rides (e.g. a breakfast run plus the main ride) becomes one
 day with breaks between rides. Day titles come from the file names unless overridden in
-`data/day-titles.json`. Pins are authored once in `data/pins.json` and assigned to days by time
+`tours/<id>/day-titles.json`. Pins are authored once in `tours/<id>/pins.json` and assigned to days by time
 or position.
 
 | Script | Out |
@@ -298,7 +340,7 @@ or position.
 | `build-track.mjs <day>` | `track.json` (draped on full-res tiles, stops, riding time, lean, ride breaks), `corridor.bin`, `pins.json` |
 | `build-osm.mjs <day>` | `osm.json` + `water.bin`: Overpass queried in ~32 km chunks along the route (minor roads/hamlets within 1.5 km, main roads/towns/peaks/water within 8 km), each chunk cached |
 | `build-weather.mjs <day>` | `weather.json` from Open-Meteo, every 10 min along the ride |
-| `build-parks.mjs` | `uk/parks.json` + `uk/parks.bin`: the 15 GB national parks (incl. the Broads) from OpenMapTiles z9, rasterised at 200 m and traced into clean outlines, which tour days pass through each, and a 1 km mask on the UK grid for tinting |
+| `build-parks.mjs` | `parks.json` + `parks.bin`: the 15 GB national parks (incl. the Broads) from OpenMapTiles z9, rasterised at 200 m and traced into clean outlines, which tour days pass through each, and a 1 km mask on the UK grid for tinting |
 | `build-tour.mjs` | `tour.json`: days, origins, extents, stats, simplified lines |
 | `build-days.mjs [days…]` | Runs the above per day; OSM/weather failures don't stop the day building |
 
@@ -315,7 +357,7 @@ or position.
 | Live vertical exaggeration | All terrain-anchored layers sit in one group with `scale.y`; the bike and pins scale their own Y | `DayScene.svelte` |
 | Time-series playback | A riding-time axis with stops collapsed to a few seconds; binary search plus interpolation; a lean angle from yaw rate × speed | `data.ts`, `build-track.mjs` |
 | Scrubber | Elevation profile filled with the active colour scale, stop and pin markers, drag to seek, clock-time ticks | `Scrubber.svelte` |
-| Items without GPS (receipts, untagged photos) | Pins can carry `lat/lon` **or** just a `time`; time-only pins are snapped to the track position at that moment | `data/pins.json`, `build-track.mjs` |
+| Items without GPS (receipts, untagged photos) | Pins can carry `lat/lon` **or** just a `time`; time-only pins are snapped to the track position at that moment | `tours/<id>/pins.json`, `build-track.mjs` |
 | Real road detail | OSM roads via Overpass at build time, draped as fat lines styled by class; place and peak labels that appear by camera distance (and fell height); the HUD shows the current road, speed limit and single-track status | `build-osm.mjs`, `Roads.svelte`, `PlaceLabels.svelte`, `Scrubber.svelte` |
 | Water | OSM lakes/reservoirs (multipolygons included) rasterised at build time into an anti-aliased coverage mask on the height grid; used by all three terrain layers (shimmering sheets in the point cloud, a glassy surface with a glowing shoreline in the detail area, flat blue sheets in the terraces); rivers as draped lines; named lakes labelled | `build-osm.mjs` (`water.bin`), `HoloPoints`, `DetailBubble`, `Terraces`, `Rivers.svelte` |
 | Map styles | Hologram / Satellite (Esri) / Sentinel-2 (EOX) / Topo (OpenTopoMap), fetched as XYZ tiles in the browser and stitched into canvas textures: a regional one (z12, exact per-vertex UVs) colours the point cloud and terraces; a sharp one (z14–15) follows the bike and drapes the detail area, falling back to the regional one while tiles load | `imagery.ts`, `HoloPoints`, `Terraces`, `DetailBubble` |
@@ -372,6 +414,6 @@ Built since the first POC: all 18 days with day-to-day flights, national parks l
 pop-ups), the events drawer and timeline day list, rider-scoped terrain, screen-density point LOD,
 privacy zones and a private deploy.
 
-Still to do: Spotify "now playing" matched by timestamp, fuel/food receipts as pins (`data/pins.json`
+Still to do: Spotify "now playing" matched by timestamp, fuel/food receipts as pins (`tours/<id>/pins.json`
 supports `"type": "fuel"` etc.), exact photo positions from Google Takeout sidecars, videos,
 blog content as Markdown files, a glTF bike model, and mobile performance tuning.

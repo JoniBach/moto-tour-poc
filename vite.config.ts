@@ -1,6 +1,13 @@
 import adapter from '@sveltejs/adapter-vercel';
 import { sveltekit } from '@sveltejs/kit/vite';
+import fs from 'node:fs';
 import { defineConfig } from 'vite';
+
+/** The tour this build is for (TOUR=<id>): its config is baked into the code (src/lib/tourConfig.ts). */
+const TOUR_ID = process.env.TOUR ?? 'uk-2026';
+const TOUR_FILE = `tours/${TOUR_ID}/tour.config.json`;
+if (!fs.existsSync(TOUR_FILE)) throw new Error(`No tour "${TOUR_ID}": ${TOUR_FILE} not found (set TOUR=<id>)`);
+const TOUR = JSON.parse(fs.readFileSync(TOUR_FILE, 'utf8'));
 
 /**
  * Everything the views load from elsewhere: OpenFreeMap (the 2D map), the imagery styles (Esri,
@@ -21,7 +28,8 @@ export default defineConfig({
 	// release flags (src/lib/flags.ts): which set, and any one-off overrides
 	define: {
 		__RELEASE__: JSON.stringify(process.env.RELEASE ?? 'preview'),
-		__FEATURES__: JSON.stringify(process.env.FEATURES ?? '')
+		__FEATURES__: JSON.stringify(process.env.FEATURES ?? ''),
+		__TOUR__: JSON.stringify(TOUR)
 	},
 	plugins: [
 		sveltekit({

@@ -1,20 +1,21 @@
 // Photos: resize for the web and place them on the tour.
 //  - reads originals from data/photos-src/jpg (git-ignored)
-//  - writes WebP thumbnails (320 px) and gallery images (1600 px) to static/photos/, rotated
+//  - writes WebP thumbnails (320 px) and gallery images (1600 px) to static/photos/<id>/, rotated
 //    upright and with ALL metadata stripped (no GPS or camera details in published files)
 //  - places each photo: EXIF GPS if present, otherwise by its timestamp against that day's
 //    track (Google Photos/Drive exports usually strip location). Photos taken before or after
 //    the day's riding snap to its start or end (where you set off from / stayed).
-// Output: static/photos/{thumb,large}/<id>.webp, static/data/photos.json
+// Output: static/photos/<tour>/{thumb,medium,large}/<photo>.webp, static/data/tours/<id>/photos.json
 // Incremental: images already resized are skipped, so re-runs are quick.
 import fs from 'node:fs';
 import path from 'node:path';
 import exifr from 'exifr';
 import sharp from 'sharp';
 import { inPrivacyZone, inPrivacyZoneAt, makeProjection, toBng } from './lib/geo.mjs';
+import { PATHS, TOUR } from './lib/tour.mjs';
 
-const SRC = 'data/photos-src/jpg';
-const OUT = 'static/photos';
+const SRC = PATHS.photosSrc;
+const OUT = PATHS.photos;
 // thumb: pins, grids · medium: blog pages on phones and in columns · large: gallery and wide screens
 const SIZES = { thumb: { px: 320, quality: 70 }, medium: { px: 800, quality: 76 }, large: { px: 1600, quality: 80 } };
 const CONCURRENCY = 4;
@@ -22,7 +23,7 @@ const CONCURRENCY = 4;
 for (const s of Object.keys(SIZES)) fs.mkdirSync(path.join(OUT, s), { recursive: true });
 
 // ---------- tracks, for time placement ----------
-const DAYS = 'static/data/days';
+const DAYS = PATHS.days;
 const days = new Map();
 for (const day of fs.readdirSync(DAYS)) {
 	const dir = path.join(DAYS, day);
@@ -42,7 +43,7 @@ const lastLE = (arr, v) => {
 	return lo;
 };
 // the calendar day in UK time (a photo at 00:30 BST belongs to that date, not the UTC one)
-const ukDate = (sec) => new Date(sec * 1000).toLocaleDateString('en-CA', { timeZone: 'Europe/London' });
+const ukDate = (sec) => new Date(sec * 1000).toLocaleDateString('en-CA', { timeZone: TOUR.timeZone });
 
 // Privacy: photos taken inside a zone (judged from the unfiltered GPX at that moment, so photos
 // at home before setting off or after arriving count) are dropped.
@@ -126,10 +127,10 @@ async function worker() {
 await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
 photos.sort((a, b) => a.t - b.t);
-fs.writeFileSync('static/data/photos.json', JSON.stringify({ photos }));
+fs.writeFileSync(PATHS.photosJson, JSON.stringify({ photos }));
 const by = (k) => photos.filter((p) => p.placedBy === k).length;
 const bytes = (dir) => fs.readdirSync(dir).reduce((a, f) => a + fs.statSync(path.join(dir, f)).size, 0);
 console.log(
-	`\nWrote static/data/photos.json: ${photos.length} photos (${by('gps')} by GPS, ${by('time')} by time on the ride, ${by('time-offride')} off the bike); ${private_} withheld (privacy zones); resized ${resized} images`
+	`\nWrote ${PATHS.photosJson}: ${photos.length} photos (${by('gps')} by GPS, ${by('time')} by time on the ride, ${by('time-offride')} off the bike); ${private_} withheld (privacy zones); resized ${resized} images`
 );
 console.log(`  thumbs ${(bytes(path.join(OUT, 'thumb')) / 1e6).toFixed(1)} MB, gallery ${(bytes(path.join(OUT, 'large')) / 1e6).toFixed(1)} MB`);

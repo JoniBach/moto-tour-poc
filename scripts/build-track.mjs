@@ -10,6 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { TerrariumSampler, dayContext, inPrivacyZone, loadTerrainGrid, makeProjection, outsidePrivacy, parseGpx } from './lib/geo.mjs';
+import { PATHS } from './lib/tour.mjs';
 
 const STOP_RADIUS = 40; // metres
 const STOP_MIN = 120; // seconds stationary before it counts as a stop
@@ -136,8 +137,8 @@ const ground = Array.from({ length: N }, (_, i) => groundAt(sx[i], sn[i]));
 const r1 = (v) => Math.round(v * 10) / 10;
 const r3 = (v) => Math.round(v * 1000) / 1000;
 // "2026-09-16_tour_lakes-fig8.gpx" -> "Lakes Fig8"; data/day-titles.json can override per day
-const titleOverrides = fs.existsSync('data/day-titles.json')
-	? JSON.parse(fs.readFileSync('data/day-titles.json', 'utf8'))
+const titleOverrides = fs.existsSync(PATHS.dayTitles)
+	? JSON.parse(fs.readFileSync(PATHS.dayTitles, 'utf8'))
 	: {};
 const title =
 	titleOverrides[ctx.day] ??
@@ -219,7 +220,7 @@ fs.writeFileSync(ctx.file('corridor.bin'), Buffer.from(corridor.buffer));
 
 // ---------- pins ----------
 // Source pins may carry lat/lon (geotagged photo, POI) or only a time (receipt, untagged photo).
-const src = fs.existsSync('data/pins.json') ? JSON.parse(fs.readFileSync('data/pins.json', 'utf8')) : [];
+const src = fs.existsSync(PATHS.pins) ? JSON.parse(fs.readFileSync(PATHS.pins, 'utf8')) : [];
 const lastLE = (arr, v) => {
 	let lo = 0;
 	let hi = arr.length - 1;

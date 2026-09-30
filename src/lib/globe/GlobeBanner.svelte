@@ -5,6 +5,7 @@
   nothing slides or covers the globe. Photos and stories open on click (and pause the ride).
 -->
 <script lang="ts">
+	import { photoSrc } from '$lib/tourConfig';
 	import { fade } from 'svelte/transition';
 	import { app } from '$lib/app.svelte';
 	import { clock, photoUrl } from '$lib/data';
@@ -38,7 +39,7 @@
 		current?.kind === 'photos'
 			? photoUrl(current.photos[0], 'thumb')
 			: current?.kind === 'post' && current.post.cover
-				? `/photos/thumb/${current.post.cover}.webp`
+				? photoSrc('thumb', current.post.cover)
 				: null
 	);
 

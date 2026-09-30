@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { distRound, distUnit } from '$lib/units';
+	import { TOUR } from '$lib/tourConfig';
 	import { layerAvailable } from '$lib/flagLayers';
 	import { speedShade } from '$lib/config';
 	import type { MapStyle } from '$lib/imagery';
@@ -12,12 +14,12 @@
 	let open = $state(globalThis.innerWidth > 1100);
 	const tr = $derived(tour.data.track);
 	const date = $derived(
-		new Date(tr.t0 * 1000).toLocaleDateString('en-GB', {
+		new Date(tr.t0 * 1000).toLocaleDateString(TOUR.locale, {
 			weekday: 'short',
 			day: 'numeric',
 			month: 'short',
 			year: 'numeric',
-			timeZone: 'Europe/London'
+			timeZone: TOUR.timeZone
 		})
 	);
 
@@ -129,7 +131,7 @@
 		<header>
 			<div>
 				<h1>{tr.title}</h1>
-				<p>{date} · {(tr.dist[tr.count - 1] / 1609.34).toFixed(0)} mi</p>
+				<p>{date} · {distRound(tr.dist[tr.count - 1] / 1000)} {distUnit}</p>
 			</div>
 			<button class="toggle" onclick={() => (open = !open)} aria-expanded={open} aria-label="Toggle controls">
 				{open ? '–' : '+'}

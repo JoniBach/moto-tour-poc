@@ -2,16 +2,21 @@
 // (Vercel protects previews by default: only people signed in to your account can open them).
 //   node scripts/deploy.mjs            preview
 //   node scripts/deploy.mjs --prod     production (public URL) — only once you mean it
+//   TOUR=<id> node scripts/deploy.mjs  another tour (tours/<id>/); default uk-2026
 // Steps: pack day files (.gz) -> vercel build -> drop the plain day files from the output
-// (the app loads the .gz copies) -> vercel deploy --prebuilt.
+// (the app loads the .gz copies) and every other tour's data and photos -> vercel deploy --prebuilt.
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { TOUR_ID } from './lib/tour.mjs';
 
 const prod = process.argv.includes('--prod');
 // which set of release flags the build uses (src/lib/flags.ts); FEATURES passes straight through
 process.env.RELEASE = prod ? 'production' : 'preview';
 console.log(`Release flags: ${process.env.RELEASE} set${process.env.FEATURES ? `, overrides: ${process.env.FEATURES}` : ''}`);
+// the child builds (vite, the scripts) pick the tour up from here too
+process.env.TOUR = TOUR_ID;
+console.log(`Tour: ${TOUR_ID}`);
 const sh = (cmd) => execSync(cmd, { stdio: 'inherit' });
 // pinned: a deploy shouldn't change because a new CLI came out (bump deliberately)
 const VERCEL = 'vercel@61.0.0';
@@ -45,13 +50,20 @@ for (const file of fs.existsSync('.vercel/output/functions') ? findConfigs('.ver
 }
 
 // the plain day files are working copies for the build scripts; the app reads the .gz ones
-const days = '.vercel/output/static/data/days';
+const days = `.vercel/output/static/data/tours/${TOUR_ID}/days`;
 let dropped = 0;
 for (const day of fs.readdirSync(days))
 	for (const f of fs.readdirSync(path.join(days, day)))
 		if (/\.(bin|json)$/.test(f) && fs.existsSync(path.join(days, day, `${f}.gz`))) {
 			fs.rmSync(path.join(days, day, f));
 			dropped++;
+		}
+// one deployment is one tour: other tours built on this machine stay here
+for (const root of ['.vercel/output/static/data/tours', '.vercel/output/static/photos'])
+	for (const id of fs.existsSync(root) ? fs.readdirSync(root) : [])
+		if (id !== TOUR_ID) {
+			fs.rmSync(path.join(root, id), { recursive: true });
+			console.log(`Left out tour ${id}`);
 		}
 const size = (dir) =>
 	fs.readdirSync(dir, { withFileTypes: true }).reduce((a, e) => a + (e.isDirectory() ? size(path.join(dir, e.name)) : fs.statSync(path.join(dir, e.name)).size), 0);

@@ -11,6 +11,7 @@ import type { Tour } from './tour.svelte';
 
 export { ukClock } from './time';
 import { ukClock } from './time';
+import { TOUR } from '$lib/tourConfig';
 
 /** "2026-09-16" + "10:40" / "10:40:12" (UK time) -> epoch seconds, or NaN. */
 export function ukToEpoch(day: string, clock: string): number {
@@ -18,8 +19,8 @@ export function ukToEpoch(day: string, clock: string): number {
 	const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
 	if (!m || !d) return NaN;
 	const asUtc = Date.UTC(+d[1], +d[2] - 1, +d[3], +m[1], +m[2], +(m[3] ?? 0));
-	// offset of Europe/London at that moment (BST +1 h, GMT 0)
-	const london = new Date(new Date(asUtc).toLocaleString('en-US', { timeZone: 'Europe/London' }));
+	// offset of the tour's time zone at that moment (e.g. BST +1 h, GMT 0)
+	const london = new Date(new Date(asUtc).toLocaleString('en-US', { timeZone: TOUR.timeZone }));
 	const utc = new Date(new Date(asUtc).toLocaleString('en-US', { timeZone: 'UTC' }));
 	return (asUtc - (london.getTime() - utc.getTime())) / 1000;
 }

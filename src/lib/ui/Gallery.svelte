@@ -4,6 +4,7 @@
   tour to that moment. Esc or the backdrop closes it.
 -->
 <script lang="ts">
+	import { TOUR } from '$lib/tourConfig';
 	import type { App } from '$lib/app.svelte';
 	import { clock, photoUrl } from '$lib/data';
 	import { copyLink, momentUrl } from '$lib/moment';
@@ -24,7 +25,7 @@
 	const photo = $derived(g ? g.photos[g.index] : null);
 	const day = $derived(app.summary(photo?.day));
 	const date = (s: number) =>
-		new Date(s * 1000).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/London' });
+		new Date(s * 1000).toLocaleDateString(TOUR.locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: TOUR.timeZone });
 
 	function go(step: number) {
 		if (!app.gallery) return;

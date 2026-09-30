@@ -1,5 +1,6 @@
 <!-- A blog post as a normal article page. -->
 <script lang="ts">
+	import { TOUR } from '$lib/tourConfig';
 	import { tourOn, TOUR_NAME } from '$lib/flags';
 	import { iso, longDate, mapLink, time } from '$lib/blog';
 	import Photo from '$lib/blog/Photo.svelte';
@@ -9,7 +10,7 @@
 </script>
 
 <svelte:head>
-	<title>{post.title} · UK Tour blog</title>
+	<title>{post.title} · {TOUR.name} blog</title>
 	<meta name="description" content={post.excerpt} />
 </svelte:head>
 

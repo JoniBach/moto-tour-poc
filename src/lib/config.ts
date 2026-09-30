@@ -1,4 +1,6 @@
-// Local feature flags. Hard-coded on purpose: flip here and rebuild.
+import { TOUR } from './tourConfig';
+
+// Speed policy (the tour's own: tours/<id>/tour.config.json "speed"); release flags live in flags.ts.
 
 /**
  * How much of the riding speed the tour reveals:
@@ -12,7 +14,7 @@
 export type SpeedLevel = 0 | 1 | 2;
 
 export const FEATURES = {
-	speed: 1 as SpeedLevel
+	speed: TOUR.speed as SpeedLevel
 };
 
 /** Speed can be used to colour the route. */

@@ -1,10 +1,11 @@
 // Tour index: every built day with its title, origin, extent, stats and a simplified route line
 // (absolute BNG metres) for the UK overview and the day switcher.
-// Output: static/data/tour.json
+// Output: static/data/tours/<id>/tour.json
 import fs from 'node:fs';
 import path from 'node:path';
+import { PATHS } from './lib/tour.mjs';
 
-const DAYS_DIR = 'static/data/days';
+const DAYS_DIR = PATHS.days;
 const SIMPLIFY = 400; // metres between kept points on the overview line
 
 const days = fs
@@ -53,5 +54,5 @@ const days = fs
 		};
 	});
 
-fs.writeFileSync('static/data/tour.json', JSON.stringify({ days }));
-console.log(`Wrote static/data/tour.json: ${days.length} days, ${days.reduce((a, d) => a + d.km, 0).toFixed(0)} km`);
+fs.writeFileSync(PATHS.tourJson, JSON.stringify({ days }));
+console.log(`Wrote ${PATHS.tourJson}: ${days.length} days, ${days.reduce((a, d) => a + d.km, 0).toFixed(0)} km`);

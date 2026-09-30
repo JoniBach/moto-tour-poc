@@ -3,6 +3,7 @@
   Days are pages (/day/<date>), so this is just links; the app animates the move.
 -->
 <script lang="ts">
+	import { TOUR } from '$lib/tourConfig';
 	import { on, VIEWS_ON } from '$lib/flags';
 	import type { App } from '$lib/app.svelte';
 	import { dayColor } from '$lib/colors';
@@ -39,7 +40,7 @@
 	}
 
 	const date = (s: number) =>
-		new Date(s * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Europe/London' });
+		new Date(s * 1000).toLocaleDateString(TOUR.locale, { day: 'numeric', month: 'short', timeZone: TOUR.timeZone });
 </script>
 
 <nav class="trip" aria-label="Tour days">

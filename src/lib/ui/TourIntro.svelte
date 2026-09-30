@@ -4,6 +4,8 @@
   miles and temperatures, and a strip of that day's photos. Each entry opens its day.
 -->
 <script lang="ts">
+	import { distRound, distUnit, tempRound, tempUnit } from '$lib/units';
+	import { SITE_NAME, TOUR } from '$lib/tourConfig';
 	import type { App } from '$lib/app.svelte';
 	import { dayColor } from '$lib/colors';
 	import { photoUrl } from '$lib/data';
@@ -19,7 +21,7 @@
 	const parksVisited = $derived(app.parks?.parks.filter((p) => p.visited).length ?? 0);
 	const parksTotal = $derived(app.parks?.parks.length ?? 0);
 	const date = (s: number) =>
-		new Date(s * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Europe/London' });
+		new Date(s * 1000).toLocaleDateString(TOUR.locale, { day: 'numeric', month: 'short', timeZone: TOUR.timeZone });
 
 	const THUMBS = 4;
 	const items: TimelineItem[] = $derived(
@@ -33,7 +35,7 @@
 				icon: String(d.index + 1),
 				color: dayColor(d.index, days.length),
 				title: d.title,
-				sub: `${(d.km / 1.609).toFixed(0)} mi${d.weather ? ` · ${d.weather.minTemp.toFixed(0)}–${d.weather.maxTemp.toFixed(0)}°C` : ''}${photos.length ? ` · ${photos.length} photos` : ''}`,
+				sub: `${distRound(d.km)} ${distUnit}${d.weather ? ` · ${tempRound(d.weather.minTemp)}–${tempRound(d.weather.maxTemp)}${tempUnit}` : ''}${photos.length ? ` · ${photos.length} photos` : ''}`,
 				thumbs: pick.map((p) => photoUrl(p, 'thumb')),
 				more: photos.length > THUMBS ? photos.length - THUMBS : undefined,
 				href: `/day/${d.day}`
@@ -46,9 +48,9 @@
 	<aside class="peek" class:expanded>
 		<button class="peek-head" onclick={() => (expanded = !expanded)} aria-expanded={expanded}>
 			<span class="grab" aria-hidden="true"></span>
-			<span class="peek-title">UK tour · September 2026</span>
+			<span class="peek-title">{SITE_NAME}</span>
 			<span class="peek-totals">
-				{days.length} days · {(km / 1.609).toFixed(0)} mi{#if parksTotal} · {parksVisited} national parks{/if}
+				{days.length} days · {distRound(km)} {distUnit}{#if parksTotal} · {parksVisited} {TOUR.protectedAreas.many}{/if}
 			</span>
 			<span class="peek-cta">{expanded ? 'Hide days ▾' : 'Show days ▴'}</span>
 		</button>
@@ -60,10 +62,10 @@
 	</aside>
 {:else}
 <aside class="intro scroll-y">
-	<h1>UK tour · September 2026</h1>
+	<h1>{SITE_NAME}</h1>
 	<p class="totals">
-		{days.length} days · {(km / 1.609).toFixed(0)} mi{#if parksTotal}
-			· <span class="parks">{parksVisited === parksTotal ? 'all ' : ''}{parksVisited}{parksVisited === parksTotal ? '' : `/${parksTotal}`} national parks</span>{/if}
+		{days.length} days · {distRound(km)} {distUnit}{#if parksTotal}
+			· <span class="parks">{parksVisited === parksTotal ? 'all ' : ''}{parksVisited}{parksVisited === parksTotal ? '' : `/${parksTotal}`} {TOUR.protectedAreas.many}</span>{/if}
 	</p>
 	<Timeline {items} whenWidth={42} />
 	<p class="hint">Pick a day, or click a marker on the map.</p>

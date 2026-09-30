@@ -1,5 +1,7 @@
 <!-- The whole tour as a blog: every day and every one of its events, in order. -->
 <script lang="ts">
+	import { distRound, distWord, tempRound, tempUnit } from '$lib/units';
+	import { SITE_NAME, TOUR } from '$lib/tourConfig';
 	import { on, tourOn, TOUR_NAME } from '$lib/flags';
 	import { iso, longDate, shortDate } from '$lib/blog';
 	import EventGroup from '$lib/blog/EventGroup.svelte';
@@ -24,19 +26,18 @@
 </script>
 
 <svelte:head>
-	<title>UK Tour · September 2026 · Blog</title>
+	<title>{SITE_NAME} · Blog</title>
 	<meta
 		name="description"
-		content="A motorcycle tour of Britain's national parks: {totals.days} days and {totals.miles} miles, day by day."
+		content="{TOUR.title}: {totals.days} days and {totals.distance} {distWord}, day by day."
 	/>
 </svelte:head>
 
 <header class="intro">
-	<h1>A motorcycle tour of Britain's national parks</h1>
+	<h1>{TOUR.title}</h1>
 	<p class="lede">
-		{totals.days} days, {totals.miles.toLocaleString('en-GB')} miles and {totals.parks} national parks{#if totals.photos},
-			{totals.photos} photos{/if}{#if totals.stories}{' '}and {totals.stories} stories{/if}, from Pembrokeshire to the Cairngorms and
-		back.{#if tourOn}{' '}Every moment below links to the same spot in the {TOUR_NAME}.{/if}
+		{totals.days} days, {totals.distance.toLocaleString(TOUR.locale)} {distWord}{#if totals.parks}{' '}and {totals.parks} {TOUR.protectedAreas.many}{/if}{#if totals.photos},
+			{totals.photos} photos{/if}{#if totals.stories}{' '}and {totals.stories} stories{/if}, {TOUR.summary}.{#if tourOn}{' '}Every moment below links to the same spot in the {TOUR_NAME}.{/if}
 	</p>
 	<nav aria-label="Jump to a day" class="jump">
 		<ul>
@@ -58,7 +59,7 @@
 			<p class="daynum">Day {d.index + 1} · <time datetime={iso(d.start)}>{longDate(d.start)}</time></p>
 			<h2 id="h-{d.day}"><a href="/blog/{d.day}">{d.title}</a></h2>
 			<p class="meta">
-				{Math.round(d.km / 1.609)} miles{#if d.weather}{' · '}{d.weather.minTemp.toFixed(0)} to {d.weather.maxTemp.toFixed(0)} °C{/if}{#if d.parks.length}{' · '}{d.parks.join(', ')}{/if}
+				{distRound(d.km)} {distWord}{#if d.weather}{' · '}{tempRound(d.weather.minTemp)} to {tempRound(d.weather.maxTemp)} {tempUnit}{/if}{#if d.parks.length}{' · '}{d.parks.join(', ')}{/if}
 			</p>
 		</header>
 		<ol class="events" aria-label="Day {d.index + 1}, moment by moment">

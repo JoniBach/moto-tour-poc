@@ -2,6 +2,7 @@ import { interpolateInferno, interpolateRdYlBu, interpolateSinebow, interpolateT
 import { speedFigures, speedShade } from './config';
 import type { Track } from './data';
 import type { ColorBy } from './tour.svelte';
+import { wind, windUnit } from './units';
 
 /** Per-fix colour for the route line and scrubber profile. */
 export function colorScale(tr: Track, by: ColorBy): (i: number) => string {
@@ -45,7 +46,7 @@ export const LEGENDS: Record<ColorBy, { label: string; interp: (t: number) => st
 		label: 'Speed',
 		interp: interpolateTurbo,
 		min: speedFigures() ? '0' : 'slower',
-		max: speedFigures() ? '63 mph' : 'faster'
+		max: speedFigures() ? `${wind(63).toFixed(0)} ${windUnit}` : 'faster'
 	},
 	lean: { label: 'Lean angle', interp: (t) => interpolateInferno(0.15 + t * 0.85), min: '0°', max: '34°' },
 	gradient: { label: 'Gradient', interp: (t) => interpolateRdYlBu(1 - t), min: '-17%', max: '+17%' }

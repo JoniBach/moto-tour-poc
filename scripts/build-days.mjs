@@ -1,5 +1,5 @@
 // Builds day bundles and the tour index.
-//   node scripts/build-days.mjs                 every day found in data/beeline
+//   node scripts/build-days.mjs                 every day found in tours/<id>/gpx
 //   node scripts/build-days.mjs 2026-09-16 …    just these days
 // Per day: terrain -> track -> osm -> weather. OSM and weather are optional extras: if the public
 // APIs fail, the day still builds and the app runs without roads/weather for it.

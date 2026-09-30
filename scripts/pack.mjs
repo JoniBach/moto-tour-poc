@@ -1,4 +1,4 @@
-// Gzip every day file (static/data/days/*/*.{bin,json}) and the UK backdrop (static/data/uk) to a
+// Gzip every day file (static/data/tours/<id>/days/*/*.{bin,json}) and the UK backdrop (static/data/uk) to a
 // .gz beside it for deployment.
 // Static hosts compress JSON on the fly but not .bin, and uploading pre-compressed copies cuts
 // the deployment by several times; the app prefers the .gz and decompresses it in the browser.
@@ -7,12 +7,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
+import { PATHS } from './lib/tour.mjs';
 
-const DAYS = 'static/data/days';
+const DAYS = PATHS.days;
 let packed = 0;
 let raw = 0;
 let gz = 0;
-const dirs = [...fs.readdirSync(DAYS).map((day) => path.join(DAYS, day)), 'static/data/uk'];
+// every day's files, the tour's own (parks mask, …) and the region backdrop
+const dirs = [...fs.readdirSync(DAYS).map((day) => path.join(DAYS, day)), PATHS.out, 'static/data/uk'];
 for (const dir of dirs)
 	for (const f of fs.readdirSync(dir)) {
 		if (!/\.(bin|json)$/.test(f)) continue;

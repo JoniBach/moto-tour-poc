@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en-GB">
+<html lang="%tour.lang%">
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -8,7 +8,7 @@
 		<!-- in the static shell, not svelte:head: the tour's pages render in the browser, and without
 		     this the browser asks for /favicon.ico before any script runs -->
 		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-		<meta property="og:site_name" content="UK Tour · September 2026" />
+		<meta property="og:site_name" content="%tour.site%" />
 		<meta property="og:type" content="website" />
 		%sveltekit.head%
 	</head>

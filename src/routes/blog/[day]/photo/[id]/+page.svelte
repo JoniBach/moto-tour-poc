@@ -1,5 +1,6 @@
 <!-- One photo as a page: the picture, when and where, previous / next within the day. -->
 <script lang="ts">
+	import { TOUR } from '$lib/tourConfig';
 	import { tourOn, TOUR_NAME } from '$lib/flags';
 	import { goto } from '$app/navigation';
 	import { iso, longDate, mapLink, time } from '$lib/blog';
@@ -18,7 +19,7 @@
 </script>
 
 <svelte:head>
-	<title>Photo {position} of {count} · Day {day.index + 1} · UK Tour blog</title>
+	<title>Photo {position} of {count} · Day {day.index + 1} · {TOUR.name} blog</title>
 	<meta name="description" content="Photo from Day {day.index + 1}, {day.title}: {caption}." />
 </svelte:head>
 <svelte:window {onkeydown} />

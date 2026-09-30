@@ -2,6 +2,7 @@
 // moment, UK-time formatting, and readable sentences for each event.
 import { PIN_META, type FeedEvent } from './data';
 import { ukClock } from './time';
+import { TOUR } from '$lib/tourConfig';
 
 /** The 3D view at this moment (and with this post / photo open). */
 export function mapLink(day: string, t: number, open: { post?: string; photo?: string } = {}): string {
@@ -11,12 +12,12 @@ export function mapLink(day: string, t: number, open: { post?: string; photo?: s
 	return `/day/${day}?${q}`;
 }
 
-const tz = { timeZone: 'Europe/London' } as const;
+const tz = { timeZone: TOUR.timeZone } as const;
 export const longDate = (s: number) =>
-	new Date(s * 1000).toLocaleDateString('en-GB', { ...tz, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+	new Date(s * 1000).toLocaleDateString(TOUR.locale, { ...tz, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 export const shortDate = (s: number) =>
-	new Date(s * 1000).toLocaleDateString('en-GB', { ...tz, weekday: 'short', day: 'numeric', month: 'short' });
-export const time = (s: number) => new Date(s * 1000).toLocaleTimeString('en-GB', { ...tz, hour: '2-digit', minute: '2-digit' });
+	new Date(s * 1000).toLocaleDateString(TOUR.locale, { ...tz, weekday: 'short', day: 'numeric', month: 'short' });
+export const time = (s: number) => new Date(s * 1000).toLocaleTimeString(TOUR.locale, { ...tz, hour: '2-digit', minute: '2-digit' });
 /** machine-readable timestamp for <time datetime> */
 export const iso = (s: number) => new Date(s * 1000).toISOString();
 

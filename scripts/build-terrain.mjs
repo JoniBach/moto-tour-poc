@@ -1,7 +1,7 @@
 // Builds one day's height grid (British National Grid metres, relative to the day's origin)
 // covering the day's rides plus a margin. Spacing adapts to the day's size so every day stays
 // around MAX_CELLS; the app streams full-resolution terrain around the bike separately.
-// Output: static/data/days/<day>/terrain.bin (Int16, decimetres, row 0 = north) + terrain.json
+// Output: static/data/tours/<id>/days/<day>/terrain.bin (Int16, decimetres, row 0 = north) + terrain.json
 import fs from 'node:fs';
 import { TerrariumSampler, dayContext, inPrivacyZone, makeProjection, readAllGpx, toBng } from './lib/geo.mjs';
 

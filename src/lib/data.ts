@@ -1,3 +1,4 @@
+import { DATA, photoSrc, TOUR } from './tourConfig';
 // Client-side data model: loads the pre-built artefacts from static/data and answers
 // "where is the bike at riding-time rt?" and "how high is the ground at (x, n)?".
 
@@ -219,7 +220,7 @@ export function despike(h: Float32Array, cols: number, rows: number, limit: numb
 }
 
 export async function loadTourIndex(): Promise<TourIndex> {
-	const r = await fetch('/data/tour.json').catch(() => null);
+	const r = await fetch(`${DATA}/tour.json`).catch(() => null);
 	if (!r?.ok) throw unavailable('the tour');
 	return r.json();
 }
@@ -253,7 +254,7 @@ export interface Parks {
 
 export async function loadParks(): Promise<Parks | null> {
 	try {
-		const [json, buf] = await Promise.all([packedJson<{ parks: Park[] }>('/data/uk/parks.json'), fetchPacked('/data/uk/parks.bin')]);
+		const [json, buf] = await Promise.all([packedJson<{ parks: Park[] }>(`${DATA}/parks.json`), fetchPacked(`${DATA}/parks.bin`)]);
 		if (!json || !buf) return null;
 		return { parks: json.parks, mask: new Uint8Array(buf) };
 	} catch {
@@ -276,11 +277,11 @@ export interface Photo {
 	placedBy: 'gps' | 'time' | 'time-offride';
 }
 
-export const photoUrl = (p: Photo, size: 'thumb' | 'large') => `/photos/${size}/${p.id}.webp`;
+export const photoUrl = (p: Photo, size: 'thumb' | 'large') => photoSrc(size, p.id);
 
 export async function loadPhotos(): Promise<Photo[]> {
 	try {
-		const r = await fetch('/data/photos.json');
+		const r = await fetch(`${DATA}/photos.json`);
 		return r.ok ? ((await r.json()).photos as Photo[]) : [];
 	} catch {
 		return []; // optional: the tour works without build-photos
@@ -306,7 +307,7 @@ export interface BlogPost {
 
 export async function loadBlog(): Promise<BlogPost[]> {
 	try {
-		const r = await fetch('/data/blog.json');
+		const r = await fetch(`${DATA}/blog.json`);
 		return r.ok ? ((await r.json()).posts as BlogPost[]) : [];
 	} catch {
 		return []; // optional: the tour works without build-blog
@@ -342,13 +343,13 @@ export interface Feed {
 }
 
 export async function loadFeed(): Promise<Feed> {
-	const r = await fetch('/data/feed.json');
+	const r = await fetch(`${DATA}/feed.json`);
 	if (!r.ok) throw new Error('Blog feed missing: run npm run data:feed');
 	return r.json();
 }
 
 /** L1: one day's bundle. */
-export const loadDay = (day: string, light = false) => loadTour(`/data/days/${day}`, light);
+export const loadDay = (day: string, light = false) => loadTour(`${DATA}/days/${day}`, light);
 
 /**
  * Fetch a day file, preferring the gzipped copy made for deployment (<name>.gz, see
@@ -503,9 +504,9 @@ export const PIN_META: Record<PinType, { icon: string; label: string; color: str
 export const mph = (ms: number) => ms * 2.23694;
 
 export function clock(epochSeconds: number): string {
-	return new Date(epochSeconds * 1000).toLocaleTimeString('en-GB', {
+	return new Date(epochSeconds * 1000).toLocaleTimeString(TOUR.locale, {
 		hour: '2-digit',
 		minute: '2-digit',
-		timeZone: 'Europe/London'
+		timeZone: TOUR.timeZone
 	});
 }

@@ -3,8 +3,9 @@ import { error } from '@sveltejs/kit';
 import fs from 'node:fs';
 import { on } from '$lib/flags';
 import { photoPage } from '$lib/server/blog-data';
+import { DATA_DIR } from '$lib/tourConfig';
 
-const PHOTOS = 'static/data/photos.json';
+const PHOTOS = `${DATA_DIR}/photos.json`;
 
 // switched off: not built (a request would just 404)
 export const prerender = on('blog') && on('photos');

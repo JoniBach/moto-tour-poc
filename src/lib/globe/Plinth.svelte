@@ -149,7 +149,25 @@
 		return new CanvasTexture(c);
 	}
 
+	/** the plinth's floor under the land: its own stone, a little shaded towards the rim like a shallow tray */
+	function floorTex() {
+		const S = 512;
+		const c = document.createElement('canvas');
+		c.width = c.height = S;
+		const ctx = c.getContext('2d')!;
+		const g = ctx.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+		g.addColorStop(0, '#ece5d8');
+		g.addColorStop(0.75, '#e6dfd1');
+		g.addColorStop(1, '#d3cabb');
+		ctx.fillStyle = g;
+		ctx.fillRect(0, 0, S, S);
+		const t = new CanvasTexture(c);
+		t.colorSpace = SRGBColorSpace;
+		return t;
+	}
+
 	const ringTex = compass();
+	const floor = floorTex();
 	const sideTex = side();
 	const letters = new MeshStandardMaterial({ transparent: true, roughness: 0.85, emissive: '#ffffff', emissiveIntensity: 0.35, depthWrite: false });
 	$effect(() => {
@@ -176,6 +194,7 @@
 
 	$effect(() => () => {
 		ringTex.dispose();
+		floor.dispose();
 		sideTex.dispose();
 		letters.dispose();
 		shadeTex.dispose();
@@ -192,6 +211,11 @@
 <!-- the compass ring, flat on top (rotated so the texture's up is north) -->
 <T.Mesh geometry={cap} rotation.x={-Math.PI / 2} position.y={0.5}>
 	<T.MeshStandardMaterial map={ringTex} emissiveMap={ringTex} emissive="#ffffff" emissiveIntensity={0.35} roughness={0.8} />
+</T.Mesh>
+<!-- the floor under the land (seen only while one day's land gives way to the next) -->
+<T.Mesh rotation.x={-Math.PI / 2} position.y={-R * 0.012}>
+	<T.CircleGeometry args={[R * 0.99, 160]} />
+	<T.MeshStandardMaterial map={floor} emissiveMap={floor} emissive="#ffffff" emissiveIntensity={0.5} roughness={0.8} />
 </T.Mesh>
 <!-- underside -->
 <T.Mesh rotation.x={Math.PI / 2} position.y={-H}>

@@ -38,6 +38,8 @@
 		// dev only: lets browser tests drive the app
 		if (import.meta.env.DEV) (window as unknown as { __app: typeof app }).__app = app;
 		app.view = App.startView(new URLSearchParams(location.search));
+		// the globe as the viewer had customised it (a refresh or a shared link keeps it)
+		app.settings.readParams(new URLSearchParams(location.search));
 		app.init().catch((e) => (app.error = String(e)));
 		// an app surface: no page scroll or pull-to-refresh bounce while the 3D view is open
 		document.documentElement.classList.add('app-surface');

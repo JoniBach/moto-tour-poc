@@ -62,7 +62,7 @@ git-ignored.
 | `timeZone` | `Europe/London` | every clock and date, in the site and the scripts |
 | `units` | `{ "distance": "mi", "temperature": "C" }` | `mi`/`km`, `C`/`F` (data stays metric) |
 | `speed` | `1` | 0 no speed, 1 relative shade only, 2 figures |
-| `model` | `{ "src": "/models/vespa_model.glb", "length": 1.9, "forward": "-x", "color": "#9fd3c2" }` | optional: the vehicle as a GLB under `static/` (Draco allowed; the decoder is served from `static/draco/`), sized to `length` metres, turned from its `forward` axis, painted `color`, with a simple seated rider if `"rider": true`; without it, a figure built from primitives |
+| `model` | `{ "src": "/models/vespa_model.glb", "length": 2.7, "forward": "-x", "color": "#9fd3c2" }` | optional: the vehicle as a GLB under `static/` (Draco allowed; the decoder is served from `static/draco/`), sized to `length` metres, turned from its `forward` axis, painted `color`, with a simple seated rider if `"rider": true`; without it, a figure built from primitives |
 | `region.name` | `UK` | the whole-tour chip |
 | `region.centre` | `[-2.3179, 55.4734]` | overview origin and the projection's centre (`init-tour` sets it from the rides) |
 | `region.projection` | British National Grid | optional proj4 string; default a transverse Mercator on the centre (fine to ~1,000 km out) |
@@ -290,6 +290,15 @@ files as `.gz` (275 MB -> 86 MB; the app decompresses them), runs the privacy au
 every page prerendered as static files, and uploads with `--prebuilt`. Uploads resume, so on a
 flaky connection just re-run. `node scripts/deploy.mjs --prod` would publish publicly.
 `TOUR=<id>` deploys another tour; only that tour's data and photos are uploaded.
+
+## Customising the globe
+
+The globe's "Customise" drawer (surface, route colour, what to show, surroundings, size, relief)
+keeps its choices in the page's address, only where they differ from the defaults, so a refresh or
+a shared link opens the globe the same way: `surface=satellite`, `route=plain`, `size=3000` (metres
+to the rim; default 4000), `relief=1.5`, `halo=0`, `off=roads,labels`, `on=backdropPoints`
+(`Settings.writeParams` / `readParams` in `src/lib/settings.svelte.ts`). "Reset to the defaults"
+clears them.
 
 ## Release flags (phased release)
 

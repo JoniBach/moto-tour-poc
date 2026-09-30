@@ -66,6 +66,10 @@
 	// size: shown live while dragging, applied on release (a new size rebuilds the landscape)
 	// svelte-ignore state_referenced_locally — the settings object is shared and fixed; the slider starts from it
 	let size = $state(tour.settings.globeRadius);
+	// follow the setting when it changes elsewhere (the reset button, a URL on load)
+	$effect(() => {
+		size = tour.settings.globeRadius;
+	});
 	const km = (m: number) => `${(m / 1000).toFixed(m < 10000 ? 1 : 0)} km`;
 
 	const clock = $derived(tourClock(tour.bike.time).slice(0, 5));
@@ -124,7 +128,12 @@
 		<span>Relief <output>{tour.exaggeration.toFixed(1)}×</output></span>
 		<input type="range" min="1" max="4" step="0.1" bind:value={tour.exaggeration} />
 	</label>
-	<p class="hint">Drag to turn the globe · scroll or pinch to zoom · Space to play</p>
+	<div class="reset-row">
+		<button type="button" class="reset" disabled={!tour.settings.globeCustomised} onclick={() => tour.settings.resetGlobe()}>
+			<span aria-hidden="true">↺</span> Reset to the defaults
+		</button>
+	</div>
+	<p class="hint">Drag to turn the globe · scroll or pinch to zoom · Space to play. Your choices stay in the page's address, so a refresh or a shared link keeps them.</p>
 {/snippet}
 
 {#if ui.mobile}
@@ -175,6 +184,34 @@
 		flex: 1;
 		height: 8px;
 		border-radius: 4px;
+	}
+	.reset-row {
+		margin-top: 14px;
+	}
+	.reset {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		min-height: 36px;
+		padding: 0 14px;
+		border: 0;
+		border-radius: 999px;
+		background: var(--card);
+		color: var(--text);
+		font: inherit;
+		font-size: 13px;
+		font-weight: 650;
+		cursor: pointer;
+		box-shadow:
+			var(--press),
+			0 0 0 1px var(--line);
+	}
+	.reset:hover:not(:disabled) {
+		background: var(--accent-soft);
+	}
+	.reset:disabled {
+		opacity: 0.5;
+		cursor: default;
 	}
 	.hint {
 		margin: 12px 0 0;

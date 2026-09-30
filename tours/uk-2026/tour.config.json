@@ -15,7 +15,7 @@
 	"speed": 1,
 	"model": {
 		"src": "/models/vespa_model.glb",
-		"length": 1.9,
+		"length": 2.7,
 		"forward": "-x",
 		"color": "#9fd3c2"
 	},

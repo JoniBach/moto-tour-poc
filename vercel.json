@@ -1,6 +1,28 @@
 {
 	"redirects": [
 		{
+			"source": "/",
+			"has": [
+				{
+					"type": "host",
+					"value": "moto-tour-poc.vercel.app"
+				}
+			],
+			"destination": "https://gt-retrospective.vercel.app/the-parks-26/",
+			"permanent": true
+		},
+		{
+			"source": "/the-parks-26/:path*",
+			"has": [
+				{
+					"type": "host",
+					"value": "moto-tour-poc.vercel.app"
+				}
+			],
+			"destination": "https://gt-retrospective.vercel.app/the-parks-26/:path*",
+			"permanent": true
+		},
+		{
 			"source": "/:path*",
 			"has": [
 				{
@@ -13,7 +35,7 @@
 		},
 		{
 			"source": "/",
-			"destination": "/the-parks-26",
+			"destination": "/the-parks-26/",
 			"permanent": false
 		},
 		{

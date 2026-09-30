@@ -51,8 +51,31 @@ for (const file of fs.existsSync('.vercel/output/functions') ? findConfigs('.ver
 	console.log(`Fixed function handler: ${handler}`);
 }
 
+// With a base path (the tour's slug) the prerendered pages sit in static/<base>/, but the build
+// lists them in config.json's overrides without that folder ("blog.html" rather than
+// "the-parks-26/blog.html"), so Vercel can't find them and they 404. Point each at its file.
+{
+	const configFile = '.vercel/output/config.json';
+	const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+	const prefix = `${TOUR.slug ?? TOUR_ID}/`;
+	let moved = 0;
+	const overrides = {};
+	for (const [file, value] of Object.entries(config.overrides ?? {})) {
+		const under = prefix + file;
+		if (!fs.existsSync(path.join('.vercel/output/static', file)) && fs.existsSync(path.join('.vercel/output/static', under))) {
+			overrides[under] = value;
+			moved++;
+		} else overrides[file] = value;
+	}
+	config.overrides = overrides;
+	fs.writeFileSync(configFile, JSON.stringify(config, null, '	'));
+	if (moved) console.log(`Pointed ${moved} prerendered pages at their files under /${prefix}`);
+}
+
 // the plain day files are working copies for the build scripts; the app reads the .gz ones
-const days = `.vercel/output/static/data/tours/${TOUR_ID}/days`;
+// the site lives under the tour's base path (tour.config.json slug; SvelteKit paths.base)
+const STATIC = `.vercel/output/static/${TOUR.slug ?? TOUR_ID}`;
+const days = `${STATIC}/data/tours/${TOUR_ID}/days`;
 let dropped = 0;
 for (const day of fs.readdirSync(days))
 	for (const f of fs.readdirSync(path.join(days, day)))
@@ -61,7 +84,7 @@ for (const day of fs.readdirSync(days))
 			dropped++;
 		}
 // one deployment is one tour: other tours built on this machine stay here
-for (const root of ['.vercel/output/static/data/tours', '.vercel/output/static/photos'])
+for (const root of [`${STATIC}/data/tours`, `${STATIC}/photos`])
 	for (const id of fs.existsSync(root) ? fs.readdirSync(root) : [])
 		if (id !== TOUR_ID) {
 			fs.rmSync(path.join(root, id), { recursive: true });

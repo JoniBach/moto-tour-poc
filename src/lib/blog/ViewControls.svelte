@@ -127,8 +127,12 @@
 		gap: 0.45rem;
 		min-height: 2.75rem;
 		padding: 0 1rem;
-		border: 1px solid var(--b-line-strong);
-		border-radius: 8px;
+		border: 0;
+		border-radius: 999px;
+		background: rgb(255 253 248 / 0.92);
+		box-shadow:
+			0 3px 0 rgb(38 50 56 / 0.18),
+			0 0 0 1px rgb(38 50 56 / 0.2);
 		background: var(--b-card);
 		color: var(--b-text);
 		font: inherit;
@@ -137,7 +141,9 @@
 	}
 	.toggle:hover,
 	.reset:hover {
-		border-color: var(--b-accent);
+		box-shadow:
+			0 3px 0 rgb(38 50 56 / 0.18),
+			0 0 0 2px var(--b-accent);
 	}
 	svg {
 		transition: transform 0.15s;
@@ -163,8 +169,9 @@
 	.panel {
 		margin-top: 0.6rem;
 		padding: 0.6rem 1rem 1rem;
-		border: 1px solid var(--b-line);
-		border-radius: 12px;
+		border: 0;
+		border-radius: 22px;
+		box-shadow: 0 10px 26px rgb(70 55 30 / 0.12);
 		background: var(--b-card);
 	}
 	fieldset {
@@ -211,8 +218,12 @@
 	select {
 		min-height: 2.75rem;
 		padding: 0 0.6rem;
-		border: 1px solid var(--b-line-strong);
-		border-radius: 8px;
+		border: 0;
+		border-radius: 999px;
+		background: rgb(255 253 248 / 0.92);
+		box-shadow:
+			0 3px 0 rgb(38 50 56 / 0.18),
+			0 0 0 1px rgb(38 50 56 / 0.2);
 		background: var(--b-bg);
 		color: var(--b-text);
 		font: inherit;

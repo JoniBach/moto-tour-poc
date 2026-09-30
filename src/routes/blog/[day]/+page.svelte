@@ -11,6 +11,7 @@
 	import ViewControls from '$lib/blog/ViewControls.svelte';
 	import { dayColor } from '$lib/colors';
 	import RouteSketch from '$lib/ui/RouteSketch.svelte';
+	import Photo from '$lib/blog/Photo.svelte';
 
 	let { data } = $props();
 	const { day: d, dayCount, prev, next } = $derived(data);
@@ -31,13 +32,14 @@
 		</ol>
 	</nav>
 	<header>
-		<div class="top">
-			<div>
-				<p class="daynum">Day {d.index + 1} of {dayCount} · <time datetime={iso(d.start)}>{longDate(d.start)}</time></p>
-				<h1>{d.title}</h1>
-			</div>
+		<!-- the day as a postcard: a photo from it (or its colour), its stamp and its route -->
+		<div class="banner" class:photo={!!d.cover}>
+			{#if d.cover}<Photo id={d.cover.id} size={[d.cover.w, d.cover.h]} alt="" sizes="(max-width: 46rem) 100vw, 46rem" priority />{/if}
+			<span class="stamp" aria-hidden="true"><small>Day</small>{d.index + 1}</span>
 			<span class="route"><RouteSketch s={d.sketch} color={dayColor(d.index, dayCount)} label="The day's route, from the hollow start dot to the solid finish" /></span>
 		</div>
+		<p class="daynum">Day {d.index + 1} of {dayCount} · <time datetime={iso(d.start)}>{longDate(d.start)}</time></p>
+		<h1>{d.title}</h1>
 		<ul class="facts">
 			<li><strong>{distRound(d.km)}</strong> {distWord}{#if d.rides > 1} over {d.rides} {A.legs}{/if}</li>
 			{#if d.weather}<li>
@@ -114,30 +116,75 @@
 		margin: 0.3rem 0 0.6rem;
 		font-size: clamp(1.9rem, 4.5vw, 2.6rem);
 	}
-	.top {
+	/* the postcard banner */
+	.banner {
+		position: relative;
+		height: clamp(11rem, 32vw, 19rem);
+		margin: 0.25rem 0 1.25rem;
+		border-radius: 28px;
+		overflow: hidden;
+		background: color-mix(in srgb, var(--c) 28%, var(--b-bg));
+		box-shadow: 0 12px 30px rgb(70 55 30 / 0.15);
+	}
+	.banner :global(img) {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.banner.photo::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(160deg, transparent 45%, color-mix(in srgb, var(--c) 45%, transparent));
+	}
+	.stamp {
+		position: absolute;
+		z-index: 1;
+		top: 1rem;
+		left: 1rem;
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 8rem;
-		align-items: center;
-		gap: 1.25rem;
+		place-items: center;
+		width: 3.8rem;
+		height: 4.3rem;
+		border: 3px dotted var(--c);
+		border-radius: 8px;
+		background: color-mix(in srgb, var(--c) var(--b-tint), var(--b-card));
+		color: var(--b-text);
+		font-family: var(--font-display);
+		font-weight: 700;
+		font-size: 1.8rem;
+		line-height: 1;
+		transform: rotate(-4deg);
+		box-shadow: 0 2px 6px rgb(0 0 0 / 0.15);
+	}
+	.stamp small {
+		font-family: var(--font-ui);
+		font-size: 0.65rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
 	}
 	.route {
+		position: absolute;
+		z-index: 1;
+		right: 1rem;
+		bottom: 1rem;
 		width: 8rem;
 		height: 8rem;
-		padding: 0.4rem;
+		padding: 0.35rem;
 		box-sizing: border-box;
-		border-radius: 24px;
-		background: var(--b-card);
-		box-shadow:
-			0 0 0 1px var(--b-line),
-			inset 0 -5px 0 var(--c);
+		border-radius: 22px;
+		background: rgb(255 253 248 / 0.9);
+	}
+	.banner:not(.photo) .route {
+		width: 11rem;
+		height: 11rem;
+		background: none;
 	}
 	@media (max-width: 30rem) {
-		.top {
-			grid-template-columns: minmax(0, 1fr) 5rem;
-		}
 		.route {
-			width: 5rem;
-			height: 5rem;
+			width: 5.5rem;
+			height: 5.5rem;
 			border-radius: 16px;
 		}
 	}

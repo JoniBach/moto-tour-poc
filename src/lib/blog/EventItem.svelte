@@ -90,9 +90,9 @@
 		color: var(--b-muted);
 	}
 	.story {
-		border: 1px solid var(--b-line);
-		border-radius: 20px;
+		border-radius: 22px;
 		background: var(--b-card);
+		box-shadow: 0 10px 26px rgb(70 55 30 / 0.12);
 		overflow: hidden;
 		margin: 0.1rem 0 0.4rem;
 	}

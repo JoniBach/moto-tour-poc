@@ -50,7 +50,7 @@ const feed = (): Feed =>
 export type PostCard = Pick<BlogPost, 'slug' | 'title' | 'excerpt' | 'minutes' | 'cover'>;
 /** A feed event with its post resolved and photo sizes attached (for width/height, no layout shift). */
 export type BlogEvent = FeedEvent & { card?: PostCard; sizes?: Record<string, [number, number]> };
-export type BlogDay = Omit<FeedDay, 'events'> & { events: BlogEvent[]; sketch: Sketch };
+export type BlogDay = Omit<FeedDay, 'events'> & { events: BlogEvent[]; sketch: Sketch; cover: { id: string; w: number; h: number } | null };
 export type DayRef = Pick<FeedDay, 'day' | 'index' | 'title'>;
 
 const ref = (d: FeedDay): DayRef => ({ day: d.day, index: d.index, title: d.title });
@@ -58,9 +58,13 @@ const ref = (d: FeedDay): DayRef => ({ day: d.day, index: d.index, title: d.titl
 function resolve(d: FeedDay, maxPhotos: number): BlogDay {
 	const byId = new Map(photos().map((p) => [p.id, p]));
 	const bySlug = new Map(posts().map((p) => [p.slug, p]));
+	// the day's banner: a photo from the middle of the day, usually out on the road
+	const own = photos().filter((p) => p.day === d.day);
+	const mid = own[Math.floor(own.length / 2)];
 	return {
 		...d,
 		sketch: sketchOf(d.day),
+		cover: mid ? { id: mid.id, w: mid.w, h: mid.h } : null,
 		events: d.events.map((e): BlogEvent => {
 			if (e.kind === 'post') {
 				const p = bySlug.get(e.post);

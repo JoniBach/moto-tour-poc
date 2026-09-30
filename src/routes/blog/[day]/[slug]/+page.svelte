@@ -196,17 +196,16 @@
 		gap: 1.25rem;
 		margin: 2.5rem 0 0;
 		padding: 1.1rem;
-		border-radius: 24px;
-		background: var(--b-card);
-		box-shadow:
-			0 0 0 1px var(--b-line),
-			inset 0 6px 0 var(--c);
+		border-radius: 28px;
+		/* a patch of the globe's sky */
+		background: linear-gradient(135deg, #e6f1f6, #f4f8f6);
 	}
 	.route {
 		width: 8rem;
 		height: 8rem;
 		border-radius: 18px;
-		background: color-mix(in srgb, var(--c) 10%, var(--b-bg));
+		background: rgb(255 253 248 / 0.9);
+		box-shadow: 0 4px 14px rgb(70 55 30 / 0.1);
 	}
 	.where h2 {
 		margin: 0 0 0.3rem;
@@ -239,9 +238,7 @@
 		flex-direction: column;
 		border-radius: 20px;
 		background: var(--b-card);
-		box-shadow:
-			0 0 0 1px var(--b-line),
-			0 3px 0 rgb(38 50 56 / 0.12);
+		box-shadow: 0 10px 26px rgb(70 55 30 / 0.12);
 		color: var(--b-text) !important;
 		text-decoration: none;
 		overflow: hidden;
@@ -264,7 +261,6 @@
 		flex-direction: column;
 		gap: 0.2rem;
 		padding: 0.8rem 1rem 1rem;
-		border-top: 5px solid var(--c);
 	}
 	.which {
 		font-size: 0.8rem;

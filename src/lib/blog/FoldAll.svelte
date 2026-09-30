@@ -17,8 +17,12 @@
 		gap: 0.45rem;
 		min-height: 2.75rem;
 		padding: 0 1rem;
-		border: 1px solid var(--b-line-strong);
-		border-radius: 8px;
+		border: 0;
+		border-radius: 999px;
+		background: rgb(255 253 248 / 0.92);
+		box-shadow:
+			0 3px 0 rgb(38 50 56 / 0.18),
+			0 0 0 1px rgb(38 50 56 / 0.2);
 		background: var(--b-card);
 		color: var(--b-text);
 		font: inherit;
@@ -26,7 +30,9 @@
 		cursor: pointer;
 	}
 	.foldall:hover {
-		border-color: var(--b-accent);
+		box-shadow:
+			0 3px 0 rgb(38 50 56 / 0.18),
+			0 0 0 2px var(--b-accent);
 	}
 	svg {
 		transition: transform 0.15s;

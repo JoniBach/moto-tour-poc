@@ -14,6 +14,7 @@
 	import ViewControls from '$lib/blog/ViewControls.svelte';
 	import { dayColor } from '$lib/colors';
 	import RouteSketch from '$lib/ui/RouteSketch.svelte';
+	import Photo from '$lib/blog/Photo.svelte';
 
 	let { data } = $props();
 	const { days, totals } = $derived(data);
@@ -58,15 +59,17 @@
 	{@const c = dayColor(d.index, days.length)}
 	<section class="day" id="day-{d.index + 1}" data-day={d.day} aria-labelledby="h-{d.day}" style:--c={c}>
 		<header class="chapter">
-			<span class="stamp" aria-hidden="true"><small>Day</small>{d.index + 1}</span>
-			<div class="heading">
-				<p class="daynum"><span class="sr">Day {d.index + 1}, </span><time datetime={iso(d.start)}>{longDate(d.start)}</time></p>
-				<h2 id="h-{d.day}"><a href="/blog/{d.day}">{d.title}</a></h2>
-				<p class="meta">
-					{distRound(d.km)} {distWord}{#if d.weather}{' · '}{tempRound(d.weather.minTemp)} to {tempRound(d.weather.maxTemp)} {tempUnit}{/if}{#if d.parks.length}{' · '}{d.parks.join(', ')}{/if}
-				</p>
-			</div>
-			<span class="route"><RouteSketch s={d.sketch} color={c} /></span>
+			<!-- the day as a postcard: a photo from it (or its colour), its stamp and its route -->
+			<a class="banner" class:photo={!!d.cover} href="/blog/{d.day}" tabindex="-1" aria-hidden="true">
+				{#if d.cover}<Photo id={d.cover.id} size={[d.cover.w, d.cover.h]} alt="" sizes="(max-width: 46rem) 100vw, 46rem" />{/if}
+				<span class="stamp"><small>Day</small>{d.index + 1}</span>
+				<span class="route"><RouteSketch s={d.sketch} color={c} /></span>
+			</a>
+			<p class="daynum"><span class="sr">Day {d.index + 1}, </span><time datetime={iso(d.start)}>{longDate(d.start)}</time></p>
+			<h2 id="h-{d.day}"><a href="/blog/{d.day}">{d.title}</a></h2>
+			<p class="meta">
+				{distRound(d.km)} {distWord}{#if d.weather}{' · '}{tempRound(d.weather.minTemp)} to {tempRound(d.weather.maxTemp)} {tempUnit}{/if}{#if d.parks.length}{' · '}{d.parks.join(', ')}{/if}
+			</p>
 		</header>
 		<ol class="events" aria-label="Day {d.index + 1}, moment by moment">
 			{#each rows as r (r.key)}
@@ -120,62 +123,85 @@
 		background: var(--b-card);
 		box-shadow: 0 0 0 1px var(--b-line);
 	}
-	/* pastel pills in the light theme; plain cards in the dark one (ink contrast stays ≥ 7:1) */
-	@media (prefers-color-scheme: light), (prefers-color-scheme: no-preference) {
-		.sage {
-			background: #d5e8d8 !important;
-			color: #214a32;
-		}
-		.sky {
-			background: #d9e9f3 !important;
-			color: #1f4560;
-		}
-		.butter {
-			background: #f7e9b8 !important;
-			color: #524008;
-		}
-		.lilac {
-			background: #e6def3 !important;
-			color: #44356a;
-		}
-		.peach {
-			background: #f9e2d6 !important;
-			color: #7a2e0f;
-		}
-		.stats li {
-			box-shadow: none;
-		}
+	/* the pills in the tour's pastels */
+	.sage {
+		background: #d5e8d8 !important;
+		color: #214a32;
 	}
-	.none {
+	.sky {
+		background: #d9e9f3 !important;
+		color: #1f4560;
+	}
+	.butter {
+		background: #f7e9b8 !important;
+		color: #524008;
+	}
+	.lilac {
+		background: #e6def3 !important;
+		color: #44356a;
+	}
+	.peach {
+		background: #f9e2d6 !important;
+		color: #7a2e0f;
+	}
+	.stats li {
+		box-shadow: none;
+	}
+		.none {
 		padding: 1.5rem 0;
 		font-size: 1.1rem;
 	}
+	/* each day an open chapter: no box, plenty of room */
 	.day {
-		margin: 2rem 0;
-		padding: 1.25rem 1.25rem 0.5rem;
-		border-radius: 24px;
-		background: var(--b-card);
-		box-shadow:
-			0 0 0 1px var(--b-line),
-			inset 0 6px 0 var(--c);
-		scroll-margin-top: 4.5rem;
+		margin: 3.5rem 0 0;
+		scroll-margin-top: 5rem;
 		/* off-screen days cost nothing to lay out or paint until they're scrolled near */
 		content-visibility: auto;
 		contain-intrinsic-size: auto 1800px;
 	}
-	/* a chapter heading: stamp · date, title, facts · the day's route */
 	.chapter {
-		display: grid;
-		grid-template-columns: auto minmax(0, 1fr) 5.5rem;
-		align-items: center;
-		gap: 1rem;
-		margin-bottom: 0.5rem;
+		margin-bottom: 1rem;
+	}
+	.chapter > p,
+	.chapter > h2 {
+		margin: 0;
+	}
+	/* the postcard banner */
+	.banner {
+		position: relative;
+		display: block;
+		height: clamp(9rem, 26vw, 15rem);
+		margin-bottom: 1rem;
+		border-radius: 26px;
+		overflow: hidden;
+		background: color-mix(in srgb, var(--c) 28%, var(--b-bg));
+		box-shadow: 0 10px 28px rgb(70 55 30 / 0.14);
+		transition: transform 0.2s ease;
+	}
+	.banner:hover {
+		transform: translateY(-2px) rotate(-0.25deg);
+	}
+	.banner :global(img) {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.banner.photo::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(160deg, transparent 45%, color-mix(in srgb, var(--c) 45%, transparent));
 	}
 	.stamp {
+		position: absolute;
+		z-index: 1;
+		top: 0.9rem;
+		left: 0.9rem;
 		display: grid;
 		place-items: center;
-		width: 3.1rem;
-		height: 3.5rem;
+		width: 3.3rem;
+		height: 3.7rem;
 		border: 3px dotted var(--c);
 		border-radius: 7px;
 		/* the day's colour as a tint with dark ink: the number stays at AAA contrast */
@@ -183,10 +209,10 @@
 		color: var(--b-text);
 		font-family: var(--font-display);
 		font-weight: 700;
-		font-size: 1.45rem;
+		font-size: 1.55rem;
 		line-height: 1;
 		transform: rotate(-4deg);
-		box-shadow: 0 0 0 1px var(--b-line);
+		box-shadow: 0 2px 6px rgb(0 0 0 / 0.15);
 	}
 	.stamp small {
 		font-family: var(--font-ui);
@@ -195,22 +221,25 @@
 		text-transform: uppercase;
 	}
 	.route {
-		width: 5.5rem;
-		height: 5.5rem;
+		position: absolute;
+		z-index: 1;
+		right: 0.9rem;
+		bottom: 0.9rem;
+		width: 6rem;
+		height: 6rem;
 		padding: 0.3rem;
 		box-sizing: border-box;
 		border-radius: 18px;
-		background: color-mix(in srgb, var(--c) 10%, var(--b-bg));
+		background: rgb(255 253 248 / 0.88);
 	}
-	.heading > * {
-		margin: 0;
+	.banner:not(.photo) .route {
+		width: 8.5rem;
+		height: 8.5rem;
+		background: none;
 	}
-	@media (max-width: 30rem) {
-		.chapter {
-			grid-template-columns: auto minmax(0, 1fr);
-		}
-		.route {
-			display: none;
+	@media (prefers-reduced-motion: reduce) {
+		.banner:hover {
+			transform: none;
 		}
 	}
 	.daynum {

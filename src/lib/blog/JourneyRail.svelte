@@ -194,14 +194,13 @@
 	/* narrower screens: a sticky strip of stamps under the header */
 	@media (max-width: 68rem) {
 		.rail {
-			top: calc(3.5rem + env(safe-area-inset-top));
+			top: calc(4.2rem + env(safe-area-inset-top));
 			z-index: 4;
 			max-height: none;
 			margin: 0 -1rem 1rem;
 			padding: 0.4rem 0;
-			background: color-mix(in srgb, var(--b-bg) 92%, transparent);
-			backdrop-filter: blur(8px);
-			border-bottom: 1px solid var(--b-line);
+			background: transparent;
+			pointer-events: none;
 		}
 		.head,
 		.what,
@@ -209,9 +208,17 @@
 			display: none;
 		}
 		ol {
+			pointer-events: auto;
 			display: flex;
 			gap: 0.1rem;
-			padding: 0.2rem 1rem;
+			margin: 0 0.75rem;
+			padding: 0.25rem 0.6rem;
+			border-radius: 999px;
+			background: rgb(255 253 248 / 0.92);
+			backdrop-filter: blur(12px);
+			box-shadow:
+				0 3px 0 rgb(38 50 56 / 0.18),
+				0 0 0 1px rgb(38 50 56 / 0.14);
 			overflow-x: auto;
 			overflow-y: hidden;
 			scrollbar-width: none;

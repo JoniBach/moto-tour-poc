@@ -171,10 +171,8 @@
 		exag = tour.exaggeration * r;
 		if (settled !== r > 0.999) settled = r > 0.999;
 		haloLift = Number.isFinite(globe.base) ? globe.base * (exag - tour.exaggeration) : 0;
-		// in the land's own metres (it's scaled by V / R): 8% of the globe's size below the floor at
-		// flat, starting a little before the fade so it's out of sight before it's faint
-		const d = Math.min(1, risen() / 0.3);
-		sink = -(1 - d * d * (3 - 2 * d)) * V * 0.08 * (R / V);
+		// in the land's own metres (it's scaled by V / R): 3% of the globe's size below the floor at flat
+		sink = -(1 - shown()) * V * 0.03 * (R / V);
 		const b = tour.bike;
 		// scale the landscape so its radius R fills the globe's fixed size V
 		const k = V / R;

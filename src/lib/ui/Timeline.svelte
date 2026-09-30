@@ -77,7 +77,7 @@
 		gap: 6px;
 		align-items: start;
 		padding: 6px;
-		border-radius: 8px;
+		border-radius: 14px;
 		position: relative;
 		color: var(--text);
 	}
@@ -121,8 +121,8 @@
 		width: 20px;
 		height: 20px;
 		border-radius: 50%;
-		background: #0b1620;
-		border: 1px solid var(--c);
+		background: var(--card);
+		border: 2px solid var(--c);
 		color: var(--c);
 		font-size: 10px;
 		font-weight: 600;
@@ -154,7 +154,7 @@
 		width: 42px;
 		height: 32px;
 		object-fit: cover;
-		border-radius: 4px;
+		border-radius: 8px;
 	}
 	.more {
 		font-size: 11px;

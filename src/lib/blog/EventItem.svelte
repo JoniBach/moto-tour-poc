@@ -91,7 +91,7 @@
 	}
 	.story {
 		border: 1px solid var(--b-line);
-		border-radius: 12px;
+		border-radius: 20px;
 		background: var(--b-card);
 		overflow: hidden;
 		margin: 0.1rem 0 0.4rem;
@@ -154,7 +154,7 @@
 	}
 	.grid a {
 		display: block;
-		border-radius: 8px;
+		border-radius: 12px;
 		overflow: hidden;
 	}
 	.grid :global(img) {

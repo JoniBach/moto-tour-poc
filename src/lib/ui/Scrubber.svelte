@@ -159,7 +159,7 @@ time: ${stamp}${cover}
 				{#each [1, 5, 20, 60, 200] as r (r)}<option value={r}>{r}×</option>{/each}
 			</select>
 		</label>
-		<div class="clock">{clock(b.time)}</div>
+		<div class="clock display">{clock(b.time)}</div>
 		{#if wx && wxLabel}
 			<div class="wx" title="{wxLabel.label}, cloud {wx.cloud}%, gusts {wind(wx.gust ?? 0).toFixed(0)} {windUnit}">
 				<span class="wx-icon">{wxLabel.icon}</span>
@@ -244,11 +244,11 @@ time: ${stamp}${cover}
 				<path d={tempPath} class="temp" />
 			{/if}
 			{#if tour.layers.gpsAltitude}
-				<path d={gpsPath} fill="none" stroke="#fff" stroke-width="1" opacity="0.7" />
+				<path d={gpsPath} class="gps" />
 			{/if}
 
 			<!-- not-yet-ridden part dimmed -->
-			<rect x={x(tour.rt)} y="0" width={Math.max(0, width - x(tour.rt))} height={HEIGHT} fill="#03070c" opacity="0.55" />
+			<rect x={x(tour.rt)} y="0" width={Math.max(0, width - x(tour.rt))} height={HEIGHT} class="unridden" />
 
 			{#each tr.stops as s (s.start)}
 				{@const sx = x(tr.rt[s.start])}
@@ -346,11 +346,14 @@ time: ${stamp}${cover}
 		left: 16px;
 		right: 16px;
 		bottom: 16px;
-		padding: 10px 14px 6px;
-		border: 1px solid var(--line);
-		border-radius: 14px;
+		padding: 10px 16px 8px;
+		border: 0;
+		border-radius: 24px;
 		background: var(--glass);
-		backdrop-filter: blur(10px);
+		backdrop-filter: blur(12px);
+		box-shadow:
+			var(--shadow),
+			0 0 0 1px var(--line);
 		color: var(--text);
 	}
 	.bar {
@@ -365,29 +368,31 @@ time: ${stamp}${cover}
 		cursor: pointer;
 		display: grid;
 		place-items: center;
-		width: 38px;
-		height: 38px;
+		width: 44px;
+		height: 44px;
 		border-radius: 50%;
 		background: var(--accent);
-		color: #03070c;
-		font-size: 14px;
+		color: var(--on-accent);
+		font-size: 15px;
+		box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 55%, #000);
 	}
 	.rate select {
-		background: transparent;
+		background: var(--card);
 		color: var(--text);
-		border: 1px solid var(--line);
-		border-radius: 8px;
-		padding: 4px 6px;
+		border: 0;
+		border-radius: 999px;
+		padding: 6px 8px;
 		font: inherit;
+		font-weight: 650;
+		box-shadow: 0 0 0 1px var(--line);
 	}
 	.rate option {
-		background: #0b1620;
+		background: var(--card);
 	}
 	.clock {
 		font-size: 22px;
 		font-variant-numeric: tabular-nums;
-		letter-spacing: 0.04em;
-		color: var(--accent);
+		color: var(--text);
 		min-width: 64px;
 	}
 	.wx {
@@ -416,13 +421,13 @@ time: ${stamp}${cover}
 		color: var(--text);
 	}
 	.rain {
-		fill: #3d8bff;
-		opacity: 0.45;
+		fill: #6fa8d6;
+		opacity: 0.5;
 		pointer-events: none;
 	}
 	.temp {
 		fill: none;
-		stroke: #ffb86b;
+		stroke: #d98b4a;
 		stroke-width: 1.2;
 		stroke-dasharray: 3 2;
 		opacity: 0.8;
@@ -436,8 +441,8 @@ time: ${stamp}${cover}
 	}
 	.road-title {
 		font-size: 14px;
-		font-weight: 600;
-		color: #fff1c9;
+		font-weight: 650;
+		color: var(--text);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -498,12 +503,12 @@ time: ${stamp}${cover}
 		cursor: pointer;
 	}
 	.post-tick circle {
-		fill: #ffd166;
-		stroke: #03070c;
-		stroke-width: 1.5;
+		fill: #f2c14e;
+		stroke: var(--card);
+		stroke-width: 2;
 	}
 	.post-tick text {
-		fill: #03070c;
+		fill: #263238;
 		pointer-events: none;
 	}
 	.post-tick:hover circle {
@@ -512,11 +517,13 @@ time: ${stamp}${cover}
 	.share {
 		all: unset;
 		cursor: pointer;
-		padding: 4px 9px;
-		border-radius: 8px;
-		border: 1px solid var(--line);
-		color: var(--muted);
-		font-size: 11px;
+		padding: 6px 12px;
+		border-radius: 999px;
+		box-shadow: 0 0 0 1px var(--line);
+		background: var(--card);
+		color: var(--text);
+		font-size: 12px;
+		font-weight: 650;
 		white-space: nowrap;
 	}
 	.share:hover {
@@ -527,9 +534,9 @@ time: ${stamp}${cover}
 		all: unset;
 		cursor: pointer;
 		padding: 4px 9px;
-		border-radius: 8px;
-		border: 1px dashed #ffd166;
-		color: #ffe3a3;
+		border-radius: 999px;
+		border: 1px dashed var(--muted);
+		color: var(--muted);
 		font-size: 11px;
 		white-space: nowrap;
 	}
@@ -537,8 +544,8 @@ time: ${stamp}${cover}
 		cursor: pointer;
 	}
 	.photo-tick circle {
-		fill: #ffd166;
-		stroke: #03070c;
+		fill: #8d7cc4;
+		stroke: var(--card);
 		stroke-width: 1.5;
 		opacity: 0.55;
 	}
@@ -558,9 +565,10 @@ time: ${stamp}${cover}
 		align-items: center;
 		gap: 3px;
 		padding: 4px;
-		border: 1px solid #ffd166;
-		border-radius: 8px;
-		background: var(--glass);
+		border: 0;
+		border-radius: 14px;
+		background: var(--card);
+		box-shadow: var(--shadow);
 		pointer-events: none;
 		z-index: 2;
 	}
@@ -568,7 +576,7 @@ time: ${stamp}${cover}
 		width: 104px;
 		height: 78px;
 		object-fit: cover;
-		border-radius: 5px;
+		border-radius: 10px;
 	}
 	.photo-preview span {
 		font-size: 10px;
@@ -580,8 +588,19 @@ time: ${stamp}${cover}
 		touch-action: none;
 		outline: none;
 	}
+	.gps {
+		fill: none;
+		stroke: var(--text);
+		stroke-width: 1;
+		opacity: 0.7;
+	}
+	/* the part of the day not yet reached, washed out */
+	.unridden {
+		fill: color-mix(in srgb, var(--card) 62%, transparent);
+		pointer-events: none;
+	}
 	.stop {
-		stroke: #fff;
+		stroke: var(--muted);
 		stroke-dasharray: 2 3;
 		opacity: 0.5;
 	}
@@ -612,7 +631,7 @@ time: ${stamp}${cover}
 	}
 	.head-dot {
 		fill: var(--accent);
-		stroke: #03070c;
+		stroke: var(--card);
 		stroke-width: 2;
 	}
 	/* phones: play, time, weather, road + the timeline; the rest lives in the sheets */

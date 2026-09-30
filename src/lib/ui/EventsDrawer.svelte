@@ -107,7 +107,7 @@
 		padding: 12px 6px;
 		border: 1px solid var(--line);
 		border-left: none;
-		border-radius: 0 10px 10px 0;
+		border-radius: 0 16px 16px 0;
 		background: var(--glass);
 		backdrop-filter: blur(10px);
 		color: var(--text);
@@ -130,8 +130,9 @@
 		display: flex;
 		flex-direction: column;
 		border: 1px solid var(--line);
-		border-radius: 14px;
+		border-radius: var(--radius);
 		background: var(--glass);
+		box-shadow: var(--shadow);
 		backdrop-filter: blur(10px);
 		color: var(--text);
 	}

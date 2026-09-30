@@ -99,8 +99,10 @@
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 		color: var(--b-muted);
-		border-left: 4px solid var(--c);
+		border-left: 6px solid var(--c);
+		border-radius: 3px;
 		padding-left: 0.6rem;
+		font-weight: 700;
 	}
 	h1 {
 		margin: 0.3rem 0 0.6rem;
@@ -113,8 +115,14 @@
 		padding: 0;
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.4rem 1.2rem;
+		gap: 0.4rem;
 		color: var(--b-muted);
+	}
+	.facts li {
+		padding: 0.2rem 0.8rem;
+		border-radius: 999px;
+		background: var(--b-card);
+		box-shadow: 0 0 0 1px var(--b-line);
 	}
 	.facts strong {
 		color: var(--b-text);
@@ -130,17 +138,17 @@
 	.dx.alt {
 		background: var(--b-card);
 		color: var(--b-accent) !important;
-		border: 1px solid var(--b-accent);
+		box-shadow: 0 0 0 1px var(--b-accent);
 	}
 	.dx {
 		display: inline-flex;
 		align-items: center;
 		min-height: 2.75rem;
-		padding: 0 1rem;
-		border-radius: 8px;
+		padding: 0 1.2rem;
+		border-radius: 999px;
 		background: var(--b-accent);
 		color: var(--b-bg) !important;
-		font-weight: 600;
+		font-weight: 650;
 		text-decoration: none;
 	}
 	.events {

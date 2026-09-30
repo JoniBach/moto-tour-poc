@@ -24,6 +24,7 @@
 	import { PIN_META } from '$lib/data';
 	import { ui } from '$lib/ui.svelte';
 	import * as F from './features';
+	import { pastel } from './pastel';
 
 	setWorkerUrl(workerUrl);
 
@@ -45,7 +46,14 @@
 
 	// room for the floating panels, so fitted routes aren't hidden underneath them
 	const padding = () =>
-		ui.mobile ? { top: 70, bottom: 150, left: 30, right: 30 } : { top: 90, bottom: 170, left: tour ? 300 : 60, right: app.settings.eventsOpen ? 380 : 60 };
+		tour
+			? ui.mobile
+				? { top: 70, bottom: 150, left: 30, right: 30 }
+				: { top: 90, bottom: 170, left: 320, right: app.settings.eventsOpen ? 380 : 60 }
+			: // the front door: clear of the welcome card and the postcard rail
+				ui.mobile
+				? { top: 240, bottom: 290, left: 20, right: 60 }
+				: { top: 90, bottom: 300, left: 430, right: 60 };
 
 	onMount(() => {
 		map = new MlMap({
@@ -66,6 +74,7 @@
 		map.addControl(new ScaleControl({ unit: distUnit === 'mi' ? 'imperial' : 'metric' }), 'bottom-left');
 		map.on('dragstart', () => (follow = false));
 		map.on('load', () => {
+			pastel(map!);
 			addLayers(map!);
 			loaded = true;
 		});
@@ -118,15 +127,15 @@
 			const p = F.parks(app.parks);
 			m.addSource('parks', { type: 'geojson', data: p.shapes });
 			m.addSource('park-labels', { type: 'geojson', data: p.labels });
-			m.addLayer({ id: 'parks-fill', type: 'fill', source: 'parks', paint: { 'fill-color': '#2f9e44', 'fill-opacity': ['case', ['get', 'visited'], 0.14, 0.06] } });
-			m.addLayer({ id: 'parks-line', type: 'line', source: 'parks', paint: { 'line-color': '#2b8a3e', 'line-width': 1.2, 'line-opacity': 0.6 } });
+			m.addLayer({ id: 'parks-fill', type: 'fill', source: 'parks', paint: { 'fill-color': '#6fae7c', 'fill-opacity': ['case', ['get', 'visited'], 0.22, 0.1] } });
+			m.addLayer({ id: 'parks-line', type: 'line', source: 'parks', paint: { 'line-color': '#5b9a68', 'line-width': 1.4, 'line-opacity': 0.7, 'line-dasharray': [3, 2] } });
 			m.addLayer({
 				id: 'parks-label',
 				type: 'symbol',
 				source: 'park-labels',
 				maxzoom: 10,
 				layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Italic'], 'text-size': 13 },
-				paint: { 'text-color': '#1b5e20', 'text-halo-color': '#fff', 'text-halo-width': 1.5 }
+				paint: { 'text-color': '#214a32', 'text-halo-color': '#fbf6ec', 'text-halo-width': 1.5 }
 			});
 		}
 		m.addSource('routes', { type: 'geojson', data: F.routes(days) });
@@ -161,14 +170,14 @@
 			type: 'line',
 			source: 'track',
 			layout: { 'line-cap': 'round', 'line-join': 'round' },
-			paint: { 'line-color': '#5c7080', 'line-width': 4, 'line-dasharray': [1, 1.5] }
+			paint: { 'line-color': '#8a969c', 'line-width': 4, 'line-dasharray': [1, 1.6] }
 		});
 		m.addLayer({
 			id: 'ridden',
 			type: 'line',
 			source: 'ridden',
 			layout: { 'line-cap': 'round', 'line-join': 'round' },
-			paint: { 'line-color': '#0b7285', 'line-width': 5 }
+			paint: { 'line-color': '#c2562d', 'line-width': 5 }
 		});
 
 		m.addSource('photos', { type: 'geojson', data: F.photos(app.photos), cluster: true, clusterRadius: 36, clusterMaxZoom: 16 });
@@ -178,7 +187,7 @@
 			source: 'photos',
 			filter: ['has', 'point_count'],
 			paint: {
-				'circle-color': '#e67700',
+				'circle-color': '#8d7cc4',
 				'circle-radius': ['step', ['get', 'point_count'], 13, 10, 17, 40, 22],
 				'circle-stroke-color': '#fff',
 				'circle-stroke-width': 2
@@ -197,7 +206,7 @@
 			type: 'circle',
 			source: 'photos',
 			filter: ['!', ['has', 'point_count']],
-			paint: { 'circle-color': '#e67700', 'circle-radius': 7, 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 }
+			paint: { 'circle-color': '#8d7cc4', 'circle-radius': 7, 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 }
 		});
 		const byId = new Map(app.photos.map((p) => [p.id, p]));
 		m.on('click', 'photo-clusters', async (e) => {
@@ -311,7 +320,7 @@
 			el.setAttribute('role', 'img');
 			el.setAttribute('aria-label', cap(A.mover));
 			el.innerHTML =
-				'<svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="#0b7285" stroke="#fff" stroke-width="3"/><path d="M16 8l6 13-6-3.5-6 3.5z" fill="#fff"/></svg>';
+				'<svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="#263238" stroke="#fff" stroke-width="3"/><path d="M16 8l6 13-6-3.5-6 3.5z" fill="#fff"/></svg>';
 			bike = new Marker({ element: el, rotationAlignment: 'map' }).setLngLat(pts[0]?.p ?? [0, 0]).addTo(m);
 			follow = true;
 			m.fitBounds(F.bounds([s]) as LngLatBoundsLike, { padding: padding(), duration: 1200, maxZoom: 13 });
@@ -384,7 +393,7 @@
 	.map2d {
 		position: absolute;
 		inset: 0;
-		background: #e9eef0;
+		background: #f6f0e3;
 	}
 	/* under the trip bar, and on desktop under the mini globe in the corner */
 	.map2d :global(.maplibregl-ctrl-top-right) {
@@ -411,20 +420,16 @@
 		display: grid;
 		place-items: center;
 		cursor: pointer;
-		font: 700 13px/1 system-ui, sans-serif;
-	}
-	.map2d :global(.mk:focus-visible) {
-		outline: 3px solid #1c7ed6;
-		outline-offset: 2px;
+		font: 700 13px/1 var(--font-ui);
 	}
 	.map2d :global(.mk.day) {
 		width: 28px;
 		height: 28px;
 		border-radius: 50%;
-		background: #fff;
-		color: #1a2530;
+		background: #fffdf8;
+		color: #263238;
 		border: 3px solid var(--c);
-		box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+		box-shadow: 0 2px 0 rgb(38 50 56 / 0.25);
 	}
 	.map2d :global(.mk.day.on) {
 		background: var(--c);
@@ -434,20 +439,20 @@
 		width: 32px;
 		height: 32px;
 		border-radius: 50%;
-		background: #ffd166;
-		color: #3d2a00;
-		border: 2px solid #fff;
+		background: #f7e9b8;
+		color: #524008;
+		border: 2px solid #fffdf8;
 		font-size: 16px;
-		box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+		box-shadow: 0 2px 0 rgb(38 50 56 / 0.25);
 	}
 	.map2d :global(.mk.pin) {
 		width: 26px;
 		height: 26px;
 		border-radius: 8px;
-		background: #fff;
+		background: #fffdf8;
 		border: 2px solid var(--c);
 		font-size: 13px;
-		box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+		box-shadow: 0 2px 0 rgb(38 50 56 / 0.25);
 	}
 	.map2d :global(.bike) {
 		filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.4));
@@ -461,8 +466,11 @@
 		transform: translateX(-50%);
 		min-height: 44px;
 		padding: 0 16px;
-		border: 1px solid var(--line);
-		border-radius: 22px;
+		border: 0;
+		border-radius: 999px;
+		box-shadow:
+			var(--press),
+			0 0 0 1px var(--line);
 		background: var(--glass);
 		backdrop-filter: blur(10px);
 		color: var(--text);

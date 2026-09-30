@@ -59,10 +59,13 @@
 		height: 44px;
 		display: grid;
 		place-items: center;
-		border: 1px solid var(--line);
-		border-radius: 12px;
+		border: 0;
+		border-radius: 50%;
 		background: var(--glass);
-		backdrop-filter: blur(10px);
+		backdrop-filter: blur(12px);
+		box-shadow:
+			var(--press),
+			0 0 0 1px var(--line);
 		color: var(--text);
 		font-size: 19px;
 	}
@@ -73,19 +76,25 @@
 		gap: 2px;
 		padding: 2px;
 		margin-bottom: 6px;
-		border: 1px solid var(--line);
-		border-radius: 14px;
+		border-radius: 999px;
 		background: var(--glass);
-		backdrop-filter: blur(10px);
+		backdrop-filter: blur(12px);
+		box-shadow:
+			var(--press),
+			0 0 0 1px var(--line);
 	}
 	.views button {
-		border-color: transparent;
 		background: none;
 		backdrop-filter: none;
+		box-shadow: none;
 	}
 	button.on {
+		background: var(--ink);
+		color: var(--paper);
+	}
+	:global(.theme-night) button.on {
 		background: var(--accent-soft);
-		border-color: var(--accent);
+		color: var(--text);
 	}
 	.n {
 		position: absolute;
@@ -97,7 +106,7 @@
 		box-sizing: border-box;
 		border-radius: 9px;
 		background: var(--accent);
-		color: #03070c;
+		color: var(--on-accent);
 		font-size: 10px;
 		font-weight: 700;
 		line-height: 18px;

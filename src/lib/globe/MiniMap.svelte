@@ -77,11 +77,14 @@
 		width: 168px;
 		height: 168px;
 		padding: 0;
-		border: 1px solid rgb(44 58 69 / 0.15);
-		border-radius: 18px;
-		background: rgb(255 255 255 / 0.72);
+		border: 0;
+		border-radius: 24px;
+		background: color-mix(in srgb, var(--sky) 60%, var(--card));
 		backdrop-filter: blur(10px);
-		box-shadow: 0 4px 20px rgb(40 50 70 / 0.14);
+		box-shadow:
+			var(--press),
+			0 0 0 1px var(--line),
+			var(--shadow);
 		cursor: pointer;
 		overflow: hidden;
 		transition:
@@ -89,12 +92,7 @@
 			box-shadow 0.2s;
 	}
 	.inset:hover {
-		transform: scale(1.03);
-		box-shadow: 0 6px 24px rgb(40 50 70 / 0.2);
-	}
-	.inset:focus-visible {
-		outline: 3px solid #1c7ed6;
-		outline-offset: 2px;
+		transform: translateY(-2px) rotate(1deg);
 	}
 	svg {
 		display: block;
@@ -103,26 +101,26 @@
 	}
 	.route {
 		fill: none;
-		stroke: #9aa7b1;
+		stroke: color-mix(in srgb, var(--ink) 35%, transparent);
 		stroke-width: 1.2;
 		stroke-linecap: round;
 		stroke-linejoin: round;
 	}
 	.ridden {
 		fill: none;
-		stroke: #d9480f;
+		stroke: var(--accent);
 		stroke-width: 1.8;
 		stroke-linecap: round;
 		stroke-linejoin: round;
 	}
 	.reach {
-		fill: rgb(217 72 15 / 0.08);
-		stroke: rgb(217 72 15 / 0.45);
+		fill: color-mix(in srgb, var(--accent) 10%, transparent);
+		stroke: color-mix(in srgb, var(--accent) 50%, transparent);
 		stroke-width: 0.6;
 		stroke-dasharray: 1.5 1.5;
 	}
 	.bike {
-		fill: #0b7285;
+		fill: var(--ink);
 		stroke: #fff;
 		stroke-width: 1;
 	}
@@ -130,17 +128,20 @@
 		fill: #fff;
 	}
 	.north {
-		font: 700 7px system-ui, sans-serif;
-		fill: #56656f;
+		font: 700 7px var(--font-ui);
+		fill: var(--muted);
 		text-anchor: middle;
 	}
 	.label {
 		position: absolute;
 		left: 8px;
-		bottom: 6px;
+		bottom: 8px;
+		padding: 2px 8px;
+		border-radius: 999px;
+		background: var(--card);
 		font-size: 11px;
-		font-weight: 650;
-		color: #2c3a45;
+		font-weight: 700;
+		color: var(--text);
 	}
 	@media (max-width: 900px) {
 		/* phones: the right side is the button strip */

@@ -23,7 +23,7 @@ export type Flag = keyof typeof FLAG_INFO;
 type FlagSet = Record<Flag, boolean>;
 
 const SETS: Record<'preview' | 'production', FlagSet> = {
-	preview: { blog: true, map: true, dx3d: true, globe: true, photos: true, stories: true, weather: true, blogFilters: true },
+	preview: { blog: true, map: true, dx3d: false, globe: true, photos: true, stories: true, weather: true, blogFilters: true },
 	// the release plan: switch features on here as they launch
 	production: { blog: true, map: true, dx3d: false, globe: true, photos: true, stories: true, weather: true, blogFilters: true }
 };

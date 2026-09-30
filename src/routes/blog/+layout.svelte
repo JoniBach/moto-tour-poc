@@ -1,7 +1,7 @@
 <!--
-  The plain blog: the same tour as the 3D experience — every day and every event — as simple,
-  readable pages. No 3D rendering here. Follows the system's light/dark setting, scales with
-  browser zoom, and every moment links back into the 3D view.
+  The blog: the same tour as the globe and the map (every day and every event) as simple,
+  readable pages in the same postcard look. No 3D rendering here. Follows the system's light/dark
+  setting, scales with browser zoom, and every moment links back into the tour.
 -->
 <script lang="ts">
 	import { TOUR } from '$lib/tourConfig';
@@ -19,12 +19,14 @@
 	<header class="site">
 		<div class="inner">
 			<a class="brand" href="/blog">
-				<span class="mark" aria-hidden="true">◉</span>
-				<span>{TOUR.name} <small>· {TOUR.when}</small></span>
+				<span class="mark" aria-hidden="true">
+					<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M4.5 15c3-1 4-5 7.5-5s3.5 3 7.5 2" /></svg>
+				</span>
+				<span class="display">{TOUR.name} <small>· {TOUR.when}</small></span>
 			</a>
 			<nav aria-label="Site">
 				<a href="/blog" aria-current={page.url.pathname === '/blog' ? 'page' : undefined}>All days</a>
-				{#if tourOn}<a class="dx" href={tourHref}>Open the {TOUR_NAME} ↗</a>{/if}
+				{#if tourOn}<a class="dx" href={tourHref}>Open the {TOUR_NAME} <span aria-hidden="true">→</span></a>{/if}
 			</nav>
 		</div>
 	</header>
@@ -45,36 +47,39 @@
 
 <style>
 	.blog {
-		/* every text colour ≥ 7:1 on bg and card (WCAG AAA) */
-		--b-bg: #f6f8f9;
-		--b-card: #ffffff;
-		--b-text: #13202a;
-		--b-muted: #3c4b55;
-		--b-line: #d7e0e5;
-		--b-line-strong: #7d8f99;
-		--b-accent: #054e5a;
-		--b-link: #054e5a;
-		--b-warm: #9a6614;
-		--b-warm-text: #6b4510;
+		/* the postcard palette; every text colour ≥ 7:1 on bg and card (WCAG AAA) */
+		--b-bg: #fbf6ec;
+		--b-card: #fffdf8;
+		--b-text: #263238;
+		--b-muted: #46535a;
+		--b-line: #e8dfcd;
+		--b-line-strong: #a5998a;
+		--b-accent: #7a2e0f;
+		--b-link: #7a2e0f;
+		--b-warm: #c9a227;
+		--b-warm-text: #524008;
+		--b-soft: #f9e2d6;
 		min-height: 100vh;
 		background: var(--b-bg);
 		color: var(--b-text);
-		font-family: 'Inter', system-ui, sans-serif;
+		font-family: var(--font-ui);
 		font-size: 1.0625rem;
 		line-height: 1.6;
 	}
 	@media (prefers-color-scheme: dark) {
 		.blog {
-			--b-bg: #081016;
-			--b-card: #0e1a21;
-			--b-text: #e4eff4;
-			--b-muted: #a9bcc6;
-			--b-line: #1e2f39;
-			--b-line-strong: #5d7684;
-			--b-accent: #7cf7ff;
-			--b-link: #8ee9f5;
-			--b-warm: #ffd166;
-			--b-warm-text: #ffd98a;
+			/* night: warm dark paper, the same terracotta lifted to a peach */
+			--b-bg: #1d1a16;
+			--b-card: #28231d;
+			--b-text: #f3ece0;
+			--b-muted: #c9bfae;
+			--b-line: #3a332a;
+			--b-line-strong: #7d7160;
+			--b-accent: #f4a98a;
+			--b-link: #f4a98a;
+			--b-warm: #f0d78c;
+			--b-warm-text: #f0d78c;
+			--b-soft: #3a2a22;
 		}
 	}
 	/* keep focused / jumped-to content clear of the sticky header (WCAG 2.4.12) */
@@ -85,6 +90,17 @@
 	.blog :global(p) {
 		margin-block: 0 1.5em;
 	}
+	.blog :global(h1),
+	.blog :global(h2),
+	.blog :global(h3) {
+		font-family: var(--font-display);
+		font-variation-settings:
+			'SOFT' 100,
+			'WONK' 1;
+		font-weight: 650;
+		letter-spacing: -0.01em;
+		line-height: 1.15;
+	}
 	.blog :global(a) {
 		color: var(--b-link);
 		text-underline-offset: 0.18em;
@@ -93,7 +109,7 @@
 	.blog :global(button:focus-visible) {
 		outline: 3px solid var(--b-accent);
 		outline-offset: 2px;
-		border-radius: 4px;
+		border-radius: 6px;
 	}
 	.brand {
 		min-height: 2.75rem;
@@ -104,7 +120,7 @@
 		top: -3rem;
 		padding: 0.5rem 0.8rem;
 		background: var(--b-card);
-		border-radius: 6px;
+		border-radius: 999px;
 		z-index: 10;
 	}
 	.skip:focus {
@@ -135,17 +151,35 @@
 	.brand {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		font-weight: 700;
+		gap: 0.6rem;
+		font-size: 1.15rem;
 		color: var(--b-text) !important;
 		text-decoration: none;
 	}
 	.brand small {
-		font-weight: 400;
+		font-family: var(--font-ui);
+		font-size: 0.85rem;
+		font-weight: 500;
 		color: var(--b-muted);
 	}
 	.mark {
-		color: var(--b-accent);
+		display: grid;
+		place-items: center;
+		width: 2rem;
+		height: 2rem;
+		border-radius: 50%;
+		background: #c2562d;
+	}
+	.mark svg {
+		width: 1.3rem;
+		height: 1.3rem;
+		fill: none;
+		stroke: #fff;
+		stroke-width: 2;
+		stroke-linecap: round;
+	}
+	.mark circle {
+		stroke-opacity: 0.55;
 	}
 	nav {
 		display: flex;
@@ -155,19 +189,20 @@
 		display: inline-flex;
 		align-items: center;
 		min-height: 2.75rem;
-		padding: 0 0.85rem;
-		border-radius: 8px;
+		padding: 0 1rem;
+		border-radius: 999px;
 		text-decoration: none;
-		font-weight: 600;
+		font-weight: 650;
 		font-size: 0.95rem;
 	}
 	nav a[aria-current='page'] {
 		background: var(--b-card);
-		border: 1px solid var(--b-line);
+		box-shadow: 0 0 0 1px var(--b-line);
 	}
 	nav a.dx {
 		background: var(--b-accent);
 		color: var(--b-bg) !important;
+		box-shadow: 0 3px 0 color-mix(in srgb, var(--b-accent) 60%, #000);
 	}
 	main {
 		max-width: 46rem;

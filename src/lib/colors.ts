@@ -1,4 +1,4 @@
-import { interpolateInferno, interpolateRdYlBu, interpolateSinebow, interpolateTurbo, rgb } from 'd3';
+import { hsl, interpolateInferno, interpolateRdYlBu, interpolateTurbo, rgb } from 'd3';
 import { speedFigures, speedShade } from './config';
 import type { Track } from './data';
 import type { ColorBy } from './tour.svelte';
@@ -57,5 +57,7 @@ export const LEGENDS: Record<ColorBy, { label: string; interp: (t: number) => st
 
 /** One colour per day of the tour, spread around the hue wheel (stopping short of wrapping). */
 export function dayColor(index: number, total: number): string {
-	return interpolateSinebow((index / Math.max(1, total)) * 0.85);
+	// terracotta round through sage and sky to lilac: soft, but strong enough for a line on paper
+	const h = 12 + (index / Math.max(1, total - 1)) * 290;
+	return hsl(h, 0.55, 0.55).formatHex();
 }

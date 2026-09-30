@@ -15,11 +15,13 @@
 	import Gallery from '$lib/ui/Gallery.svelte';
 	import GlobeBanner from '$lib/globe/GlobeBanner.svelte';
 	import Scrubber from '$lib/ui/Scrubber.svelte';
-	import TourIntro from '$lib/ui/TourIntro.svelte';
+	import JourneyPicker from '$lib/ui/JourneyPicker.svelte';
 	import TripBar from '$lib/ui/TripBar.svelte';
 	import MobileBar from '$lib/ui/MobileBar.svelte';
 	import Sheet from '$lib/ui/Sheet.svelte';
 	import { ui } from '$lib/ui.svelte';
+	import { A } from '$lib/activity';
+	import { SITE_NAME } from '$lib/tourConfig';
 	import { dayEvents } from '$lib/events';
 
 	let { children } = $props();
@@ -84,11 +86,12 @@
 </script>
 
 <svelte:head>
-	<title>{tour ? `${tour.data.track.title} · Moto Tour` : 'Moto Tour · UK 2026'}</title>
+	<title>{tour ? `${tour.data.track.title} · ${SITE_NAME}` : SITE_NAME}</title>
 </svelte:head>
 <svelte:window {onkeydown} />
 
-<main>
+<!-- the 3D view keeps its night-time hologram panels; the globe and the map share the postcard look -->
+<main class:theme-night={app.view === '3d'}>
 	{#if app.index && (app.view !== '3d' || app.region)}
 		<!-- each view is its own chunk: the 2D map never downloads the 3D scene, and vice versa -->
 		{#if app.view === '3d'}
@@ -118,8 +121,8 @@
 					<ControlPanel {tour} flat={app.view === '2d'} />
 					<Scrubber {tour} />
 				{/if}
-				<!-- the day's moments in every view; light, like the globe, when over it -->
-				<div class="events-wrap" class:light={app.view === 'globe'}>
+				<!-- the day's moments in every view -->
+				<div class="events-wrap">
 					<EventsDrawer {tour} />
 				</div>
 				<!-- no pop-up cards anywhere: one quiet banner names the latest moment (the globe has
@@ -129,8 +132,8 @@
 				{/if}
 			{/key}
 		{:else if !app.pending}
-			<!-- not while flying between days: the scene is briefly empty, the card would flash -->
-			<TourIntro {app} />
+			<!-- not while flying between days: the scene is briefly empty, the cards would flash -->
+			<JourneyPicker {app} />
 		{/if}
 		{#snippet credits()}
 			Map data <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer"
@@ -165,7 +168,14 @@
 			<p class="attribution">{@render credits()}</p>
 		{/if}
 	{:else}
-		<p class="loading">{app.error ?? 'Loading the tour…'}</p>
+		<div class="loading" role="status">
+			{#if app.error}
+				<p>{app.error}</p>
+			{:else}
+				<span class="road" aria-hidden="true"><span class="rider">{A.icon}</span></span>
+				<p class="display">Getting the tour ready…</p>
+			{/if}
+		</div>
 	{/if}
 	<BlogReader {app} onride={openDay} />
 	<Gallery {app} onride={openDay} />
@@ -197,16 +207,6 @@
 	.events-wrap {
 		display: contents;
 	}
-	/* the events drawer over the globe: the globe's light glass instead of the dark panels */
-	.events-wrap.light {
-		--glass: rgb(255 255 255 / 0.78);
-		--text: #2c3a45;
-		--muted: #56656f;
-		--line: rgb(44 58 69 / 0.16);
-		--accent: #b8400c;
-		--accent-soft: #fdeee4;
-		--sheet-bg: rgb(250 251 252 / 0.97);
-	}
 	.attribution {
 		position: absolute;
 		z-index: 100;
@@ -232,14 +232,46 @@
 	.attribution a {
 		color: inherit;
 	}
+	main {
+		background: var(--paper);
+	}
 	.loading {
 		position: absolute;
 		inset: 0;
 		display: grid;
-		place-items: center;
-		margin: 0;
+		place-content: center;
+		justify-items: center;
+		gap: 14px;
 		color: var(--muted);
-		letter-spacing: 0.1em;
+	}
+	.loading p {
+		margin: 0;
+		font-size: 20px;
+		color: var(--text);
+	}
+	/* a little rider going round and round a dashed road */
+	.road {
+		position: relative;
+		width: 180px;
+		height: 30px;
+		border-bottom: 3px dashed color-mix(in srgb, var(--ink) 30%, transparent);
+	}
+	.rider {
+		position: absolute;
+		bottom: 2px;
+		left: 0;
+		font-size: 26px;
+		animation: ride 2.4s ease-in-out infinite alternate;
+	}
+	@keyframes ride {
+		from {
+			left: 0;
+			transform: scaleX(-1);
+		}
+		to {
+			left: calc(100% - 30px);
+			transform: scaleX(-1);
+		}
 	}
 	.error {
 		position: absolute;
@@ -249,8 +281,9 @@
 		transform: translateX(-50%);
 		padding: 6px 12px;
 		border-radius: 8px;
-		background: #5a1d1d;
-		color: #ffd6d6;
+		background: #fbe3dc;
+		color: #7a2e0f;
+		box-shadow: var(--shadow);
 		font-size: 12px;
 	}
 </style>

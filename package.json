@@ -23,6 +23,8 @@
 		"data:feed": "node scripts/build-feed.mjs"
 	},
 	"devDependencies": {
+		"@fontsource-variable/figtree": "^5.3.0",
+		"@fontsource-variable/fraunces": "^5.3.0",
 		"@mapbox/vector-tile": "^3.0.0",
 		"@sveltejs/adapter-vercel": "^6.3.4",
 		"@sveltejs/kit": "^2.63.0",

@@ -1,7 +1,8 @@
 <!--
-  The globe's deliberately small UI: a play bar (play/pause, speed, the time, the weather, a
-  slider through the day) and a little settings card (surface, elevation lines, weather, pins,
-  relief). On phones the card opens as the settings sheet.
+  The globe's deliberately small UI: a card for the day (its stamp, title, date and facts) with a
+  "customise" drawer (surface, route colour, what to show as toggle chips, size, relief), and
+  along the bottom the park you're in, the latest moment and a play bar (play/pause, speed, the
+  time, the weather, a slider through the day). On phones the drawer is the settings sheet.
 -->
 <script lang="ts">
 	import { A } from '$lib/activity';
@@ -20,6 +21,7 @@
 	import { parkAt } from './lines';
 	import type { Parks } from '$lib/data';
 	import { ui } from '$lib/ui.svelte';
+	import DayCard from '$lib/ui/DayCard.svelte';
 
 	let { tour, parks, originE, originN }: { tour: Tour; parks: Parks | null; originE: number; originN: number } = $props();
 
@@ -32,14 +34,16 @@
 		return () => clearInterval(id);
 	});
 
-	let open = $state(globalThis.innerWidth > 1100);
+	// how far through the day, for the slider's filled track
+	const progress = $derived(tour.duration ? (tour.rt / tour.duration) * 100 : 0);
+
 	const surfaces: { id: MapStyle; label: string }[] = [
-		{ id: 'hologram', label: 'Plain' },
+		{ id: 'hologram', label: 'Painted' },
 		{ id: 'satellite', label: 'Satellite' },
 		{ id: 'sentinel', label: 'Sentinel-2' },
 		{ id: 'topo', label: 'Topo' }
 	];
-	// the ride's data on the route, as in the 3D view (speed only as a relative shade)
+	// the ride's data on the route (speed only as a relative shade)
 	const colourings: { id: 'plain' | ColorBy; label: string }[] = [
 		{ id: 'plain', label: 'Plain' },
 		...(speedShade() ? [{ id: 'speed' as const, label: 'Speed' }] : []),
@@ -50,8 +54,8 @@
 		{ key: 'contours', label: 'Elevation lines' },
 		{ key: 'route', label: 'Route' },
 		{ key: 'roads', label: 'Roads' },
-		{ key: 'water', label: 'Rivers and lakes' },
-		{ key: 'parks', label: 'National parks' },
+		{ key: 'water', label: 'Water' },
+		{ key: 'parks', label: 'Parks' },
 		{ key: 'weather', label: 'Weather' },
 		{ key: 'labels', label: 'Place names' },
 		{ key: 'pins', label: 'Places' },
@@ -71,17 +75,17 @@
 </script>
 
 {#snippet settings()}
-	<fieldset>
+	<fieldset class="knobs">
 		<legend>Surface</legend>
-		<div class="seg">
+		<div class="pills">
 			{#each surfaces as s (s.id)}
 				<button type="button" aria-pressed={tour.mapStyle === s.id} onclick={() => (tour.mapStyle = s.id)}>{s.label}</button>
 			{/each}
 		</div>
 	</fieldset>
-	<fieldset>
+	<fieldset class="knobs">
 		<legend>Route colour</legend>
-		<div class="seg">
+		<div class="pills">
 			{#each colourings as c (c.id)}
 				<button type="button" aria-pressed={tour.settings.globeColorBy === c.id} onclick={() => (tour.settings.globeColorBy = c.id)}>{c.label}</button>
 			{/each}
@@ -95,14 +99,16 @@
 			</div>
 		{/if}
 	</fieldset>
-	<fieldset>
+	<fieldset class="knobs">
 		<legend>Show</legend>
-		{#each toggles as t (t.key)}
-			<label class="check"><input type="checkbox" bind:checked={tour.layers[t.key]} /> {t.label}</label>
-		{/each}
+		<div class="chips">
+			{#each toggles as t (t.key)}
+				<label class="chip"><input type="checkbox" bind:checked={tour.layers[t.key]} /><span class="tick" aria-hidden="true"></span>{t.label}</label>
+			{/each}
+			<label class="chip"><input type="checkbox" bind:checked={tour.settings.globeHalo} /><span class="tick" aria-hidden="true"></span>Surroundings</label>
+		</div>
 	</fieldset>
-	<label class="check"><input type="checkbox" bind:checked={tour.settings.globeHalo} /> Surroundings</label>
-	<label class="relief">
+	<label class="slider">
 		<span>Size <output>{km(size)} to the rim</output></span>
 		<input
 			type="range"
@@ -114,7 +120,7 @@
 			aria-valuetext="{km(size)} from the centre to the rim"
 		/>
 	</label>
-	<label class="relief">
+	<label class="slider">
 		<span>Relief <output>{tour.exaggeration.toFixed(1)}×</output></span>
 		<input type="range" min="1" max="4" step="0.1" bind:value={tour.exaggeration} />
 	</label>
@@ -122,165 +128,70 @@
 {/snippet}
 
 {#if ui.mobile}
-	<Sheet open={ui.sheet === 'controls'} title="Globe" onclose={() => (ui.sheet = null)}>
-		<div class="card sheet">{@render settings()}</div>
+	<Sheet open={ui.sheet === 'controls'} title="Customise the globe" onclose={() => (ui.sheet = null)}>
+		{@render settings()}
 	</Sheet>
 {:else}
-	<aside class="card side" aria-label="Globe settings">
-		<header>
-			<h2>{tour.data.track.title}</h2>
-			<button type="button" class="more" aria-expanded={open} onclick={() => (open = !open)} aria-label="Globe settings">{open ? '–' : '+'}</button>
-		</header>
-		{#if open}{@render settings()}{/if}
-	</aside>
+	<DayCard {tour} customise="Customise the globe">{@render settings()}</DayCard>
 {/if}
 
 <div class="dock">
-{#if park && tour.layers.parks}<p class="park"><span aria-hidden="true">⛰</span> {park} {TOUR.protectedAreas.one}</p>{/if}
-<GlobeBanner {tour} />
-<div class="play" role="group" aria-label="Playback">
-	<button type="button" class="pp" onclick={() => tour.togglePlay()} aria-label={tour.playing ? 'Pause' : 'Play'}>{tour.playing ? '❚❚' : '▶'}</button>
-	<select bind:value={tour.rate} aria-label="Playback speed">
-		{#each [5, 20, 60, 200] as r (r)}<option value={r}>{r}×</option>{/each}
-	</select>
-	<span class="clock">{clock}</span>
-	{#if wxText}<span class="wx" title={wxText}><span aria-hidden="true">{wxIcon}</span> <span class="wxt">{wxText}</span></span>{/if}
-	<input
-		class="through"
-		type="range"
-		min="0"
-		max={tour.duration}
-		step="1"
-		value={tour.rt}
-		oninput={(e) => tour.seek(+(e.currentTarget as HTMLInputElement).value)}
-		aria-label="Through the day"
-		aria-valuetext={clock}
-	/>
-</div>
+	{#if park && tour.layers.parks}<p class="park"><span aria-hidden="true">⛰</span> {park} {TOUR.protectedAreas.one}</p>{/if}
+	<GlobeBanner {tour} />
+	<div class="play" role="group" aria-label="Playback">
+		<button type="button" class="pp" class:playing={tour.playing} onclick={() => tour.togglePlay()} aria-label={tour.playing ? 'Pause' : 'Play'}
+			>{tour.playing ? '❚❚' : '▶'}</button
+		>
+		<select bind:value={tour.rate} aria-label="Playback speed">
+			{#each [5, 20, 60, 200] as r (r)}<option value={r}>{r}×</option>{/each}
+		</select>
+		<span class="clock display">{clock}</span>
+		{#if wxText}<span class="wx" title={wxText}><span aria-hidden="true">{wxIcon}</span> <span class="wxt">{wxText}</span></span>{/if}
+		<input
+			class="through"
+			style:--p="{progress}%"
+			type="range"
+			min="0"
+			max={tour.duration}
+			step="1"
+			value={tour.rt}
+			oninput={(e) => tour.seek(+(e.currentTarget as HTMLInputElement).value)}
+			aria-label="Through the day"
+			aria-valuetext={clock}
+		/>
+	</div>
 </div>
 
 <style>
-	.card {
-		color: #2c3a45;
-		font-size: 14px;
-	}
-	.side {
-		position: absolute;
-		z-index: 100;
-		top: 16px;
-		left: 16px;
-		width: 230px;
-		padding: 12px 14px;
-		border-radius: 16px;
-		background: rgb(255 255 255 / 0.72);
-		backdrop-filter: blur(10px);
-		box-shadow: 0 4px 20px rgb(40 50 70 / 0.12);
-	}
-	.sheet {
-		color: var(--text);
-	}
-	header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 8px;
-	}
-	h2 {
-		margin: 0;
-		font-size: 15px;
-		font-weight: 650;
-	}
-	.more {
-		width: 32px;
-		height: 32px;
-		border: 0;
-		border-radius: 8px;
-		background: none;
-		color: inherit;
-		font-size: 18px;
-		cursor: pointer;
-	}
-	fieldset {
-		margin: 10px 0 0;
-		padding: 0;
-		border: 0;
-	}
-	legend {
-		margin-bottom: 4px;
-		font-size: 11px;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		opacity: 0.7;
-	}
-	.seg {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 4px;
-	}
-	.seg button {
-		min-height: 32px;
-		padding: 0 9px;
-		border: 1px solid rgb(44 58 69 / 0.2);
-		border-radius: 8px;
-		background: rgb(255 255 255 / 0.6);
-		color: inherit;
-		font: inherit;
-		font-size: 13px;
-		cursor: pointer;
-	}
-	.seg button[aria-pressed='true'] {
-		border-color: #d9480f;
-		background: #fff4ec;
-		font-weight: 650;
-	}
 	.key {
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		margin-top: 6px;
+		margin-top: 8px;
 		font-size: 11px;
-		opacity: 0.8;
+		color: var(--muted);
 	}
 	.ramp {
 		flex: 1;
-		height: 6px;
-		border-radius: 3px;
-	}
-	.check {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		min-height: 30px;
-		cursor: pointer;
-	}
-	.check input {
-		accent-color: #d9480f;
-	}
-	.relief {
-		display: grid;
-		gap: 2px;
-		margin-top: 10px;
-	}
-	.relief input,
-	.through {
-		accent-color: #d9480f;
+		height: 8px;
+		border-radius: 4px;
 	}
 	.hint {
-		margin: 10px 0 0;
+		margin: 12px 0 0;
 		font-size: 12px;
-		opacity: 0.7;
+		color: var(--muted);
 	}
-	/* the event banner above the play bar, both centred along the bottom */
+	/* the park, the latest moment and the play bar, centred along the bottom */
 	.park {
 		align-self: flex-start;
 		margin: 0;
-		padding: 4px 12px;
+		padding: 5px 14px;
 		border-radius: 999px;
-		background: rgb(235 247 238 / 0.85);
-		backdrop-filter: blur(8px);
-		color: #1f5f32;
+		background: var(--sage);
+		color: var(--sage-ink);
 		font-size: 13px;
-		font-weight: 600;
+		font-weight: 700;
+		box-shadow: var(--press);
 	}
 	.dock {
 		position: absolute;
@@ -296,67 +207,116 @@
 	.play {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: 14px;
 		box-sizing: border-box;
-		padding: 8px 16px 8px 8px;
+		padding: 8px 20px 8px 8px;
 		border-radius: 999px;
-		background: rgb(255 255 255 / 0.75);
-		backdrop-filter: blur(10px);
-		box-shadow: 0 4px 20px rgb(40 50 70 / 0.12);
-		color: #2c3a45;
+		background: var(--glass);
+		backdrop-filter: blur(12px);
+		box-shadow:
+			var(--shadow),
+			0 0 0 1px var(--line);
+		color: var(--text);
 	}
 	.pp {
 		flex: none;
-		width: 44px;
-		height: 44px;
+		width: 52px;
+		height: 52px;
 		border: 0;
 		border-radius: 50%;
-		background: #d9480f;
-		color: #fff;
-		font-size: 15px;
+		background: var(--accent);
+		color: var(--on-accent);
+		font-size: 17px;
 		cursor: pointer;
+		box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 55%, #000);
+		transition: transform 0.1s ease;
+	}
+	.pp:active {
+		transform: translateY(3px);
+		box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 55%, #000);
+	}
+	.pp.playing {
+		background: var(--ink);
+		box-shadow: 0 4px 0 #000;
 	}
 	select {
 		flex: none;
-		min-height: 32px;
-		border: 1px solid rgb(44 58 69 / 0.2);
-		border-radius: 8px;
-		background: transparent;
+		min-height: 34px;
+		padding: 0 8px;
+		border: 0;
+		border-radius: 999px;
+		background: var(--card);
 		color: inherit;
 		font: inherit;
+		font-weight: 650;
+		box-shadow: 0 0 0 1px var(--line);
 	}
 	.clock {
 		flex: none;
-		font-size: 20px;
-		font-weight: 650;
+		font-size: 24px;
 		font-variant-numeric: tabular-nums;
 	}
 	.wx {
 		flex: none;
 		font-size: 13px;
-		opacity: 0.85;
+		color: var(--muted);
 	}
+	/* the slider through the day: a fat rounded track, filled up to the moment on screen */
 	.through {
 		flex: 1;
 		min-width: 60px;
+		height: 22px;
+		margin: 0;
+		background: none;
+		appearance: none;
+		-webkit-appearance: none;
+		cursor: pointer;
+	}
+	.through::-webkit-slider-runnable-track {
+		height: 10px;
+		border-radius: 5px;
+		background: linear-gradient(to right, var(--accent) var(--p), color-mix(in srgb, var(--ink) 14%, transparent) var(--p));
+	}
+	.through::-moz-range-track {
+		height: 10px;
+		border-radius: 5px;
+		background: linear-gradient(to right, var(--accent) var(--p), color-mix(in srgb, var(--ink) 14%, transparent) var(--p));
+	}
+	.through::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		width: 22px;
+		height: 22px;
+		margin-top: -6px;
+		border-radius: 50%;
+		background: #fff;
+		box-shadow:
+			0 0 0 3px var(--accent),
+			0 2px 4px rgb(0 0 0 / 0.2);
+	}
+	.through::-moz-range-thumb {
+		width: 22px;
+		height: 22px;
+		border: 0;
+		border-radius: 50%;
+		background: #fff;
+		box-shadow:
+			0 0 0 3px var(--accent),
+			0 2px 4px rgb(0 0 0 / 0.2);
 	}
 	@media (max-width: 900px) {
-		.park {
-		align-self: flex-start;
-		margin: 0;
-		padding: 4px 12px;
-		border-radius: 999px;
-		background: rgb(235 247 238 / 0.85);
-		backdrop-filter: blur(8px);
-		color: #1f5f32;
-		font-size: 13px;
-		font-weight: 600;
-	}
-	.dock {
+		.dock {
 			bottom: 12px;
 		}
 		.play {
 			gap: 8px;
+			padding-right: 14px;
+		}
+		.pp {
+			width: 46px;
+			height: 46px;
+		}
+		.clock {
+			font-size: 20px;
 		}
 		.wxt {
 			display: none;

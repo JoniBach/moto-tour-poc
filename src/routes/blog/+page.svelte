@@ -103,11 +103,12 @@
 		place-items: center;
 		min-width: 2.75rem;
 		height: 2.75rem;
-		border-radius: 8px;
-		border: 1px solid var(--b-line);
-		border-bottom: 3px solid var(--c);
+		border-radius: 999px;
 		background: var(--b-card);
-		font-weight: 600;
+		box-shadow:
+			0 0 0 1px var(--b-line),
+			inset 0 -4px 0 var(--c);
+		font-weight: 700;
 		text-decoration: none;
 	}
 	.none {
@@ -115,9 +116,13 @@
 		font-size: 1.1rem;
 	}
 	.day {
-		margin: 2.5rem 0;
-		padding-top: 1rem;
-		border-top: 4px solid var(--c);
+		margin: 2rem 0;
+		padding: 1.25rem 1.25rem 0.5rem;
+		border-radius: 24px;
+		background: var(--b-card);
+		box-shadow:
+			0 0 0 1px var(--b-line),
+			inset 0 6px 0 var(--c);
 		scroll-margin-top: 4.5rem;
 		/* off-screen days cost nothing to lay out or paint until they're scrolled near */
 		content-visibility: auto;

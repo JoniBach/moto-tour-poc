@@ -32,6 +32,7 @@
 	import Plinth from './Plinth.svelte';
 	import RouteRibbon from './RouteRibbon.svelte';
 	import { direction, moonAt, skyColours, sunAt } from './sky';
+	import { easeLight, type LightGoal } from './lighting';
 	import { GlobeState } from './state';
 
 	let {
@@ -155,6 +156,8 @@
 	sunBody.scale.setScalar(V * 0.32);
 	const moonBody = new Mesh(moonGeo, moonMat);
 	let shadow = $state(0.5);
+	const goal: LightGoal = { colour: new Color(), strength: 1, dir: new Vector3(0, 1, 0), daylight: 1, hemi: 1, hemiColour: new Color() };
+	const night = new Vector3(0.2, 1, 0.3).normalize();
 	const sunGoal = new Vector3();
 	const moonGoal = new Vector3();
 	let sunNow: Vector3 | null = null;
@@ -216,31 +219,41 @@
 		moonBody.scale.setScalar(Math.max(0.001, here));
 		moonMat.uniforms.uSun.value.copy(globe.sunDir);
 
-		// light: the sun by day; the moon (or a faint sky glow) by night
+		// light: the sun by day; the moon (or a faint sky glow) by night. Worked out for this moment,
+		// then eased from whatever light the globe had (the last day's, or the overview's), so it
+		// glides between days rather than snapping
 		const deg = sun.alt / RAD;
-		globe.daylight = Math.min(1, Math.max(0, (deg + 8) / 16));
+		const daylight = Math.min(1, Math.max(0, (deg + 8) / 16));
 		const colours = skyColours(sun.alt, tour.layers.weather && w ? w.cloud / 100 : 0, globe.rain);
-		globe.light.set(colours.light);
+		goal.colour.set(colours.light);
 		if (deg > -3) {
-			globe.lightDir.copy(globe.sunDir);
-			if (globe.lightDir.y < 0.08) globe.lightDir.setY(0.08).normalize(); // grazing, never from below
-			globe.lightStrength = 0.25 + 0.75 * Math.min(1, Math.max(0, (deg + 3) / 20));
+			goal.dir.copy(globe.sunDir);
+			if (goal.dir.y < 0.08) goal.dir.setY(0.08).normalize(); // grazing, never from below
+			goal.strength = 0.25 + 0.75 * Math.min(1, Math.max(0, (deg + 3) / 20));
 		} else {
-			globe.lightDir.copy(moon.alt > 0 ? globe.moonDir : new Vector3(0.2, 1, 0.3).normalize());
-			globe.lightStrength = moon.alt > 0 ? 0.3 : 0.12;
+			goal.dir.copy(moon.alt > 0 ? globe.moonDir : night);
+			goal.strength = moon.alt > 0 ? 0.3 : 0.12;
 		}
 		// overcast softens the direct light
-		if (tour.layers.weather && w) globe.lightStrength *= 1 - 0.45 * (w.cloud / 100);
+		if (tour.layers.weather && w) goal.strength *= 1 - 0.45 * (w.cloud / 100);
+		goal.daylight = daylight;
+		goal.hemi = 0.55 + 0.6 * daylight;
+		goal.hemiColour.set(colours.top);
+		const now = easeLight(goal, dt);
+		globe.daylight = now.daylight;
+		globe.light.copy(now.colour);
+		globe.lightDir.copy(now.dir);
+		globe.lightStrength = now.strength;
 		if (sunLight) {
-			sunLight.position.copy(globe.lightDir).multiplyScalar(R * 3);
-			sunLight.color.copy(globe.light);
-			sunLight.intensity = globe.lightStrength * 1.6;
+			sunLight.position.copy(now.dir).multiplyScalar(R * 3);
+			sunLight.color.copy(now.colour);
+			sunLight.intensity = now.strength * 1.6;
 		}
 		if (hemi) {
-			hemi.intensity = 0.55 + 0.6 * globe.daylight;
-			hemi.color.copy(tmp.set(colours.top));
+			hemi.intensity = now.hemi;
+			hemi.color.copy(now.hemiColour);
 		}
-		const s = Math.round((0.2 + 0.35 * globe.daylight) * 20) / 20;
+		const s = Math.round((0.2 + 0.35 * now.daylight) * 20) / 20;
 		if (s !== shadow) {
 			shadow = s;
 			onshadow?.(s);

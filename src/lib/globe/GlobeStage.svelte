@@ -51,7 +51,9 @@
 	// what's on the plinth now, and how far its relief has risen (0 flat .. 1 full height)
 	// svelte-ignore state_referenced_locally — starts with whatever the page opened on, then animates
 	let shown = $state.raw<Tour | null>(tour);
+	// the plinth's shadow eases to where the land on it wants it
 	let shadow = $state(0.5);
+	let shadowGoal = 0.5;
 	const still = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
 	let rise = 1;
@@ -66,11 +68,13 @@
 
 	function swap() {
 		shown = tour;
-		shadow = 0.5;
+		shadowGoal = 0.5;
 		onshown(shown);
 	}
 
 	useTask((dt) => {
+		const eased = shadow + (shadowGoal - shadow) * Math.min(1, dt * 2);
+		if (Math.abs(eased - shadow) > 0.004) shadow = eased;
 		if (still) {
 			if (tour !== shown && !waiting) swap();
 			rise = 1;
@@ -127,7 +131,7 @@
 		date={plinth.date}
 		{onsky}
 		rise={risen}
-		onshadow={(s) => (shadow = s)}
+		onshadow={(s) => (shadowGoal = s)}
 		{onphotos}
 		{onpost}
 	/>

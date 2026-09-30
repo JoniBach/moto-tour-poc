@@ -14,6 +14,8 @@
 	import GlobeWeather from './GlobeWeather.svelte';
 	import Plinth from './Plinth.svelte';
 	import { GlobeState } from './state';
+	import { easeLight, type LightGoal } from './lighting';
+	import { Color, Vector3 } from 'three';
 
 	/** staged: on the persistent globe (GlobeStage), which owns the camera and the plinth */
 	let {
@@ -149,6 +151,29 @@
 	let meadowGroup = $state<import('three').Group>();
 	let grassMat = $state<import('three').MeshStandardMaterial>();
 	let soilMat = $state<import('three').MeshStandardMaterial>();
+	// a fair day's light, eased from whatever light the globe had (the last day's)
+	const goal: LightGoal = {
+		colour: new Color('#fff4e0'),
+		strength: 2.2 / 1.6,
+		dir: new Vector3(-1.5, 2.2, 1.2).normalize(),
+		daylight: 1,
+		hemi: 1.4,
+		hemiColour: new Color('#dfeef7')
+	};
+	let sunLight = $state<import('three').DirectionalLight>();
+	let hemi = $state<import('three').HemisphereLight>();
+	useTask((dt) => {
+		const now = easeLight(goal, dt);
+		if (sunLight) {
+			sunLight.position.copy(now.dir).multiplyScalar(V * 3);
+			sunLight.color.copy(now.colour);
+			sunLight.intensity = now.strength * 1.6;
+		}
+		if (hemi) {
+			hemi.intensity = now.hemi;
+			hemi.color.copy(now.hemiColour);
+		}
+	});
 	useTask(() => {
 		const r = Math.max(0.001, rise?.() ?? 1);
 		if (meadowGroup) meadowGroup.scale.y = r;
@@ -180,8 +205,8 @@
 	</T.PerspectiveCamera>
 {/if}
 
-<T.HemisphereLight args={['#dfeef7', '#d8cbb4', 1.4]} />
-<T.DirectionalLight position={[-V * 1.5, V * 2.2, V * 1.2]} intensity={2.2} color="#fff4e0" />
+<T.HemisphereLight bind:ref={hemi} args={['#dfeef7', '#d8cbb4', 1.4]} />
+<T.DirectionalLight bind:ref={sunLight} position={[-V * 1.5, V * 2.2, V * 1.2]} intensity={2.2} color="#fff4e0" />
 
 {#if !staged}<Plinth R={V} {title} {date} shadow={0.5} />{/if}
 

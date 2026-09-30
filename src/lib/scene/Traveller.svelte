@@ -41,16 +41,25 @@
 	let leanGroup = $state<Group>();
 	let beam = $state<Mesh>();
 
-	let facing: number | null = null;
+	let turn: { from: number; t: number; dur: number } | null = null;
 	useTask((dt) => {
 		const b = tour.bike;
 		outer.position.set(b.x, (groundAt ? groundAt(b.x, b.n) : b.h) * tour.exaggeration, -b.n);
 		// turn to the heading rather than snapping to it: a new day's globe starts from where the
-		// last one faced and swings round; then it follows the track
+		// last one faced and swings round, easing in and out (slow start, slow finish, no kink),
+		// taking longer for a bigger turn; after that it simply follows the track
 		const goal = -b.heading;
-		if (facing === null) facing = lastHeading ?? goal;
-		const off = Math.atan2(Math.sin(goal - facing), Math.cos(goal - facing));
-		facing = Math.abs(off) > 0.01 ? facing + off * Math.min(1, dt * 2.5) : goal;
+		const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+		if (turn === null) {
+			const from = lastHeading ?? goal;
+			const angle = Math.abs(wrap(goal - from));
+			turn = { from, t: 0, dur: angle < 0.02 ? 0 : 0.8 + 0.5 * (angle / Math.PI) };
+		}
+		turn.t += dt;
+		const u = turn.dur ? Math.min(1, turn.t / turn.dur) : 1;
+		const ease = u < 0.5 ? 4 * u * u * u : 1 - (-2 * u + 2) ** 3 / 2;
+		// measured against the live goal, so a heading that moves meanwhile is tracked too
+		const facing = turn.from + wrap(goal - turn.from) * ease;
 		lastHeading = facing;
 		outer.rotation.y = facing;
 		if (leanGroup) leanGroup.rotation.z = A.leans ? -b.lean : 0;

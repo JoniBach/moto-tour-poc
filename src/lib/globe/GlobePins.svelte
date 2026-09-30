@@ -38,7 +38,7 @@
 		if (tour.layers.pins)
 			for (const p of tour.data.pins) {
 				const m = PIN_META[p.type];
-				out.push({ key: `pin${p.id}`, x: p.x, n: p.n, kind: 'pin', label: `${m.label}: ${p.title}`, icon: m.icon, color: m.color, run: () => (tour.selectedPin = p.id) });
+				out.push({ key: `pin${p.id}`, x: p.x, n: p.n, kind: 'pin', label: `${m.label}: ${p.title}`, icon: m.icon, color: m.color, run: () => tour.seek(p.rt) });
 			}
 		if (tour.layers.photos) {
 			// photos taken together (within ~150 m) share one thumbnail

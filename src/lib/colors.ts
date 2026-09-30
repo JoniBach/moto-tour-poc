@@ -1,4 +1,4 @@
-import { interpolateInferno, interpolateRdYlBu, interpolateSinebow, interpolateTurbo } from 'd3';
+import { interpolateInferno, interpolateRdYlBu, interpolateSinebow, interpolateTurbo, rgb } from 'd3';
 import { speedFigures, speedShade } from './config';
 import type { Track } from './data';
 import type { ColorBy } from './tour.svelte';
@@ -15,6 +15,20 @@ export function colorScale(tr: Track, by: ColorBy): (i: number) => string {
 		case 'gradient':
 			return (i) => interpolateRdYlBu(0.5 - Math.max(-0.5, Math.min(0.5, gradientAt(tr, i) * 3)));
 	}
+}
+
+/**
+ * Per-fix colours as sRGB 0..1 triples, for shaders that write colour as-is (the globe's): the
+ * same scales as colorScale, without three's linear conversion.
+ */
+export function fixColorsRGB(tr: Track, by: ColorBy): Float32Array {
+	const scale = colorScale(tr, by);
+	const out = new Float32Array(tr.count * 3);
+	for (let i = 0; i < tr.count; i++) {
+		const c = rgb(scale(i));
+		out.set([c.r / 255, c.g / 255, c.b / 255], i * 3);
+	}
+	return out;
 }
 
 /** Rise over run across ~10 fixes, from the DEM (not GPS altitude). */

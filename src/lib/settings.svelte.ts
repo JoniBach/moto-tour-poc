@@ -21,6 +21,10 @@ export class Settings {
 	autoAdvance = $state(true);
 	/** the globe view: metres of landscape from the bike to the rim */
 	globeRadius = $state(1800);
+	/** the globe: faint elevation lines and route carrying on beyond the rim */
+	globeHalo = $state(true);
+	/** the globe's route: terracotta ('plain') or shaded by the ride's data, like the 3D view */
+	globeColorBy = $state<'plain' | ColorBy>(speedShade() ? 'speed' : 'gradient');
 	/** the events drawer on the right */
 	eventsOpen = $state(false);
 	layers = $state({

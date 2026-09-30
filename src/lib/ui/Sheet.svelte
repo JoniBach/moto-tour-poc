@@ -83,7 +83,8 @@
 		border: 1px solid var(--line);
 		border-bottom: none;
 		border-radius: 18px 18px 0 0;
-		background: rgba(4, 12, 20, 0.94);
+		/* themeable: the events sheet over the globe is light */
+		background: var(--sheet-bg, rgba(4, 12, 20, 0.94));
 		backdrop-filter: blur(14px);
 		color: var(--text);
 		padding-bottom: env(safe-area-inset-bottom);

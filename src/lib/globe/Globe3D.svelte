@@ -40,6 +40,7 @@
 					{tour}
 					originE={summary.originE}
 					originN={summary.originN}
+					parks={app.parks}
 					title={`Day ${summary.index + 1} · ${summary.title}`}
 					{date}
 					onsky={(t, b) => ((top = t), (bottom = b))}
@@ -53,7 +54,7 @@
 	</Canvas>
 	{#if tour}
 		{#key tour}
-			<GlobeUI {tour} />
+			<GlobeUI {tour} parks={app.parks} originE={summary?.originE ?? 0} originN={summary?.originN ?? 0} />
 		{/key}
 	{/if}
 </div>

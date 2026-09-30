@@ -153,6 +153,17 @@ day plays. **◍ Globe** in the trip bar (phones: the view button steps 3D → m
   floor eases to its new level.
 - Buttons over the scene need `{@attach clickThroughControls}` (the orbit controls capture the
   pointer), and the globe pins' Threlte wrappers are click-through so shifted pins stay clickable.
+- Surroundings (`GlobeHalo.svelte`, "Surroundings" switch): beyond the rim, as the 3D view shows
+  beyond its detail bubble, faint elevation lines, the route, roads, rivers and park edges carry
+  on at their real heights, with small non-interactive dots where the pins are, all fading out
+  into the air (and away below the globe's floor, so nothing sits in front of the plinth).
+- Map lines on the land (`GlobeLines.svelte`, shapes from `lines.ts`): OSM roads (white, by
+  tier), rivers (blue) and national park edges (dashed green), each on its switch. A chip above
+  the banner names the park the bike is in (`parkAt`).
+- Route colour: Plain (terracotta) or the ride's data like the 3D view (speed as a relative
+  shade only, lean, gradient), with a key; a darker edge keeps pale colours readable.
+- The events list (drawer / ☰ sheet) works over the globe, restyled light; the pop-up place
+  cards don't show there (the banner covers them; a place pin jumps the ride to its moment).
 - `RouteRibbon.svelte`: the route as a ribbon on the land, terracotta behind the bike and chalk
   ahead, re-draped on the landscape's own heights each re-sample.
 - `Plinth.svelte`: engraved compass ring and the day's name and date lettered around the front.

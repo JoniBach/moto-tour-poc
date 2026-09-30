@@ -10,10 +10,24 @@
 	import { ukClock } from '$lib/time';
 	import type { Tour } from '$lib/tour.svelte';
 	import Sheet from '$lib/ui/Sheet.svelte';
+	import { LEGENDS } from '$lib/colors';
+	import { speedShade } from '$lib/config';
+	import type { ColorBy } from '$lib/tour.svelte';
 	import GlobeBanner from './GlobeBanner.svelte';
+	import { parkAt } from './lines';
+	import type { Parks } from '$lib/data';
 	import { ui } from '$lib/ui.svelte';
 
-	let { tour }: { tour: Tour } = $props();
+	let { tour, parks, originE, originN }: { tour: Tour; parks: Parks | null; originE: number; originN: number } = $props();
+
+	// which national park the bike is in: checked once a second (the outlines are long)
+	let park = $state<string | null>(null);
+	$effect(() => {
+		const check = () => (park = parkAt(parks, tour.bike.x + originE, tour.bike.n + originN));
+		check();
+		const id = setInterval(check, 1000);
+		return () => clearInterval(id);
+	});
 
 	let open = $state(globalThis.innerWidth > 1100);
 	const surfaces: { id: MapStyle; label: string }[] = [
@@ -22,9 +36,19 @@
 		{ id: 'sentinel', label: 'Sentinel-2' },
 		{ id: 'topo', label: 'Topo' }
 	];
+	// the ride's data on the route, as in the 3D view (speed only as a relative shade)
+	const colourings: { id: 'plain' | ColorBy; label: string }[] = [
+		{ id: 'plain', label: 'Plain' },
+		...(speedShade() ? [{ id: 'speed' as const, label: 'Speed' }] : []),
+		{ id: 'lean', label: 'Lean' },
+		{ id: 'gradient', label: 'Gradient' }
+	];
 	const toggles: { key: keyof Tour['layers']; label: string }[] = [
 		{ key: 'contours', label: 'Elevation lines' },
 		{ key: 'route', label: 'Route' },
+		{ key: 'roads', label: 'Roads' },
+		{ key: 'water', label: 'Rivers and lakes' },
+		{ key: 'parks', label: 'National parks' },
 		{ key: 'weather', label: 'Weather' },
 		{ key: 'labels', label: 'Place names' },
 		{ key: 'pins', label: 'Places' },
@@ -53,11 +77,28 @@
 		</div>
 	</fieldset>
 	<fieldset>
+		<legend>Route colour</legend>
+		<div class="seg">
+			{#each colourings as c (c.id)}
+				<button type="button" aria-pressed={tour.settings.globeColorBy === c.id} onclick={() => (tour.settings.globeColorBy = c.id)}>{c.label}</button>
+			{/each}
+		</div>
+		{#if tour.settings.globeColorBy !== 'plain'}
+			{@const key = LEGENDS[tour.settings.globeColorBy]}
+			<div class="key">
+				<span>{key.min}</span>
+				<span class="ramp" style:background="linear-gradient(to right, {[0, 0.25, 0.5, 0.75, 1].map((t) => key.interp(t)).join(', ')})"></span>
+				<span>{key.max}</span>
+			</div>
+		{/if}
+	</fieldset>
+	<fieldset>
 		<legend>Show</legend>
 		{#each toggles as t (t.key)}
 			<label class="check"><input type="checkbox" bind:checked={tour.layers[t.key]} /> {t.label}</label>
 		{/each}
 	</fieldset>
+	<label class="check"><input type="checkbox" bind:checked={tour.settings.globeHalo} /> Surroundings</label>
 	<label class="relief">
 		<span>Size <output>{km(size)} to the rim</output></span>
 		<input
@@ -92,6 +133,7 @@
 {/if}
 
 <div class="dock">
+{#if park && tour.layers.parks}<p class="park"><span aria-hidden="true">⛰</span> {park} National Park</p>{/if}
 <GlobeBanner {tour} />
 <div class="play" role="group" aria-label="Playback">
 	<button type="button" class="pp" onclick={() => tour.togglePlay()} aria-label={tour.playing ? 'Pause' : 'Play'}>{tour.playing ? '❚❚' : '▶'}</button>
@@ -188,6 +230,19 @@
 		background: #fff4ec;
 		font-weight: 650;
 	}
+	.key {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		margin-top: 6px;
+		font-size: 11px;
+		opacity: 0.8;
+	}
+	.ramp {
+		flex: 1;
+		height: 6px;
+		border-radius: 3px;
+	}
 	.check {
 		display: flex;
 		align-items: center;
@@ -213,6 +268,17 @@
 		opacity: 0.7;
 	}
 	/* the event banner above the play bar, both centred along the bottom */
+	.park {
+		align-self: flex-start;
+		margin: 0;
+		padding: 4px 12px;
+		border-radius: 999px;
+		background: rgb(235 247 238 / 0.85);
+		backdrop-filter: blur(8px);
+		color: #1f5f32;
+		font-size: 13px;
+		font-weight: 600;
+	}
 	.dock {
 		position: absolute;
 		z-index: 100;
@@ -272,7 +338,18 @@
 		min-width: 60px;
 	}
 	@media (max-width: 900px) {
-		.dock {
+		.park {
+		align-self: flex-start;
+		margin: 0;
+		padding: 4px 12px;
+		border-radius: 999px;
+		background: rgb(235 247 238 / 0.85);
+		backdrop-filter: blur(8px);
+		color: #1f5f32;
+		font-size: 13px;
+		font-weight: 600;
+	}
+	.dock {
 			bottom: 12px;
 		}
 		.play {

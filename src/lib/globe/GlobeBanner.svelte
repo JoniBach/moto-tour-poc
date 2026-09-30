@@ -19,12 +19,15 @@
 	const shown = (e: TourEvent) =>
 		e.kind === 'photos' ? tour.layers.photos : e.kind === 'post' ? tour.layers.blog : e.kind === 'pin' ? tour.layers.pins : true;
 
-	/** the latest event at or before the bike's moment */
+	/**
+	 * The latest event at or before the bike's moment, by the clock: riding time skips stops, so
+	 * during a long stop it already equals the next ride's start, which isn't the moment yet.
+	 */
 	const current = $derived.by(() => {
-		const rt = tour.rt + 0.5;
+		const now = tour.bike.time + 1;
 		let last: TourEvent | null = null;
 		for (const e of events) {
-			if (e.rt > rt) break;
+			if (e.t > now) break;
 			if (shown(e)) last = e;
 		}
 		return last;

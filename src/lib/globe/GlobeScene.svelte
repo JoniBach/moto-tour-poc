@@ -9,10 +9,14 @@
 	import { OrbitControls } from '@threlte/extras';
 	import { CanvasTexture, Color, Group, Mesh, ShaderMaterial, SphereGeometry, Sprite, SpriteMaterial, Vector3 } from 'three';
 	import { fromBng } from '$lib/bng';
-	import { weatherAt, type BlogPost, type Photo } from '$lib/data';
+	import { weatherAt, type BlogPost, type Parks, type Photo } from '$lib/data';
 	import Bike from '$lib/scene/Bike.svelte';
 	import type { Tour } from '$lib/tour.svelte';
 	import DioramaTerrain from './DioramaTerrain.svelte';
+	import GlobeHalo from './GlobeHalo.svelte';
+	import GlobeLines from './GlobeLines.svelte';
+	import { globeLines, haloMarks } from './lines';
+	import { fixColorsRGB } from '$lib/colors';
 	import GlobeLabels from './GlobeLabels.svelte';
 	import GlobePins from './GlobePins.svelte';
 	import GlobeWeather from './GlobeWeather.svelte';
@@ -25,6 +29,7 @@
 		tour,
 		originE,
 		originN,
+		parks,
 		title,
 		date,
 		onsky,
@@ -34,6 +39,7 @@
 		tour: Tour;
 		originE: number;
 		originN: number;
+		parks: Parks | null;
 		title: string;
 		date: string;
 		onsky: (top: string, bottom: string) => void;
@@ -45,6 +51,20 @@
 	const V = 1800;
 	/** metres of landscape from the bike to the rim (a setting) */
 	const R = $derived(tour.settings.globeRadius);
+	/** the ride's data on the route (speed shade, lean or gradient), as in the 3D view; null = terracotta */
+	const shade = $derived(tour.settings.globeColorBy === 'plain' ? null : fixColorsRGB(tour.data.track, tour.settings.globeColorBy));
+	// the pins beyond the rim, as small dots
+	const marks = $derived(
+		haloMarks(tour.data.pins, tour.photos, tour.posts, originE, originN, {
+			pins: tour.layers.pins,
+			photos: tour.layers.photos,
+			stories: tour.layers.blog
+		})
+	);
+	// the map's lines: roads, rivers, national park edges (each follows its switch)
+	const lines = $derived(
+		globeLines(tour.data.osm, parks, originE, originN, { roads: tour.layers.roads, rivers: tour.layers.water, parks: tour.layers.parks })
+	);
 	// pull back on tall, narrow screens so the whole globe fits across
 	// (follows the window: turning a phone re-frames the globe)
 	let width = $state(globalThis.innerWidth ?? 1);
@@ -196,7 +216,11 @@
 	{#key R}
 		<T.Group scale.y={exag}>
 			<DioramaTerrain {tour} {globe} radius={R} />
-			{#if tour.layers.route}<RouteRibbon {tour} {globe} radius={R} />{/if}
+			{#if tour.settings.globeHalo}
+				<GlobeHalo {tour} {globe} radius={R} contours={tour.layers.contours} route={tour.layers.route} {lines} {shade} {marks} />
+			{/if}
+			{#if lines.length}<GlobeLines {tour} {globe} radius={R} {lines} />{/if}
+			{#if tour.layers.route}<RouteRibbon {tour} {globe} radius={R} {shade} />{/if}
 		</T.Group>
 		{#if tour.layers.labels && tour.data.osm}<GlobeLabels {tour} {globe} radius={R} places={tour.data.osm.places} />{/if}
 		<GlobePins {tour} {globe} radius={R} {originE} {originN} {onphotos} {onpost} />

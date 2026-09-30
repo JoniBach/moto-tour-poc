@@ -112,11 +112,16 @@
 				{#if app.view !== 'globe'}
 					<ControlPanel {tour} flat={app.view === '2d'} />
 					<Scrubber {tour} />
-					<EventsDrawer {tour} />
 				{/if}
-				<PinCard {tour} />
-				<!-- the globe has its own quiet event banner instead of the pop-up cards -->
-				{#if app.view !== 'globe'}<PhotoPopups {tour} />{/if}
+				<!-- the day's moments in every view; light, like the globe, when over it -->
+				<div class="events-wrap" class:light={app.view === 'globe'}>
+					<EventsDrawer {tour} />
+				</div>
+				<!-- the globe has its own quiet event banner instead of the pop-up cards (place cards too) -->
+				{#if app.view !== 'globe'}
+					<PinCard {tour} />
+					<PhotoPopups {tour} />
+				{/if}
 			{/key}
 		{:else if !app.pending}
 			<!-- not while flying between days: the scene is briefly empty, the card would flash -->
@@ -170,6 +175,19 @@
 		/* an app surface, not a document: drags (scrubbing, orbiting over labels) shouldn't select text */
 		user-select: none;
 		-webkit-user-select: none;
+	}
+	.events-wrap {
+		display: contents;
+	}
+	/* the events drawer over the globe: the globe's light glass instead of the dark panels */
+	.events-wrap.light {
+		--glass: rgb(255 255 255 / 0.78);
+		--text: #2c3a45;
+		--muted: #56656f;
+		--line: rgb(44 58 69 / 0.16);
+		--accent: #b8400c;
+		--accent-soft: #fdeee4;
+		--sheet-bg: rgb(250 251 252 / 0.97);
 	}
 	.attribution {
 		position: absolute;

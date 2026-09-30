@@ -30,11 +30,9 @@
 	{/if}
 	{#if app.tour}
 		<button class:on={ui.sheet === 'controls'} onclick={() => ui.toggle('controls')} aria-label="Map and view settings">⚙</button>
-		{#if app.view !== 'globe'}
-			<button class:on={ui.sheet === 'events'} onclick={() => ui.toggle('events')} aria-label="Day events">
-				☰{#if events}<span class="n">{events}</span>{/if}
-			</button>
-		{/if}
+		<button class:on={ui.sheet === 'events'} onclick={() => ui.toggle('events')} aria-label="Day events">
+			☰{#if events}<span class="n">{events}</span>{/if}
+		</button>
 	{/if}
 	{#if on('blog')}
 		<a class="btn" href={app.tour ? `/blog/${app.tour.data.track.day}` : '/blog'} aria-label="Read as a blog">📖</a>

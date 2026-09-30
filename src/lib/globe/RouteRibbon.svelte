@@ -10,24 +10,28 @@
 	import type { Tour } from '$lib/tour.svelte';
 	import type { GlobeState } from './state';
 
-	let { tour, globe, radius }: { tour: Tour; globe: GlobeState; radius: number } = $props();
+	/** shade: per-fix sRGB colours for the ridden part (the ride's data), or null for terracotta */
+	let { tour, globe, radius, shade }: { tour: Tour; globe: GlobeState; radius: number; shade: Float32Array | null } = $props();
 
 	// svelte-ignore state_referenced_locally — fixed for the component's lifetime
 	const tr = tour.data.track;
 	// svelte-ignore state_referenced_locally — a new radius remounts this component
-	const HALF_WIDTH = radius * 0.005;
+	const HALF_WIDTH = radius * 0.006;
 	// svelte-ignore state_referenced_locally
 	const LIFT = Math.max(2, radius / 900);
 	const breaks = new Set(tr.breaks ?? []);
 
 	const geometry = new BufferGeometry();
 	let built = -1;
+	let builtShade: Float32Array | null | undefined;
 
 	function build() {
 		const { x: cx, n: cn, reach } = globe.patch;
 		const inside = (i: number) => Math.hypot(tr.x[i] - cx, tr.n[i] - cn) < reach;
 		const pos: number[] = [];
 		const fix: number[] = [];
+		const col: number[] = [];
+		const side: number[] = [];
 		const idx: number[] = [];
 		let run: number[] = [];
 		const flush = () => {
@@ -47,6 +51,9 @@
 					pos.push(tr.x[i] - dn * HALF_WIDTH, h, -(tr.n[i] + dx * HALF_WIDTH));
 					pos.push(tr.x[i] + dn * HALF_WIDTH, h, -(tr.n[i] - dx * HALF_WIDTH));
 					fix.push(i, i);
+					const c = shade ? [shade[i * 3], shade[i * 3 + 1], shade[i * 3 + 2]] : [0.85, 0.36, 0.2];
+					col.push(...c, ...c);
+					side.push(0, 1);
 					if (k > 0) {
 						const p = start + (k - 1) * 2;
 						idx.push(p, p + 1, p + 2, p + 2, p + 1, p + 3);
@@ -62,6 +69,8 @@
 		flush();
 		geometry.setAttribute('position', new BufferAttribute(new Float32Array(pos), 3));
 		geometry.setAttribute('aFix', new BufferAttribute(new Float32Array(fix), 1));
+		geometry.setAttribute('aCol', new BufferAttribute(new Float32Array(col), 3));
+		geometry.setAttribute('aSide', new BufferAttribute(new Float32Array(side), 1));
 		geometry.setIndex(idx);
 		geometry.computeBoundingSphere();
 	}
@@ -75,10 +84,16 @@
 		uniforms: { uBike: { value: new Vector2() }, uR: { value: 0 }, uFix: { value: 0 } },
 		vertexShader: /* glsl */ `
 			attribute float aFix;
+			attribute vec3 aCol;
+			attribute float aSide;
 			varying float vFix;
+			varying vec3 vCol;
+			varying float vSide;
 			varying vec2 vXZ;
 			void main() {
 				vFix = aFix;
+				vCol = aCol;
+				vSide = aSide;
 				vXZ = position.xz;
 				gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 			}
@@ -88,20 +103,27 @@
 			uniform float uR;
 			uniform float uFix;
 			varying float vFix;
+			varying vec3 vCol;
+			varying float vSide;
 			varying vec2 vXZ;
 			void main() {
 				if (distance(vXZ, uBike) > uR - 2.0) discard;
-				// ridden: a warm terracotta; ahead: a pale chalk line
+				// ridden: terracotta, or shaded by the ride's data; ahead: a pale chalk line
 				bool done = vFix <= uFix;
-				vec3 col = done ? vec3(0.85, 0.36, 0.20) : vec3(0.98, 0.97, 0.94);
+				vec3 col = done ? vCol : vec3(0.98, 0.97, 0.94);
+				// a thin darker casing along both edges, so pale data colours (flat ground on the
+				// gradient scale) still read on the pastel land
+				float edge = smoothstep(0.3, 0.42, abs(vSide - 0.5));
+				col = mix(col, col * 0.45, edge * (done ? 0.9 : 0.35));
 				gl_FragColor = vec4(col, done ? 1.0 : 0.85);
 			}
 		`
 	});
 
 	useTask(() => {
-		if (globe.version !== built && Number.isFinite(globe.patch.x)) {
+		if ((globe.version !== built || shade !== builtShade) && Number.isFinite(globe.patch.x)) {
 			built = globe.version;
+			builtShade = shade;
 			build();
 		}
 		const b = tour.bike;
@@ -116,4 +138,5 @@
 	});
 </script>
 
-<T.Mesh {geometry} {material} frustumCulled={false} renderOrder={2} />
+<!-- above the roads -->
+<T.Mesh {geometry} {material} frustumCulled={false} renderOrder={3} />

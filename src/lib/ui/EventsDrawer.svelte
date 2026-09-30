@@ -18,11 +18,13 @@
 	const events = dayEvents(tour.data.track, tour.data.pins, tour.photos, tour.posts);
 	const open = $derived(app.settings.eventsOpen);
 
-	// the last entry at or before the ride's current moment
+	// the last entry at or before the ride's current moment, by the clock (riding time skips
+	// stops: during a long one it already equals the next ride's start)
 	const current = $derived.by(() => {
+		const now = tour.bike.time + 1;
 		let k = -1;
 		events.forEach((e, i) => {
-			if (e.rt <= tour.rt + 0.5) k = i;
+			if (e.t <= now) k = i;
 		});
 		return k;
 	});

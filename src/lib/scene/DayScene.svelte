@@ -6,7 +6,7 @@
 <script lang="ts">
 	import { T, useTask } from '@threlte/core';
 	import type { Tour } from '$lib/tour.svelte';
-	import Bike from './Bike.svelte';
+	import Traveller from './Traveller.svelte';
 	import Contours from './Contours.svelte';
 	import DetailBubble from './DetailBubble.svelte';
 	import HoloPoints from './HoloPoints.svelte';
@@ -37,7 +37,7 @@
 	{#if tour.layers.route}<Route {tour} />{/if}
 </T.Group>
 
-<Bike {tour} />
+<Traveller {tour} />
 {#if tour.layers.weather && tour.data.weather}<Rain {tour} />{/if}
 {#if tour.layers.labels && tour.data.osm}<PlaceLabels osm={tour.data.osm} exaggeration={tour.exaggeration} />{/if}
 {#if tour.layers.pins}<Pins {tour} />{/if}

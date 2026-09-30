@@ -5,8 +5,8 @@ cover: 20260916_113010
 ---
 
 Files starting with "_" are drafts and aren't published. Copy this file, rename it (the file
-name becomes the post's address), and set `time` to the moment it's about (UK local time): the
-post appears on the map wherever the bike was at that moment.
+name becomes the post's address), and set `time` to the moment it's about (the tour's local time): the
+post appears on the map wherever the tour was at that moment.
 
 `cover` is optional: a photo id (the photo's file name without the extension).
 

@@ -50,7 +50,7 @@
 			<span class="grab" aria-hidden="true"></span>
 			<span class="peek-title">{SITE_NAME}</span>
 			<span class="peek-totals">
-				{days.length} days · {distRound(km)} {distUnit}{#if parksTotal} · {parksVisited} {TOUR.protectedAreas.many}{/if}
+				{days.length} days · {distRound(km)} {distUnit}{#if parksVisited} · {parksVisited} {TOUR.protectedAreas.many}{/if}
 			</span>
 			<span class="peek-cta">{expanded ? 'Hide days ▾' : 'Show days ▴'}</span>
 		</button>
@@ -64,7 +64,7 @@
 <aside class="intro scroll-y">
 	<h1>{SITE_NAME}</h1>
 	<p class="totals">
-		{days.length} days · {distRound(km)} {distUnit}{#if parksTotal}
+		{days.length} days · {distRound(km)} {distUnit}{#if parksVisited}
 			· <span class="parks">{parksVisited === parksTotal ? 'all ' : ''}{parksVisited}{parksVisited === parksTotal ? '' : `/${parksTotal}`} {TOUR.protectedAreas.many}</span>{/if}
 	</p>
 	<Timeline {items} whenWidth={42} />

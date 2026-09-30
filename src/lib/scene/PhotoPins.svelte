@@ -4,7 +4,7 @@
   group into places as you zoom out and split into single photos as you zoom in. Clicking a pin
   opens its photos in the gallery. Under the pins, every photo also keeps a small fixed-size dot
   at exactly where it was taken, so the grouping never hides the real spots.
-  Positions are absolute BNG metres; the parent group applies the world origin.
+  Positions are absolute projected metres; the parent group applies the world origin.
 -->
 <script lang="ts">
 	import { T, useTask, useThrelte } from '@threlte/core';
@@ -15,14 +15,14 @@
 
 	let {
 		photos,
-		uk,
+		region,
 		dayTerrain,
 		origin,
 		exaggeration,
 		onopen
 	}: {
 		photos: Photo[];
-		uk: Terrain;
+		region: Terrain;
 		dayTerrain: Terrain | null;
 		origin: { e: number; n: number };
 		exaggeration: number;
@@ -33,11 +33,11 @@
 	const MAX_PINS = 120;
 	const { camera, size } = useThrelte();
 
-	// ground height under each photo: the active day's terrain where it has it, else the UK grid
+	// ground height under each photo: the active day's terrain where it has it, else the region backdrop
 	const heights = $derived.by(() => {
 		const out = new Float32Array(photos.length);
 		photos.forEach((p, k) => {
-			let h = uk.heightAt(p.e, p.n);
+			let h = region.heightAt(p.e, p.n);
 			if (dayTerrain) {
 				const { originE, originN, x0, n1, cols, rows, spacing } = dayTerrain.meta;
 				const x = p.e - originE;
@@ -54,7 +54,7 @@
 		key: string; // the cover photo's id: keeps the DOM node stable between re-clusters
 		cover: Photo;
 		members: Photo[];
-		pos: [number, number, number]; // local (absolute BNG) position of the cover photo
+		pos: [number, number, number]; // local (absolute projected) position of the cover photo
 	}
 	let pins = $state.raw<Pin[]>([]);
 

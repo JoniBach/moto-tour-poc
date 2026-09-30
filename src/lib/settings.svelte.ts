@@ -39,7 +39,7 @@ export class Settings {
 		parks: true,
 		photos: true,
 		blog: true,
-		ukPoints: false,
+		backdropPoints: false,
 		labels: true,
 		weather: true,
 		gpsAltitude: false

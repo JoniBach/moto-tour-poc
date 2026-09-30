@@ -2,7 +2,7 @@
   Blog post markers: a ✎ badge with the post's title where the bike was at the post's moment.
   Clicking opens it in the reader. Every post on the tour is shown (there are few); the title
   label hides when the camera is high above the whole country.
-  Positions are absolute BNG metres; the parent group applies the world origin.
+  Positions are absolute projected metres; the parent group applies the world origin.
 -->
 <script lang="ts">
 	import { T, useTask, useThrelte } from '@threlte/core';
@@ -13,21 +13,21 @@
 
 	let {
 		posts,
-		uk,
+		region,
 		dayTerrain,
 		exaggeration,
 		reading,
 		onopen
 	}: {
 		posts: BlogPost[];
-		uk: Terrain;
+		region: Terrain;
 		dayTerrain: Terrain | null;
 		exaggeration: number;
 		reading: BlogPost | null;
 		onopen: (post: BlogPost) => void;
 	} = $props();
 
-	// ground height: the active day's terrain where it has it, else the UK grid
+	// ground height: the active day's terrain where it has it, else the region backdrop
 	function heightAt(e: number, n: number) {
 		if (dayTerrain) {
 			const { originE, originN, x0, n1, cols, rows, spacing } = dayTerrain.meta;
@@ -36,7 +36,7 @@
 			if (x >= x0 && x <= x0 + (cols - 1) * spacing && y <= n1 && y >= n1 - (rows - 1) * spacing)
 				return Math.max(0, dayTerrain.heightAt(x, y));
 		}
-		return Math.max(0, uk.heightAt(e, n));
+		return Math.max(0, region.heightAt(e, n));
 	}
 
 	const { camera } = useThrelte();

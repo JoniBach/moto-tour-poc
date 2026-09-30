@@ -1,4 +1,4 @@
-// Gzip every day file (static/data/tours/<id>/days/*/*.{bin,json}) and the UK backdrop (static/data/uk) to a
+// Gzip every day file (static/data/tours/<id>/days/*/*.{bin,json}) and the backdrop (static/data/tours/<id>/region) to a
 // .gz beside it for deployment.
 // Static hosts compress JSON on the fly but not .bin, and uploading pre-compressed copies cuts
 // the deployment by several times; the app prefers the .gz and decompresses it in the browser.
@@ -14,7 +14,7 @@ let packed = 0;
 let raw = 0;
 let gz = 0;
 // every day's files, the tour's own (parks mask, …) and the region backdrop
-const dirs = [...fs.readdirSync(DAYS).map((day) => path.join(DAYS, day)), PATHS.out, 'static/data/uk'];
+const dirs = [...fs.readdirSync(DAYS).map((day) => path.join(DAYS, day)), PATHS.out, PATHS.region];
 for (const dir of dirs)
 	for (const f of fs.readdirSync(dir)) {
 		if (!/\.(bin|json)$/.test(f)) continue;
@@ -28,4 +28,4 @@ for (const dir of dirs)
 		raw += size;
 		gz += fs.statSync(out).size;
 	}
-console.log(`Packed ${packed} files; days + UK ${(raw / 1e6).toFixed(0)} MB -> ${(gz / 1e6).toFixed(0)} MB gzipped`);
+console.log(`Packed ${packed} files; days + backdrop ${(raw / 1e6).toFixed(0)} MB -> ${(gz / 1e6).toFixed(0)} MB gzipped`);

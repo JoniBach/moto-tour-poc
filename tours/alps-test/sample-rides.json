@@ -1,0 +1,20 @@
+{
+	"$comment": "Synthetic rides for the alps-test tour: node scripts/make-sample-gpx.mjs tours/alps-test/sample-rides.json. Times are UTC (09:00 local).",
+	"profile": { "flat": 9, "perGrade": 70, "maxDrop": 5.5, "lateral": 2.0, "acc": 0.6, "dec": 2.0 },
+	"rides": [
+		{
+			"name": "Furka and Grimsel",
+			"out": "tours/alps-test/gpx/2026-07-10-furka-grimsel.gpx",
+			"start": "2026-07-10T07:00:00Z",
+			"waypoints": [[8.5936, 46.6356], [8.503, 46.598], [8.415, 46.5727], [8.3606, 46.5625], [8.337, 46.561], [8.288, 46.656], [8.23, 46.706]],
+			"lunch": [8.3606, 46.5625]
+		},
+		{
+			"name": "Susten",
+			"out": "tours/alps-test/gpx/2026-07-11-susten.gpx",
+			"start": "2026-07-11T07:00:00Z",
+			"waypoints": [[8.23, 46.706], [8.353, 46.737], [8.447, 46.729], [8.599, 46.707], [8.5936, 46.6356]],
+			"lunch": [8.447, 46.729]
+		}
+	]
+}

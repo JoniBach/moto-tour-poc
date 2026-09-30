@@ -12,7 +12,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"data:sample": "node scripts/make-sample-gpx.mjs",
 		"data": "node scripts/build-days.mjs",
-		"data:uk": "node scripts/build-uk.mjs",
+		"data:region": "node scripts/build-region.mjs",
 		"data:tour": "node scripts/build-tour.mjs && node scripts/build-parks.mjs",
 		"data:parks": "node scripts/build-parks.mjs",
 		"deploy": "node scripts/deploy.mjs",

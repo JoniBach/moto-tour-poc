@@ -4,7 +4,7 @@
    chase    – sits behind the bike along its heading
    overview – flies out to frame the whole day, then leaves you free
    free     – plain orbit controls, no tracking
-  With no active day it frames Great Britain. It stays mounted across days and exposes a
+  With no active day it frames the whole tour. It stays mounted across days and exposes a
   CameraController so the app can run day-to-day transitions (fly up, shift origin, fly down).
 -->
 <script lang="ts">
@@ -24,7 +24,8 @@
 	// svelte-ignore state_referenced_locally — one app for the life of the page
 	const settings = app.settings;
 
-	const UK_POSE = { pos: new Vector3(0, 1_100_000, 600_000), target: new Vector3(0, 0, 0) };
+	// svelte-ignore state_referenced_locally — only the starting pose; the index is loaded by now
+	const HOME_POSE = app.homePose();
 
 	/** frame for the whole active day (its grid centre, in world metres) */
 	function dayFrame() {
@@ -182,10 +183,10 @@
 	});
 </script>
 
-<T.PerspectiveCamera makeDefault bind:ref={camera} fov={45} position={UK_POSE.pos.toArray()}>
+<T.PerspectiveCamera makeDefault bind:ref={camera} fov={45} position={HOME_POSE.pos.toArray()}>
 	<OrbitControls
 		bind:ref={controls}
-		target={UK_POSE.target.toArray()}
+		target={HOME_POSE.target.toArray()}
 		enableDamping
 		dampingFactor={0.08}
 		maxPolarAngle={Math.PI * 0.47}

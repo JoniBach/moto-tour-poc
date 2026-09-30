@@ -1,0 +1,33 @@
+{
+	"$comment": "A made-up test tour to prove the site works away from the UK and for another activity: synthetic rides (node scripts/make-sample-gpx.mjs tours/alps-test/sample-rides.json), no photos. Never deployed.",
+	"id": "alps-test",
+	"deploy": false,
+	"name": "Alps Test",
+	"when": "July 2026",
+	"title": "A test cycling tour over the Swiss passes",
+	"summary": "from Andermatt over the Furka, Grimsel and Susten and back",
+	"activity": "bicycle",
+	"locale": "en-US",
+	"timeZone": "Europe/Zurich",
+	"units": {
+		"distance": "km",
+		"temperature": "F"
+	},
+	"speed": 1,
+	"region": {
+		"name": "Alps",
+		"centre": [
+			8.4158,
+			46.6537
+		]
+	},
+	"protectedAreas": {
+		"one": "National Park",
+		"many": "national parks",
+		"classes": [
+			"national_park",
+			"protected_area"
+		],
+		"minKm2": 50
+	}
+}

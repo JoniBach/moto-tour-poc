@@ -4,6 +4,7 @@
   Photos embedded in the post open the gallery. Esc or × closes it.
 -->
 <script lang="ts">
+	import { A } from '$lib/activity';
 	import { TOUR } from '$lib/tourConfig';
 	import { photoSrc } from '$lib/tourConfig';
 	import { on } from '$lib/flags';
@@ -76,7 +77,7 @@
 
 		<footer>
 			<span class="actions">
-				<button class="ride" onclick={() => app.rideTo(post, onride)}>▶ Ride here</button>
+				<button class="ride" onclick={() => app.rideTo(post, onride)}>▶ {A.go} here</button>
 				<button class="link" onclick={share} title="Copy a link to this post">{linked ? '✓ Copied' : '🔗 Link'}</button>
 				{#if on('blog')}<a class="link" href="/blog/{post.day}/{post.slug}">📖 Read in the blog</a>{/if}
 			</span>

@@ -1,55 +1,59 @@
-// National parks of Great Britain (OpenMapTiles `park` layer, z9 tiles) for the tour overview:
+// The protected areas around the tour (OpenMapTiles `park` layer, z9 tiles) for the overview:
 //  - each park is rasterised at 200 m within its own box, then traced (d3-contour) into a clean
 //    outline: the tile-clipped polygons would otherwise show seams along tile edges
-//  - a 1 km mask aligned with the UK grid (park index + 1 per cell) for tinting the UK points
+//  - a mask aligned with the region backdrop grid (park index + 1 per cell) for tinting its points
 //  - which parks the tour passed through, from tour.json's route lines
-// Output: static/data/uk/parks.json, static/data/uk/parks.bin
-// Run after build-uk and build-tour.
+// Which parks: tour.config.json protectedAreas.names (map name -> display name; only those), else
+// every park of protectedAreas.classes (default national_park) of at least minKm2 (default 10),
+// named as the map names it, less a trailing " National Park" style suffix.
+// Output: static/data/tours/<id>/parks.json + parks.bin
+// Run after build-region and build-tour.
 import fs from 'node:fs';
+import path from 'node:path';
 import { contours } from 'd3';
-import { fromBng, toBng } from './lib/geo.mjs';
+import { fromGrid, toGrid } from './lib/geo.mjs';
 import { readTiles, tileOf } from './lib/vtiles.mjs';
-import { PATHS } from './lib/tour.mjs';
+import { PATHS, TOUR } from './lib/tour.mjs';
 
 const RES = 200; // metres per cell of each park's raster
 const SIMPLIFY = 350; // metres between kept outline points
 
-// OSM name -> display name (English names as used on the tour)
-const PARKS = {
-	'Bannau Brycheiniog National Park': 'Brecon Beacons',
-	'Cairngorms National Park': 'Cairngorms',
-	'Dartmoor National Park': 'Dartmoor',
-	'Exmoor National Park': 'Exmoor',
-	'Lake District National Park': 'Lake District',
-	'Loch Lomond and The Trossachs National Park': 'Loch Lomond & The Trossachs',
-	'New Forest National Park': 'New Forest',
-	'North York Moors National Park': 'North York Moors',
-	'Northumberland National Park': 'Northumberland',
-	'Parc Cenedlaethol Eryri': 'Snowdonia',
-	'Peak District National Park': 'Peak District',
-	'Pembrokeshire Coast National Park': 'Pembrokeshire Coast',
-	'South Downs National Park': 'South Downs',
-	'The Broads': 'The Broads',
-	'Yorkshire Dales National Park': 'Yorkshire Dales'
+const { names, classes = ['national_park'], minKm2 = 10, one } = TOUR.protectedAreas;
+const suffix = new RegExp(`\\s+${one}$`, 'i');
+const displayName = (props) => {
+	if (names) return names[props.name];
+	if (!classes.includes(props.class)) return undefined;
+	const name = props['name:en'] ?? props.name_en ?? props.name;
+	return name ? name.replace(suffix, '') : undefined;
 };
 
-// ---------- collect polygon pieces per park (BNG metres) ----------
+// the backdrop's area, in lon/lat
+const region = JSON.parse(fs.readFileSync(path.join(PATHS.region, 'terrain.json'), 'utf8'));
+const e1 = region.x0 + (region.cols - 1) * region.spacing;
+const n0 = region.n1 - (region.rows - 1) * region.spacing;
+const corners = [fromGrid(region.x0, n0), fromGrid(e1, n0), fromGrid(region.x0, region.n1), fromGrid(e1, region.n1)];
+const west = Math.min(...corners.map((c) => c[0]));
+const east = Math.max(...corners.map((c) => c[0]));
+const south = Math.min(...corners.map((c) => c[1]));
+const north = Math.max(...corners.map((c) => c[1]));
+
+// ---------- collect polygon pieces per park (projected metres) ----------
 const Z = 9;
-const [tx0, ty0] = tileOf(-8.2, 60.9, Z);
-const [tx1, ty1] = tileOf(1.8, 49.8, Z);
+const [tx0, ty0] = tileOf(west, north, Z);
+const [tx1, ty1] = tileOf(east, south, Z);
 const tiles = [];
 for (let x = tx0; x <= tx1; x++) for (let y = ty0; y <= ty1; y++) tiles.push([Z, x, y]);
 console.log(`Parks: reading ${tiles.length} z${Z} tiles`);
 
-const pieces = new Map(); // name -> [[ring, ring…], …] in BNG
+const pieces = new Map(); // name -> [[ring, ring…], …] in projected metres
 await readTiles(tiles, ['park'], (_, f) => {
-	const name = PARKS[f.properties.name];
+	const name = displayName(f.properties);
 	if (!name) return;
 	const g = f.geometry;
 	const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
 	for (const poly of polys) {
 		if (!pieces.has(name)) pieces.set(name, []);
-		pieces.get(name).push(poly.map((ring) => ring.map(([lon, lat]) => toBng(lon, lat))));
+		pieces.get(name).push(poly.map((ring) => ring.map(([lon, lat]) => toGrid(lon, lat))));
 	}
 });
 
@@ -125,6 +129,8 @@ for (const [name, polys] of [...pieces].sort()) {
 	const days = tour.days
 		.filter((d) => d.lines.some((line) => line.some((_, k) => k % 2 === 0 && inside(line[k], line[k + 1]))))
 		.map((d) => d.day);
+	// by class there are many small reserves: keep the ones worth a label, and any the tour went through
+	if (!names && !days.length && (count * RES * RES) / 1e6 < minKm2) continue;
 
 	parks.push({
 		name,
@@ -138,18 +144,18 @@ for (const [name, polys] of [...pieces].sort()) {
 	console.log(`  ${name.padEnd(30)} ${String(Math.round((count * RES * RES) / 1e6)).padStart(5)} km²  ${rings.length} ring(s)  ${days.length ? 'days ' + days.map((d) => d.slice(8)).join(',') : '—'}`);
 }
 
-// ---------- 1 km mask on the UK grid ----------
-const uk = JSON.parse(fs.readFileSync('static/data/uk/terrain.json', 'utf8'));
-const mask = new Uint8Array(uk.cols * uk.rows);
+// ---------- mask on the backdrop grid ----------
+const bg = region;
+const mask = new Uint8Array(bg.cols * bg.rows);
 parks.forEach((p, idx) => {
 	const { grid, cols, rows, e0, n1 } = p._raster;
-	for (let r = 0; r < uk.rows; r++) {
-		const n = uk.n1 - r * uk.spacing;
+	for (let r = 0; r < bg.rows; r++) {
+		const n = bg.n1 - r * bg.spacing;
 		const pr = Math.round((n1 - n) / RES);
 		if (pr < 0 || pr >= rows) continue;
-		for (let c = 0; c < uk.cols; c++) {
-			const pc = Math.round((uk.x0 + c * uk.spacing - e0) / RES);
-			if (pc >= 0 && pc < cols && grid[pr * cols + pc]) mask[r * uk.cols + c] = idx + 1;
+		for (let c = 0; c < bg.cols; c++) {
+			const pc = Math.round((bg.x0 + c * bg.spacing - e0) / RES);
+			if (pc >= 0 && pc < cols && grid[pr * cols + pc]) mask[r * bg.cols + c] = idx + 1;
 		}
 	}
 });

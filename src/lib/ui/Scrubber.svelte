@@ -4,6 +4,7 @@
   and a row of photo ticks (hover to preview, click to jump there and open the photo).
 -->
 <script lang="ts">
+	import { A, cap } from '$lib/activity';
 	import { distance, distUnit, tempRound, tempUnit, wind, windUnit } from '$lib/units';
 	import { TOUR } from '$lib/tourConfig';
 	import { area, line, scaleLinear } from 'd3';
@@ -181,11 +182,11 @@ time: ${stamp}${cover}
 			{/if}
 			<div><dt>Ground</dt><dd>{b.h.toFixed(0)}<small>m</small></dd></div>
 			<div><dt>GPS alt</dt><dd>{b.ele.toFixed(0)}<small>m</small></dd></div>
-			<div><dt>Lean</dt><dd>{Math.abs((b.lean * 180) / Math.PI).toFixed(0)}<small>°</small></dd></div>
+			{#if A.leans}<div><dt>Lean</dt><dd>{Math.abs((b.lean * 180) / Math.PI).toFixed(0)}<small>°</small></dd></div>{/if}
 			<div><dt>Gradient</dt><dd>{(gradientAt(tr, b.i) * 100).toFixed(0)}<small>%</small></dd></div>
 			<div><dt>Distance</dt><dd>{distance(b.dist / 1000).toFixed(1)}<small>{distUnit}</small></dd></div>
 		</dl>
-		<button class="share" onclick={shareMoment} title="Copy a link to this moment of the ride">
+		<button class="share" onclick={shareMoment} title="Copy a link to this moment of the {A.leg}">
 			{linked ? '✓ Copied' : '🔗 Share moment'}
 		</button>
 		{#if import.meta.env.DEV}
@@ -207,7 +208,7 @@ time: ${stamp}${cover}
 			height={HEIGHT}
 			role="slider"
 			tabindex="0"
-			aria-label="Ride timeline"
+			aria-label="{cap(A.leg)} timeline"
 			aria-valuemin={0}
 			aria-valuemax={tour.duration}
 			aria-valuenow={tour.rt}

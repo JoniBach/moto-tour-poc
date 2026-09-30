@@ -12,6 +12,8 @@ if (!fs.existsSync(configFile)) throw new Error(`No tour "${TOUR_ID}": ${configF
 
 /** tours/<id>/tour.config.json: name, dates, activity, locale, time zone, units, speed policy */
 export const TOUR = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+if (!TOUR.region?.centre)
+	throw new Error(`${configFile} has no region.centre: run node scripts/init-tour.mjs ${TOUR_ID} once its GPX are in place`);
 
 const OUT = path.join('static/data/tours', TOUR_ID);
 
@@ -33,6 +35,6 @@ export const PATHS = {
 	parksJson: path.join(OUT, 'parks.json'),
 	parksBin: path.join(OUT, 'parks.bin'),
 	photos: path.join('static/photos', TOUR_ID),
-	/** the region backdrop (shared by tours in it) */
-	ukTerrain: 'static/data/uk'
+	/** the backdrop terrain for the whole tour (build-region) */
+	region: path.join(OUT, 'region')
 };

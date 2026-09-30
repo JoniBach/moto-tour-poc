@@ -1,8 +1,8 @@
 <!--
-  Every day's route as one glowing line across Great Britain (simplified, from tour.json),
-  each day in its own colour, draped on the 1 km UK grid. The active day's line is hidden
+  Every day's route as one glowing line across the region (simplified, from tour.json),
+  each day in its own colour, draped on the region backdrop grid. The active day's line is hidden
   because its full-detail route is drawn by the day scene.
-  Positions are absolute BNG metres; the parent group applies the world origin offset.
+  Positions are absolute projected metres; the parent group applies the world origin offset.
 -->
 <script lang="ts">
 	import { T, useTask, useThrelte } from '@threlte/core';
@@ -13,7 +13,7 @@
 	import { dayColor } from '$lib/colors';
 	import type { DaySummary, Terrain } from '$lib/data';
 
-	let { days, uk, activeDay }: { days: DaySummary[]; uk: Terrain; activeDay: string | null } = $props();
+	let { days, region, activeDay }: { days: DaySummary[]; region: Terrain; activeDay: string | null } = $props();
 
 	const LIFT = 60; // metres: 1 km terrain is coarse, keep the line clear of it
 
@@ -23,7 +23,7 @@
 		for (const line of d.lines)
 			for (let k = 2; k < line.length; k += 2) {
 				const [ea, na, eb, nb] = [line[k - 2], line[k - 1], line[k], line[k + 1]];
-				seg.push(ea, Math.max(0, uk.heightAt(ea, na)) + LIFT, -na, eb, Math.max(0, uk.heightAt(eb, nb)) + LIFT, -nb);
+				seg.push(ea, Math.max(0, region.heightAt(ea, na)) + LIFT, -na, eb, Math.max(0, region.heightAt(eb, nb)) + LIFT, -nb);
 			}
 		const geometry = new LineSegmentsGeometry();
 		geometry.setPositions(seg);

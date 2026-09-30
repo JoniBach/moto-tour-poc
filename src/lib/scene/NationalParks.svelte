@@ -1,7 +1,7 @@
 <!--
-  National park outlines, traced on the terrain. Positions are absolute BNG metres (the parent
+  National park outlines, traced on the terrain. Positions are absolute projected metres (the parent
   group applies the world origin and vertical exaggeration). Inside the active day's grid the
-  outline drapes on that day's detailed terrain; elsewhere on the 1 km UK grid. Parks the active
+  outline drapes on that day's detailed terrain; elsewhere on the region backdrop grid. Parks the active
   day passes through glow brighter.
 -->
 <script lang="ts">
@@ -13,10 +13,10 @@
 
 	let {
 		parks,
-		uk,
+		region,
 		day,
 		dayTerrain
-	}: { parks: Parks; uk: Terrain; day: string | null; dayTerrain: Terrain | null } = $props();
+	}: { parks: Parks; region: Terrain; day: string | null; dayTerrain: Terrain | null } = $props();
 
 	const LIFT = 25; // metres; clear of the terrain without floating visibly
 
@@ -36,7 +36,7 @@
 		return { park, geometry, material, obj };
 	});
 
-	// drape: the active day's terrain where it has it, the UK grid elsewhere
+	// drape: the active day's terrain where it has it, the region backdrop elsewhere
 	function heightAt(e: number, n: number) {
 		if (dayTerrain) {
 			const { originE, originN, x0, n1, cols, rows, spacing } = dayTerrain.meta;
@@ -45,7 +45,7 @@
 			if (x >= x0 && x <= x0 + (cols - 1) * spacing && y <= n1 && y >= n1 - (rows - 1) * spacing)
 				return Math.max(0, dayTerrain.heightAt(x, y));
 		}
-		return Math.max(0, uk.heightAt(e, n));
+		return Math.max(0, region.heightAt(e, n));
 	}
 
 	$effect(() => {

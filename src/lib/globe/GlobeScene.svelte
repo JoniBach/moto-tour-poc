@@ -8,9 +8,9 @@
 	import { T, useTask } from '@threlte/core';
 	import { OrbitControls } from '@threlte/extras';
 	import { CanvasTexture, Color, Group, Mesh, ShaderMaterial, SphereGeometry, Sprite, SpriteMaterial, Vector3 } from 'three';
-	import { fromBng } from '$lib/bng';
+	import { fromGrid } from '$lib/projection';
 	import { weatherAt, type BlogPost, type Parks, type Photo } from '$lib/data';
-	import Bike from '$lib/scene/Bike.svelte';
+	import Traveller from '$lib/scene/Traveller.svelte';
 	import type { Tour } from '$lib/tour.svelte';
 	import DioramaTerrain from './DioramaTerrain.svelte';
 	import GlobeHalo from './GlobeHalo.svelte';
@@ -145,7 +145,7 @@
 		globe.rain = tour.layers.weather && w ? Math.min(1, Math.max(drizzle, (w.precip ?? 0) / 1.5)) : 0;
 
 		// sun and moon for this place and moment
-		const [lon, lat] = fromBng(b.x + originE, b.n + originN);
+		const [lon, lat] = fromGrid(b.x + originE, b.n + originN);
 		const sun = sunAt(b.time, lat, lon);
 		const moon = moonAt(b.time, lat, lon);
 		globe.sunDir.set(...direction(sun));
@@ -235,7 +235,7 @@
 		{/if}
 	{/key}
 	<!-- the same size on screen whatever the landscape's scale -->
-	<Bike {tour} beacon={false} grow={R / V} groundAt={(x, n) => globe.ground(x, n)} />
+	<Traveller {tour} beacon={false} grow={R / V} groundAt={(x, n) => globe.ground(x, n)} />
 </T>
 
 {#if !mini}<GlobeWeather {globe} show={tour.layers.weather} />{/if}

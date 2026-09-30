@@ -1,5 +1,6 @@
 <!-- One day of the tour as a blog page: its details, then every event with larger photos. -->
 <script lang="ts">
+	import { A } from '$lib/activity';
 	import { TOUR } from '$lib/tourConfig';
 	import { distRound, distWord, tempRound, tempUnit } from '$lib/units';
 	import { on } from '$lib/flags';
@@ -32,7 +33,7 @@
 		<p class="daynum">Day {d.index + 1} · <time datetime={iso(d.start)}>{longDate(d.start)}</time></p>
 		<h1>{d.title}</h1>
 		<ul class="facts">
-			<li><strong>{distRound(d.km)}</strong> {distWord}{#if d.rides > 1} over {d.rides} rides{/if}</li>
+			<li><strong>{distRound(d.km)}</strong> {distWord}{#if d.rides > 1} over {d.rides} {A.legs}{/if}</li>
 			{#if d.weather}<li>
 					<strong>{tempRound(d.weather.minTemp)} to {tempRound(d.weather.maxTemp)} {tempUnit}</strong>{#if d.weather.wettestHourMm > 0.2}, some rain{/if}
 				</li>{/if}
@@ -40,7 +41,7 @@
 			{#if d.parks.length}<li>{d.parks.join(', ')}</li>{/if}
 		</ul>
 		<p class="go">
-			{#if on('dx3d')}<a class="dx" href="/day/{d.day}?view=3d">Ride this day in the 3D tour<span aria-hidden="true"> ↗</span></a>{/if}
+			{#if on('dx3d')}<a class="dx" href="/day/{d.day}?view=3d">{A.go} this day in the 3D tour<span aria-hidden="true"> ↗</span></a>{/if}
 			{#if on('map')}<a class="dx alt" href="/day/{d.day}?view=2d">See it on a map<span aria-hidden="true"> ↗</span></a>{/if}
 			{#if on('globe')}<a class="dx alt" href="/day/{d.day}?view=globe">Watch it as a globe<span aria-hidden="true"> ↗</span></a>{/if}
 		</p>

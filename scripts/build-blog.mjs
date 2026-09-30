@@ -2,7 +2,7 @@
 //
 //   ---
 //   title: Up and over Honister
-//   time: 2026-09-16 11:30        # UK local time (or full ISO); the post goes where the bike was
+//   time: 2026-09-16 11:30        # the tour's local time (or full ISO); the post goes where the bike was
 //   cover: 20260916_113010        # optional: a photo id for the header image
 //   ---
 //   Markdown body. Photos from the tour can be embedded by id:
@@ -15,7 +15,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { marked } from 'marked';
-import { inPrivacyZoneAt, parseUkTime, ukDate } from './lib/geo.mjs';
+import { inPrivacyZoneAt, parseTourTime, tourDate } from './lib/geo.mjs';
 import { PATHS, TOUR } from './lib/tour.mjs';
 
 const SRC = PATHS.blogSrc;
@@ -86,7 +86,7 @@ const posts = [];
 for (const file of fs.readdirSync(SRC).filter((f) => f.endsWith('.md') && !f.startsWith('_')).sort()) {
 	const { data, body } = frontmatter(fs.readFileSync(path.join(SRC, file), 'utf8'));
 	const slug = file.replace(/\.md$/, '');
-	const t = parseUkTime(data.time ?? '');
+	const t = parseTourTime(data.time ?? '');
 	if (!data.title || !Number.isFinite(t)) {
 		console.log(`  skipped ${file}: needs "title" and "time" (e.g. time: 2026-09-16 11:30)`);
 		continue;
@@ -95,7 +95,7 @@ for (const file of fs.readdirSync(SRC).filter((f) => f.endsWith('.md') && !f.sta
 		console.log(`  skipped ${file}: its moment is inside a privacy zone`);
 		continue;
 	}
-	const day = ukDate(t);
+	const day = tourDate(t);
 	const d = track(day);
 	if (!d) {
 		console.log(`  skipped ${file}: no ride on ${day}`);
@@ -127,4 +127,4 @@ for (const file of fs.readdirSync(SRC).filter((f) => f.endsWith('.md') && !f.sta
 posts.sort((a, b) => a.t - b.t);
 fs.writeFileSync(PATHS.blogJson, JSON.stringify({ posts }));
 console.log(`Wrote ${PATHS.blogJson}: ${posts.length} post(s)`);
-for (const p of posts) console.log(`  ${p.day} ${new Date(p.t * 1000).toLocaleTimeString('en-GB', { timeZone: TOUR.timeZone, hour: '2-digit', minute: '2-digit' })}  ${p.title}`);
+for (const p of posts) console.log(`  ${p.day} ${new Date(p.t * 1000).toLocaleTimeString(TOUR.locale, { timeZone: TOUR.timeZone, hour: '2-digit', minute: '2-digit' })}  ${p.title}`);

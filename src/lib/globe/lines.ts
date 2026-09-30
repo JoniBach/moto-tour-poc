@@ -69,7 +69,7 @@ export function globeLines(
 	return lines;
 }
 
-/** Which national park (if any) an absolute BNG point is in: even-odd test over the outlines. */
+/** Which national park (if any) an absolute projected point is in: even-odd test over the outlines. */
 export function parkAt(parks: Parks | null, e: number, n: number): string | null {
 	for (const park of parks?.parks ?? []) {
 		let inside = false;

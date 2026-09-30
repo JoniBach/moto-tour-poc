@@ -1,10 +1,10 @@
 // L2: full-resolution terrain around the bike, streamed in the browser from the same Terrarium
 // tiles the pipeline uses (AWS open data, CORS enabled). Day grids can be coarse (75 m on long
 // days); this gives the detail bubble ~22 m data everywhere without shipping it per day.
-import { makeProjection } from './bng';
+import { makeProjection } from './projection';
 import { despike, type TerrainMeta } from './data';
 
-const Z = 12; // ~22 m/px at UK latitudes
+const Z = 12; // ~22 m/px at 55° latitude
 const URL_OF = (x: number, y: number) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${Z}/${x}/${y}.png`;
 
 const RAD = Math.PI / 180;

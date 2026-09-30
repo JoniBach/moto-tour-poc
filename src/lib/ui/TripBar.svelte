@@ -1,8 +1,9 @@
 <!--
-  Trip-level navigation: home (UK), previous/next day, and one chip per day of the tour.
+  Trip-level navigation: home (the whole tour), previous/next day, and one chip per day of the tour.
   Days are pages (/day/<date>), so this is just links; the app animates the move.
 -->
 <script lang="ts">
+	import { A } from '$lib/activity';
 	import { TOUR } from '$lib/tourConfig';
 	import { on, VIEWS_ON } from '$lib/flags';
 	import type { App } from '$lib/app.svelte';
@@ -15,7 +16,7 @@
 		[
 			{ id: '3d', label: '⛰ 3D', title: 'The tour in 3D' },
 			{ id: '2d', label: '🗺 Map', title: 'The tour on a flat street map' },
-			{ id: 'globe', label: '◍ Globe', title: 'The ride as a little globe: the landscape turns under the bike' }
+			{ id: 'globe', label: '◍ Globe', title: `The ${A.leg} as a little globe: the landscape turns under ${A.mover}` }
 		] as const
 	).filter((v) => VIEWS_ON.includes(v.id));
 
@@ -44,7 +45,7 @@
 </script>
 
 <nav class="trip" aria-label="Tour days">
-	<a class="home" class:on={!activeDay} href="/" title="Whole tour">⌂ UK</a>
+	<a class="home" class:on={!activeDay} href="/" title="Whole tour">⌂ {TOUR.region.name}</a>
 	<a class="step" class:disabled={!prev} href={prev ? `/day/${prev.day}` : undefined} aria-label="Previous day">◀</a>
 	<div class="chips scroll-x" bind:this={chips} {onwheel}>
 		{#each days as d (d.day)}

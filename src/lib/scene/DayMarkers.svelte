@@ -1,5 +1,5 @@
 <!--
-  A clickable "Day N" marker on each day's route for the UK overview. Hidden once the camera
+  A clickable "Day N" marker on each day's route for the whole-tour overview. Hidden once the camera
   is down at a day (closer than ~60 km), except for days that aren't the active one.
 -->
 <script lang="ts">
@@ -13,13 +13,13 @@
 
 	let {
 		days,
-		uk,
+		region,
 		activeDay,
 		exaggeration,
 		onselect
 	}: {
 		days: DaySummary[];
-		uk: Terrain;
+		region: Terrain;
 		activeDay: string | null;
 		exaggeration: number;
 		onselect: (day: string) => void;
@@ -27,14 +27,14 @@
 
 	const { camera } = useThrelte();
 
-	// marker at the middle point of each day's longest ride (absolute BNG)
+	// marker at the middle point of each day's longest ride (absolute projected)
 	// svelte-ignore state_referenced_locally — the tour index never changes
 	const markers = days.map((d) => {
 		const line = d.lines.reduce((a, b) => (b.length > a.length ? b : a), []);
 		const k = Math.floor(line.length / 4) * 2;
 		const e = line[k];
 		const n = line[k + 1];
-		return { d, e, n, h: Math.max(0, uk.heightAt(e, n)) };
+		return { d, e, n, h: Math.max(0, region.heightAt(e, n)) };
 	});
 
 	let far = $state(true);

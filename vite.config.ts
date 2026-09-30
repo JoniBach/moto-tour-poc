@@ -41,6 +41,11 @@ export default defineConfig({
 
 			adapter: adapter(),
 
+			// a tour without photos (or stories) has no pages under those routes: that's fine
+			prerender: {
+				handleUnseenRoutes: ({ routes }) => console.warn(`Nothing to prerender for ${routes.join(', ')} in this tour`)
+			},
+
 			// Content Security Policy, as a <meta> in every (prerendered) page. Scripts: our own files,
 			// plus SvelteKit's inline start-up script by hash, nothing else. Other content only from
 			// the services the views use. frame-ancestors can't go in a <meta>: see vercel.json.

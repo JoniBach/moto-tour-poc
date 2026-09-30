@@ -9,7 +9,7 @@
 	import { OrbitControls } from '@threlte/extras';
 	import { CanvasTexture, CylinderGeometry, SRGBColorSpace } from 'three';
 	import type { WeatherSample } from '$lib/data';
-	import Bike from '$lib/scene/Bike.svelte';
+	import Traveller from '$lib/scene/Traveller.svelte';
 	import type { Tour } from '$lib/tour.svelte';
 	import GlobeWeather from './GlobeWeather.svelte';
 	import Plinth from './Plinth.svelte';
@@ -28,7 +28,7 @@
 	const globe = new GlobeState(V);
 	globe.weather = { cloud: 35, wind: 8, windDir: 250, precip: 0, code: 2, isDay: 1 } as WeatherSample;
 
-	// the bike, parked facing east along the road (Bike reads only these)
+	// the bike, parked facing east along the road (Traveller reads only these)
 	const parked = { bike: { x: 0, n: 0, h: TURF, heading: Math.PI / 2 - 0.12, lean: 0 }, exaggeration: 1 } as unknown as Tour;
 
 	function meadow() {
@@ -164,6 +164,6 @@
 	<T.MeshStandardMaterial map={grass} roughness={0.95} />
 </T.Mesh>
 
-<Bike tour={parked} beacon={false} />
+<Traveller tour={parked} beacon={false} />
 
 <GlobeWeather {globe} show />

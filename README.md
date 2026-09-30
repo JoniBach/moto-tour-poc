@@ -26,8 +26,7 @@ npm run data                         # all days, tour index, parks
 node scripts/build-photos.mjs        # resize + place photos
 ```
 
-Only the tour configs, titles, pins and stories, and the GB backdrop (`static/data/uk/`, public map
-data) are committed.
+Only the tour configs, titles, pins and stories are committed.
 
 ## Tours
 
@@ -47,27 +46,44 @@ tours/uk-2026/
 ```
 
 Outputs go to `static/data/tours/<id>/` (days, `tour.json`, `photos.json`, `blog.json`,
-`feed.json`, `parks.*`) and `static/photos/<id>/`, all git-ignored. `static/data/uk/` (the GB
-terrain backdrop) is shared.
+`feed.json`, `parks.*`, `region/` the backdrop terrain) and `static/photos/<id>/`, all
+git-ignored.
 
 `tour.config.json`:
 
 | Field | Example | Used for |
 | --- | --- | --- |
 | `id` | `uk-2026` | folder names and URLs of data and photos |
+| `deploy` | `false` | optional: `npm run deploy` refuses the tour (test tours) |
 | `name`, `when` | `UK Tour`, `September 2026` | site name, titles, headers |
 | `title`, `summary` | `A motorcycle tour of Britain's national parks`, `from Pembrokeshire to the Cairngorms and back` | blog headline and intro, globe overview |
-| `activity` | `motorcycle` | (reserved: wording and icons per activity) |
+| `activity` | `motorcycle` | `motorcycle`, `bicycle`, `car` or `walk`: the 3D figure, the words ("Ride here" / "Drive here" / "Walk here", "the bike" / "the car"), whether lean is offered, what counts as fast for the speed shade (`src/lib/activity.ts`) |
 | `locale` | `en-GB` | `<html lang>`, dates and numbers |
 | `timeZone` | `Europe/London` | every clock and date, in the site and the scripts |
 | `units` | `{ "distance": "mi", "temperature": "C" }` | `mi`/`km`, `C`/`F` (data stays metric) |
 | `speed` | `1` | 0 no speed, 1 relative shade only, 2 figures |
-| `protectedAreas` | `{ "one": "National Park", "many": "national parks" }` | park wording |
+| `region.name` | `UK` | the whole-tour chip |
+| `region.centre` | `[-2.3179, 55.4734]` | overview origin and the projection's centre (`init-tour` sets it from the rides) |
+| `region.projection` | British National Grid | optional proj4 string; default a transverse Mercator on the centre (fine to ~1,000 km out) |
+| `region.backdrop` | `{ "extent": [0, 0, 700000, 1250000], "spacing": 1000, "sea": [[lon0, lat0, lon1, lat1], …] }` | optional: the backdrop's box (projected metres; default the rides + 100 km), spacing (default: under a million points) and land to treat as sea |
+| `protectedAreas` | `{ "one": "National Park", "many": "national parks", "names": {…} }` | park wording, and which parks: `names` (map name → display name, only those) or `classes` (OpenMapTiles park classes, default `["national_park"]`) at least `minKm2` (default 10) |
 
-A new tour: copy `tours/uk-2026/` without its private folders, edit the config, drop in the GPX,
-photos and privacy zones, then `TOUR=<id> npm run data`, `TOUR=<id> npm run data:photos`,
-`TOUR=<id> npm run dev`. The terrain backdrop, projection (British National Grid) and parks
-source are still GB-only; tours elsewhere need those generalised first.
+**A new tour:**
+
+```sh
+node scripts/init-tour.mjs my-tour          # creates tours/my-tour/ with a config to edit
+# put the rides in tours/my-tour/gpx/ (YYYY-MM-DD…gpx), photos in photos-src/jpg/, zones in privacy.json
+node scripts/init-tour.mjs my-tour          # again: sets region.centre from the rides
+TOUR=my-tour npm run data                   # backdrop, days, tour index, parks, feed
+TOUR=my-tour npm run data:photos
+TOUR=my-tour npm run dev
+```
+
+`tours/alps-test/` is a made-up two-day cycling tour over the Swiss passes (km, °F, en-US,
+Europe/Zurich, a test privacy zone) that proves all of this works away from the UK and on a
+bicycle: `node scripts/make-sample-gpx.mjs tours/alps-test/sample-rides.json` makes its rides,
+then `node scripts/init-tour.mjs alps-test` and the steps above. Inland regions have no coast,
+so the overview outlines their mountains with a line every 1,000 m instead.
 
 ## Blog posts
 
@@ -154,9 +170,9 @@ reader, pins), same shareable URLs with `?view=2d` added. The choice is remember
   (click: gallery), stories, pins and day markers (the markers are real buttons: keyboard and
   screen-reader reachable). Follows the bike until you drag; "Follow the bike" brings it back.
   No tilt or rotation, on purpose.
-- `src/lib/map/features.ts`: BNG → lon/lat GeoJSON from the same privacy-filtered data.
+- `src/lib/map/features.ts`: projected metres → lon/lat GeoJSON from the same privacy-filtered data.
 - Each view is its own chunk (`Scene3D.svelte` / `Map2D.svelte`, loaded with dynamic
-  `import()`), and the UK terrain backdrop only loads for 3D, so the 2D map never downloads the
+  `import()`), and the region's terrain backdrop only loads for 3D, so the 2D map never downloads the
   3D scene. MapLibre's worker is bundled via `?worker&url` + `setWorkerUrl`.
 - Map tiles come from openfreemap.org, so viewers' browsers talk to that service; the base map
   covers everywhere (it's just a map), while the tour's own routes, photos and posts are the
@@ -221,7 +237,7 @@ day plays. **◍ Globe** in the trip bar (phones: the view button steps 3D → m
   each new one fades in in place. Photos and stories open on click.
 - `GlobeUI.svelte`: deliberately small: play bar (play/pause, speed, time, weather, slider) and a
   settings card (surface, elevation lines, route, weather, places, photos, stories, relief).
-- Own chunk (`Globe3D.svelte`); needs no UK backdrop.
+- Own chunk (`Globe3D.svelte`); needs no region backdrop.
 - Before a day is chosen (and while one loads): `GlobeOverview.svelte`, the same plinth with a
   flat meadow (fields, hedgerows, a country road) and the bike parked in the middle, beside the
   day list. The globe is the default view for new visitors (`DEFAULT_VIEW` in `flags.ts`).
@@ -261,7 +277,7 @@ refuses to run if it finds anything.
 - Deploys pin the Vercel CLI (`scripts/deploy.mjs`) and retry interrupted uploads.
 - Memory on long sessions: the app keeps only the current day and its neighbours, and at most 64
   elevation tiles. The 2D map loads days light (no terrain, rasters or OSM: ~5 MB less a day) and
-  only animates while playing; the UK backdrop and parks are served gzipped.
+  only animates while playing; the region backdrop and parks are served gzipped.
 - Third-party map terms to settle before a busy public launch: Esri World Imagery (an ArcGIS
   account for public apps), OpenTopoMap (not for use as an app's default map), EOX Sentinel-2
   2023 (CC BY-NC-SA: non-commercial, credited).
@@ -309,21 +325,21 @@ one at a time:
 
 | Level | What | Loaded |
 | --- | --- | --- |
-| **L0 UK** | Great Britain at 1 km (`static/data/uk/`), every day's simplified route (`tour.json`) | Always: home page and backdrop |
+| **L0 Region** | The region around the tour (`region/`; for the UK all of Great Britain at 1 km), every day's simplified route (`tour.json`) | Always: home page and backdrop |
 | **L1 Day** | A day bundle (`static/data/tours/<id>/days/<date>/`): terrain grid, corridor, track, OSM, water, weather, pins. Grid spacing adapts to the day's size (25 m for the Lakes loop, 75 m for the 225 km run to Dunbar) | One day at a time; the next day is prefetched |
 | **L2 Near bike** | Full-resolution Terrarium tiles streamed in the browser around the bike (`nearTerrain.ts`), feeding a fixed 25 m detail mesh | Continuously, around the rider |
 
-- **One world:** everything is in British National Grid metres. Each day's data is stored relative to its own origin (whole km), and the world origin is the *active* day's origin, so the day renders untransformed with full float precision. The UK layer and the other days' routes are offset against it.
+- **One world:** everything is in the tour's projected metres (British National Grid for the UK, a transverse Mercator on the tour's centre elsewhere). Each day's data is stored relative to its own origin (whole km), and the world origin is the *active* day's origin, so the day renders untransformed with full float precision. The region layer and the other days' routes are offset against it.
 - **Day transitions** (`app.svelte.ts`): climb to a point above both days, shift the world origin and the camera by the same amount (invisible), swap the day, fly back down. Driven by the URL: the trip bar, day markers, **Shift + ←/→** and auto-advance at the end of a day all just navigate.
 - **Settings persist across days** (`settings.svelte.ts`); `Tour` is per-day playback and forwards them.
-- **Grid north ≠ true north:** BNG is rotated from Mercator by up to ~3°, so imagery UVs near the bike use a full affine map, and far UVs come from a 2 km lookup table rather than per-vertex projection.
+- **Grid north ≠ true north:** the projection's grid is rotated from Mercator by up to ~3°, so imagery UVs near the bike use a full affine map, and far UVs come from a 2 km lookup table rather than per-vertex projection.
 
 ## Data pipeline
 
 ```sh
 npm run data                         # every day in tours/<id>/gpx/, then the tour index
 node scripts/build-days.mjs 2026-09-18 2026-09-19   # just these days
-npm run data:uk                      # L0 UK grid (once)
+npm run data:region                  # L0 backdrop around the tour (once; build-days runs it if missing)
 npm run data:tour                    # rebuild tour.json from the built days
 ```
 
@@ -335,12 +351,13 @@ or position.
 
 | Script | Out |
 | --- | --- |
-| `build-uk.mjs` | `uk/terrain.*`: GB at 1 km from Terrarium z8 (Ireland masked out) |
+| `init-tour.mjs <id>` | Scaffolds `tours/<id>/`; sets `region.centre` from the rides |
+| `build-region.mjs` | `region/terrain.*`: the backdrop (for the UK: GB at 1 km from Terrarium z8, Ireland and the Continent masked as sea) |
 | `build-terrain.mjs <day>` | `days/<day>/terrain.*`: adaptive-spacing grid around the day's rides |
 | `build-track.mjs <day>` | `track.json` (draped on full-res tiles, stops, riding time, lean, ride breaks), `corridor.bin`, `pins.json` |
 | `build-osm.mjs <day>` | `osm.json` + `water.bin`: Overpass queried in ~32 km chunks along the route (minor roads/hamlets within 1.5 km, main roads/towns/peaks/water within 8 km), each chunk cached |
 | `build-weather.mjs <day>` | `weather.json` from Open-Meteo, every 10 min along the ride |
-| `build-parks.mjs` | `parks.json` + `parks.bin`: the 15 GB national parks (incl. the Broads) from OpenMapTiles z9, rasterised at 200 m and traced into clean outlines, which tour days pass through each, and a 1 km mask on the UK grid for tinting |
+| `build-parks.mjs` | `parks.json` + `parks.bin`: the protected areas around the tour from OpenMapTiles z9 (for the UK the 15 national parks incl. the Broads, by name), rasterised at 200 m and traced into clean outlines, which tour days pass through each, and a mask on the backdrop grid for tinting |
 | `build-tour.mjs` | `tour.json`: days, origins, extents, stats, simplified lines |
 | `build-days.mjs [days…]` | Runs the above per day; OSM/weather failures don't stop the day building |
 

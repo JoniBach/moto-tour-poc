@@ -3,8 +3,8 @@ import { TOUR } from '$lib/tourConfig';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-/** Epoch seconds -> "HH:MM:SS" in UK time. */
-export function ukClock(sec: number): string {
+/** Epoch seconds -> "HH:MM:SS" in the tour's time zone. */
+export function tourClock(sec: number): string {
 	const [h, m, s] = new Date(sec * 1000)
 		.toLocaleTimeString(TOUR.locale, { timeZone: TOUR.timeZone, hour12: false })
 		.split(':')

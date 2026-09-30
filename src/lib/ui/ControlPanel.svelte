@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { A } from '$lib/activity';
 	import { distRound, distUnit } from '$lib/units';
 	import { TOUR } from '$lib/tourConfig';
 	import { layerAvailable } from '$lib/flagLayers';
@@ -37,7 +38,7 @@
 	];
 	const colorModes: { id: ColorBy; label: string }[] = [
 		...(speedShade() ? [{ id: 'speed' as const, label: 'Speed' }] : []),
-		{ id: 'lean', label: 'Lean' },
+		...(A.leans ? [{ id: 'lean' as const, label: 'Lean' }] : []),
 		{ id: 'gradient', label: 'Gradient' }
 	];
 	// what the flat map draws
@@ -46,14 +47,14 @@
 		points: 'Hologram points',
 		contours: 'Contour rings',
 		terraces: 'Solid terraces',
-		detail: 'Detail around bike',
+		detail: `Detail around ${A.mover}`,
 		route: 'Route',
 		roads: 'Roads (OSM)',
 		water: 'Lakes & rivers',
 		parks: 'National parks',
 		photos: 'Photos',
 		blog: 'Blog posts',
-		ukPoints: 'UK backdrop points',
+		backdropPoints: 'Backdrop points',
 		weather: 'Weather (rain)',
 		labels: 'Place names',
 		pins: 'Pins',

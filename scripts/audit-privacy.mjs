@@ -6,14 +6,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import { fromBng, inPrivacyZone, nearPrivacyZone, PRIVACY_MARGIN, privacyZoneNames } from './lib/geo.mjs';
+import { fromGrid, inPrivacyZone, nearPrivacyZone, PRIVACY_MARGIN, privacyZoneNames, privacyZones, toGrid } from './lib/geo.mjs';
 import { PATHS } from './lib/tour.mjs';
 
 let leaks = 0;
 let checked = 0;
 const check = (what, e, n) => {
 	checked++;
-	const [lon, lat] = fromBng(e, n);
+	const [lon, lat] = fromGrid(e, n);
 	if (inPrivacyZone(lon, lat)) {
 		if (leaks++ < 10) console.log(`LEAK ${what} at ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
 	}
@@ -37,6 +37,19 @@ for (const day of fs.readdirSync(DAYS)) {
 		for (let r = 0; r < meta.rows; r++)
 			for (let c = 0; c < meta.cols; c++)
 				if (cor[r * meta.cols + c] === 0) check(`${day} corridor${variant}`, meta.originE + meta.x0 + c * meta.spacing, meta.originN + meta.n1 - r * meta.spacing);
+		// …and inside a zone every cell must read "far": distances near the route would trace it in
+		for (const z of privacyZones) {
+			const [ze, zn] = toGrid(z.lon, z.lat);
+			const cx = (ze - meta.originE - meta.x0) / meta.spacing;
+			const cr = (meta.originN + meta.n1 - zn) / meta.spacing;
+			const reach = z.radius / meta.spacing + 1;
+			for (let r = Math.max(0, Math.floor(cr - reach)); r <= Math.min(meta.rows - 1, Math.ceil(cr + reach)); r++)
+				for (let c = Math.max(0, Math.floor(cx - reach)); c <= Math.min(meta.cols - 1, Math.ceil(cx + reach)); c++) {
+					if (cor[r * meta.cols + c] === 255) continue;
+					const [lon, lat] = fromGrid(meta.originE + meta.x0 + c * meta.spacing, meta.originN + meta.n1 - r * meta.spacing);
+					if (inPrivacyZone(lon, lat) && leaks++ < 10) console.log(`LEAK ${day} corridor${variant} distances inside a zone at ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+				}
+		}
 	}
 }
 const tour = JSON.parse(fs.readFileSync(PATHS.tourJson, 'utf8'));
@@ -87,7 +100,7 @@ for (const day of fs.readdirSync(DAYS)) {
 		for (const p of JSON.parse(read(f('osm.json'))).places) {
 			labels++;
 			named(`${day} place label`, p.name, true);
-			const [lon, lat] = fromBng(p.x + meta.originE, p.n + meta.originN);
+			const [lon, lat] = fromGrid(p.x + meta.originE, p.n + meta.originN);
 			if (nearPrivacyZone(lon, lat, PRIVACY_MARGIN)) {
 				if (leaks++ < 20) console.log(`LEAK ${day} place label "${p.name}" within ${PRIVACY_MARGIN / 1000} km of a privacy zone`);
 			}

@@ -1,5 +1,5 @@
 <!--
-  The persistent world: sky, lights, camera rig, the UK backdrop and every day's route line,
+  The persistent world: sky, lights, camera rig, the region backdrop and every day's route line,
   plus the active day's scene. Absolute-BNG layers sit in a group offset by the world origin;
   the day scene is at the origin already (the origin is the active day's origin).
 -->
@@ -15,7 +15,7 @@
 	import ParkLabels from './ParkLabels.svelte';
 	import PhotoPins from './PhotoPins.svelte';
 	import TourRoutes from './TourRoutes.svelte';
-	import UkLayer from './UkLayer.svelte';
+	import RegionLayer from './RegionLayer.svelte';
 
 	let { app, onselect }: { app: App; onselect: (day: string) => void } = $props();
 
@@ -31,19 +31,19 @@
 
 <CameraRig {app} />
 
-{#if app.uk && app.index}
+{#if app.region && app.index}
 	<T.Group position={[-app.origin.e, 0, app.origin.n]}>
 		<T.Group scale.y={app.settings.exaggeration}>
-			<UkLayer uk={app.uk} {active} settings={app.settings} parkMask={app.parks?.mask ?? null} />
-			<TourRoutes days={app.index.days} uk={app.uk} {activeDay} />
+			<RegionLayer region={app.region} {active} settings={app.settings} parkMask={app.parks?.mask ?? null} />
+			<TourRoutes days={app.index.days} region={app.region} {activeDay} />
 			{#if app.parks && app.settings.layers.parks}
-				<NationalParks parks={app.parks} uk={app.uk} day={activeDay} dayTerrain={app.tour?.data.terrain ?? null} />
+				<NationalParks parks={app.parks} region={app.region} day={activeDay} dayTerrain={app.tour?.data.terrain ?? null} />
 			{/if}
 		</T.Group>
 		{#if app.photos.length && app.settings.layers.photos}
 			<PhotoPins
 				photos={app.photos}
-				uk={app.uk}
+				region={app.region}
 				dayTerrain={app.tour?.data.terrain ?? null}
 				origin={app.origin}
 				exaggeration={app.settings.exaggeration}
@@ -53,7 +53,7 @@
 		{#if app.posts.length && app.settings.layers.blog}
 			<BlogPins
 				posts={app.posts}
-				uk={app.uk}
+				region={app.region}
 				dayTerrain={app.tour?.data.terrain ?? null}
 				exaggeration={app.settings.exaggeration}
 				reading={app.reading}
@@ -61,9 +61,9 @@
 			/>
 		{/if}
 		{#if app.parks && app.settings.layers.parks}
-			<ParkLabels parks={app.parks} uk={app.uk} day={activeDay} exaggeration={app.settings.exaggeration} />
+			<ParkLabels parks={app.parks} region={app.region} day={activeDay} exaggeration={app.settings.exaggeration} />
 		{/if}
-		<DayMarkers days={app.index.days} uk={app.uk} {activeDay} exaggeration={app.settings.exaggeration} {onselect} />
+		<DayMarkers days={app.index.days} region={app.region} {activeDay} exaggeration={app.settings.exaggeration} {onselect} />
 	</T.Group>
 {/if}
 

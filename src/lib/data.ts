@@ -164,7 +164,7 @@ export interface TourData {
 	light?: boolean;
 }
 
-// ---------- tour index + UK backdrop ----------
+// ---------- tour index + region backdrop ----------
 
 export interface DaySummary {
 	index: number;
@@ -172,13 +172,13 @@ export interface DaySummary {
 	title: string;
 	originE: number;
 	originN: number;
-	extent: { minE: number; maxE: number; minN: number; maxN: number }; // absolute BNG metres
+	extent: { minE: number; maxE: number; minN: number; maxN: number }; // absolute projected metres
 	km: number;
 	rides: number;
 	start: number;
 	end: number;
 	weather: Weather['summary'] | null;
-	lines: number[][]; // simplified route, [E, N, E, N, …] per ride, absolute BNG metres
+	lines: number[][]; // simplified route, [E, N, E, N, …] per ride, absolute projected metres
 }
 
 export interface TourIndex {
@@ -225,11 +225,11 @@ export async function loadTourIndex(): Promise<TourIndex> {
 	return r.json();
 }
 
-/** L0: all of Great Britain at 1 km. Same shape as a day grid, with origin at BNG 0,0. */
-export async function loadUk(): Promise<Terrain> {
+/** L0: the region around the whole tour (build-region). Same shape as a day grid, with origin at 0,0. */
+export async function loadRegion(): Promise<Terrain> {
 	// packed like the day files (scripts/pack.mjs): the .bin isn't compressed by the host
-	const [meta, buf] = await Promise.all([packedJson<TerrainMeta>('/data/uk/terrain.json'), fetchPacked('/data/uk/terrain.bin')]);
-	if (!meta || !buf) throw unavailable('the map of Britain');
+	const [meta, buf] = await Promise.all([packedJson<TerrainMeta>(`${DATA}/region/terrain.json`), fetchPacked(`${DATA}/region/terrain.bin`)]);
+	if (!meta || !buf) throw unavailable('the map of the region');
 	const raw = new Int16Array(buf);
 	const heights = Float32Array.from(raw, (v) => v * meta.scale);
 	return new Terrain(meta, heights, new Uint8Array(0), null);
@@ -241,14 +241,14 @@ export interface Park {
 	name: string; // display name, e.g. "Lake District"
 	days: string[]; // tour days whose route passes through it
 	visited: boolean;
-	label: { e: number; n: number }; // absolute BNG
+	label: { e: number; n: number }; // absolute projected
 	areaKm2: number;
-	rings: number[][]; // outlines, [E, N, E, N, …] absolute BNG, closed
+	rings: number[][]; // outlines, [E, N, E, N, …] absolute projected, closed
 }
 
 export interface Parks {
 	parks: Park[];
-	/** 1 km mask aligned with the UK grid: park index + 1, 0 outside */
+	/** 1 km mask aligned with the region backdrop grid: park index + 1, 0 outside */
 	mask: Uint8Array;
 }
 
@@ -270,7 +270,7 @@ export interface Photo {
 	w: number; // gallery image size
 	h: number;
 	day: string | null;
-	e: number; // absolute BNG where it was taken (or placed)
+	e: number; // absolute projected where it was taken (or placed)
 	n: number;
 	i?: number; // track fix it was placed at (time placement)
 	rt?: number; // riding time of that fix
@@ -297,7 +297,7 @@ export interface BlogPost {
 	day: string;
 	i: number; // track fix at that moment
 	rt: number;
-	e: number; // absolute BNG where the bike was
+	e: number; // absolute projected where the bike was
 	n: number;
 	cover: string | null; // photo id
 	excerpt: string;

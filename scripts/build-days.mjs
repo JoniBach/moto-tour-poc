@@ -5,12 +5,14 @@
 // APIs fail, the day still builds and the app runs without roads/weather for it.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import path from 'node:path';
 import { listDays } from './lib/geo.mjs';
+import { PATHS } from './lib/tour.mjs';
 
 const days = process.argv.slice(2).length ? process.argv.slice(2) : listDays();
 const run = (script, day) => spawnSync(process.execPath, [`scripts/${script}.mjs`, ...(day ? [day] : [])], { stdio: 'inherit' }).status === 0;
 
-if (!fs.existsSync('static/data/uk/terrain.bin')) run('build-uk');
+if (!fs.existsSync(path.join(PATHS.region, 'terrain.bin'))) run('build-region');
 
 const failed = [];
 for (const day of days) {

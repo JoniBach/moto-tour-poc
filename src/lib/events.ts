@@ -3,6 +3,7 @@
 // the drawer can jump the tour to it.
 import { PIN_META, type BlogPost, type Photo, type Pin, type Track } from './data';
 import { dayEventsCore } from './events-core.js';
+import { A } from './activity';
 
 export { BREAK_MIN } from './events-core.js';
 
@@ -21,9 +22,9 @@ export function dayEvents(tr: Track, pins: Pin[], photos: Photo[], posts: BlogPo
 export function eventLabel(e: TourEvent): { icon: string; title: string; color: string } {
 	switch (e.kind) {
 		case 'start':
-			return { icon: '▶', title: e.rides > 1 ? `Set off · ride ${e.ride} of ${e.rides}` : 'Set off', color: '#7cf7ff' };
+			return { icon: '▶', title: e.rides > 1 ? `Set off · ${A.leg} ${e.ride} of ${e.rides}` : 'Set off', color: '#7cf7ff' };
 		case 'finish':
-			return { icon: '■', title: e.rides > 1 ? `Finished ride ${e.ride}` : 'Arrived', color: '#7cf7ff' };
+			return { icon: '■', title: e.rides > 1 ? `Finished ${A.leg} ${e.ride}` : 'Arrived', color: '#7cf7ff' };
 		case 'break':
 			return { icon: '⏸', title: `Break · ${e.minutes >= 60 ? `${Math.floor(e.minutes / 60)} h ${e.minutes % 60} min` : `${e.minutes} min`}`, color: '#b8c7d0' };
 		case 'photos':

@@ -4,12 +4,13 @@
   relief). On phones the card opens as the settings sheet.
 -->
 <script lang="ts">
+	import { A } from '$lib/activity';
 	import { TOUR } from '$lib/tourConfig';
 	import { tempRound, tempUnit } from '$lib/units';
 	import { layerAvailable } from '$lib/flagLayers';
 	import { weatherAt, weatherLabel } from '$lib/data';
 	import type { MapStyle } from '$lib/imagery';
-	import { ukClock } from '$lib/time';
+	import { tourClock } from '$lib/time';
 	import type { Tour } from '$lib/tour.svelte';
 	import Sheet from '$lib/ui/Sheet.svelte';
 	import { LEGENDS } from '$lib/colors';
@@ -42,7 +43,7 @@
 	const colourings: { id: 'plain' | ColorBy; label: string }[] = [
 		{ id: 'plain', label: 'Plain' },
 		...(speedShade() ? [{ id: 'speed' as const, label: 'Speed' }] : []),
-		{ id: 'lean', label: 'Lean' },
+		...(A.leans ? [{ id: 'lean' as const, label: 'Lean' }] : []),
 		{ id: 'gradient', label: 'Gradient' }
 	];
 	const toggles: { key: keyof Tour['layers']; label: string }[] = [
@@ -63,7 +64,7 @@
 	let size = $state(tour.settings.globeRadius);
 	const km = (m: number) => `${(m / 1000).toFixed(m < 10000 ? 1 : 0)} km`;
 
-	const clock = $derived(ukClock(tour.bike.time).slice(0, 5));
+	const clock = $derived(tourClock(tour.bike.time).slice(0, 5));
 	const wx = $derived(weatherAt(tour.data.weather, tour.rt));
 	const wxText = $derived(wx ? `${weatherLabel(wx.code, wx.isDay).label}, ${tempRound(wx.temp ?? 0)}${tempUnit}` : '');
 	const wxIcon = $derived(wx ? weatherLabel(wx.code, wx.isDay).icon : '');

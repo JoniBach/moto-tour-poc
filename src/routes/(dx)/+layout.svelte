@@ -89,7 +89,7 @@
 <svelte:window {onkeydown} />
 
 <main>
-	{#if app.index && (app.view !== '3d' || app.uk)}
+	{#if app.index && (app.view !== '3d' || app.region)}
 		<!-- each view is its own chunk: the 2D map never downloads the 3D scene, and vice versa -->
 		{#if app.view === '3d'}
 			{#await import('$lib/scene/Scene3D.svelte') then { default: Scene3D }}

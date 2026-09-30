@@ -1,9 +1,12 @@
-// App-level state: the tour index, the UK backdrop, which day is active, and the world origin.
-// World coordinates are British National Grid metres minus `origin`, with x = east, z = -north.
+// App-level state: the tour index, the region backdrop, which day is active, and the world origin.
+// World coordinates are the tour's projected metres (src/lib/projection.ts) minus `origin`, with
+// x = east, z = -north.
 // The origin is the active day's origin, so a day's own data renders untransformed and precise;
 // when switching days the origin moves mid-flight while the camera is high up, and the camera is
 // shifted by the same amount so nothing visibly jumps.
 import { Vector3 } from 'three';
+import { toGrid } from './projection';
+import { TOUR } from './tourConfig';
 import {
 	loadDay,
 	loadBlog,
@@ -11,7 +14,7 @@ import {
 	loadParks,
 	loadPhotos,
 	loadTourIndex,
-	loadUk,
+	loadRegion,
 	type DaySummary,
 	type BlogPost,
 	type Feed,
@@ -39,13 +42,14 @@ export interface CameraController {
 export type View = '3d' | '2d' | 'globe';
 const VIEW_KEY = 'moto-tour:view';
 
-// the middle of Great Britain, used as the origin on the tour overview
-const UK_CENTRE = { e: 380_000, n: 620_000 };
+// the tour's centre (tour.config.json region.centre), used as the origin on the tour overview
+const [homeE, homeN] = toGrid(...TOUR.region.centre);
+const HOME = { e: Math.round(homeE / 1000) * 1000, n: Math.round(homeN / 1000) * 1000 };
 
 export class App {
 	readonly settings = new Settings();
 	index = $state.raw<TourIndex | null>(null);
-	uk = $state.raw<Terrain | null>(null);
+	region = $state.raw<Terrain | null>(null);
 	parks = $state.raw<Parks | null>(null);
 	photos = $state.raw<Photo[]>([]);
 	posts = $state.raw<BlogPost[]>([]);
@@ -56,8 +60,8 @@ export class App {
 	/** riding time to jump to once the next day loads ("ride here" from a photo) */
 	private pendingSeek: number | null = null;
 	tour = $state.raw<Tour | null>(null);
-	/** BNG metres at world (0, 0, 0) */
-	origin = $state.raw({ ...UK_CENTRE });
+	/** projected metres at world (0, 0, 0) */
+	origin = $state.raw({ ...HOME });
 	busy = $state(false);
 	/** the page has applied its URL's moment (see moment.ts); until then the URL isn't rewritten */
 	momentReady = $state(false);
@@ -80,9 +84,9 @@ export class App {
 		await this.ensureView();
 	}
 
-	/** The 3D view also needs the UK terrain backdrop; the 2D map doesn't. */
+	/** The 3D view also needs the region's terrain backdrop; the 2D map doesn't. */
 	async ensureView() {
-		if (this.view === '3d' && !this.uk) this.uk = await loadUk();
+		if (this.view === '3d' && !this.region) this.region = await loadRegion();
 	}
 
 	/** Switch between 3D and 2D, remembering the choice for next time. */
@@ -193,7 +197,7 @@ export class App {
 		}
 	}
 
-	/** World position of an absolute BNG point at the current origin. */
+	/** World position of an absolute projected point at the current origin. */
 	world(e: number, n: number, h = 0) {
 		return new Vector3(e - this.origin.e, h, -(n - this.origin.n));
 	}
@@ -210,7 +214,17 @@ export class App {
 		return p;
 	}
 
-	/** Show a day (or the UK overview when null). Later calls win if one arrives mid-transition. */
+	/** Camera over the whole tour: looking at the overview origin from high enough to see every ride. */
+	homePose() {
+		let [e0, n0, e1, n1] = [Infinity, Infinity, -Infinity, -Infinity];
+		for (const { extent: x } of this.index?.days ?? [])
+			(e0 = Math.min(e0, x.minE)), (n0 = Math.min(n0, x.minN)), (e1 = Math.max(e1, x.maxE)), (n1 = Math.max(n1, x.maxN));
+		const span = e0 < e1 ? Math.max(e1 - e0, n1 - n0) : 700_000;
+		const height = Math.max(40_000, span * 1.5);
+		return { pos: new Vector3(0, height, height * 0.55), target: new Vector3(0, 0, 0) };
+	}
+
+	/** Show a day (or the whole-tour overview when null). Later calls win if one arrives mid-transition. */
 	async show(day: string | null) {
 		this.wanted = day;
 		if (this.busy) return;
@@ -239,11 +253,11 @@ export class App {
 		const light = this.view === '2d';
 		const loading = day ? this.fetchDay(day, light) : Promise.resolve(null);
 
-		// 1. clear the old day straight away: only the UK backdrop and the route lines remain
+		// 1. clear the old day straight away: only the region backdrop and the route lines remain
 		this.pending = summary ?? null;
 		this.tour = null;
 
-		const newOrigin = summary ? { e: summary.originE, n: summary.originN } : { ...UK_CENTRE };
+		const newOrigin = summary ? { e: summary.originE, n: summary.originN } : { ...HOME };
 		const cam = this.camera;
 		let data: TourData | null;
 		if (cam && (hadDay || day)) {
@@ -253,7 +267,7 @@ export class App {
 			const to = this.world(newOrigin.e, newOrigin.n);
 			const mid = from.clone().add(to).multiplyScalar(0.5);
 			const span = Math.max(from.distanceTo(to), 40_000);
-			const height = day ? span * 0.9 : 1_100_000;
+			const height = day ? span * 0.9 : this.homePose().pos.y;
 			[data] = await Promise.all([loading, cam.flyTo(new Vector3(mid.x, height, mid.z + height * 0.55), mid, day ? 1.8 : 2.2)]);
 		} else {
 			data = await loading;
@@ -280,10 +294,13 @@ export class App {
 		}
 		this.pending = null;
 
-		// 4. descend into the new day (camera mode fly-in), or settle over the UK
+		// 4. descend into the new day (camera mode fly-in), or settle over the whole tour
 		if (cam) {
 			if (data) cam.reenter();
-			else await cam.flyTo(new Vector3(0, 1_100_000, 600_000), new Vector3(0, 0, 0), 1.2);
+			else {
+				const home = this.homePose();
+				await cam.flyTo(home.pos, home.target, 1.2);
+			}
 		}
 	}
 }

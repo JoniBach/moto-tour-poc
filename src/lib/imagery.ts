@@ -4,7 +4,7 @@
 //  - "near": a sharper square that follows the bike. The detail mesh maps into it with a linear
 //    transform (uniform), accurate to ~1 px at this size since Mercator is near-linear over a few km.
 import { CanvasTexture, LinearFilter, SRGBColorSpace, Vector3 } from 'three';
-import { makeProjection } from './bng';
+import { makeProjection } from './projection';
 import type { TerrainMeta } from './data';
 
 export type MapStyle = 'hologram' | 'satellite' | 'sentinel' | 'topo';

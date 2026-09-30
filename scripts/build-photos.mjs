@@ -11,7 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import exifr from 'exifr';
 import sharp from 'sharp';
-import { inPrivacyZone, inPrivacyZoneAt, makeProjection, toBng } from './lib/geo.mjs';
+import { inPrivacyZone, inPrivacyZoneAt, makeProjection, toGrid } from './lib/geo.mjs';
 import { PATHS, TOUR } from './lib/tour.mjs';
 
 const SRC = PATHS.photosSrc;
@@ -42,17 +42,17 @@ const lastLE = (arr, v) => {
 	}
 	return lo;
 };
-// the calendar day in UK time (a photo at 00:30 BST belongs to that date, not the UTC one)
-const ukDate = (sec) => new Date(sec * 1000).toLocaleDateString('en-CA', { timeZone: TOUR.timeZone });
+// the calendar day in the tour's time zone (a photo at 00:30 local belongs to that date, not the UTC one)
+const tourDate = (sec) => new Date(sec * 1000).toLocaleDateString('en-CA', { timeZone: TOUR.timeZone });
 
 // Privacy: photos taken inside a zone (judged from the unfiltered GPX at that moment, so photos
 // at home before setting off or after arriving count) are dropped.
 const takenInPrivacyZone = (t, gps) => (gps ? inPrivacyZone(gps.longitude, gps.latitude) : inPrivacyZoneAt(t));
 
 function place(t, gps) {
-	const day = days.get(ukDate(t));
+	const day = days.get(tourDate(t));
 	if (gps) {
-		const [e, n] = toBng(gps.longitude, gps.latitude);
+		const [e, n] = toGrid(gps.longitude, gps.latitude);
 		return { day: day?.track.day ?? null, e: Math.round(e), n: Math.round(n), placedBy: 'gps' };
 	}
 	if (!day) return null;
@@ -117,7 +117,7 @@ async function worker() {
 
 		const where = t != null ? place(t, gps) : null;
 		if (!where) {
-			console.log(`  skipped ${file}: ${t == null ? 'no timestamp' : `no ride on ${ukDate(t)}`}`);
+			console.log(`  skipped ${file}: ${t == null ? 'no timestamp' : `no ride on ${tourDate(t)}`}`);
 			continue;
 		}
 		photos.push({ id, t, ...dims, ...where });

@@ -10,10 +10,10 @@
 
 	let {
 		parks,
-		uk,
+		region,
 		day,
 		exaggeration
-	}: { parks: Parks; uk: Terrain; day: string | null; exaggeration: number } = $props();
+	}: { parks: Parks; region: Terrain; day: string | null; exaggeration: number } = $props();
 
 	const { camera } = useThrelte();
 	let high = $state(true);
@@ -26,7 +26,7 @@
 {#each parks.parks as p (p.name)}
 	{@const today = !!day && p.days.includes(day)}
 	{#if high || today}
-		<T.Group position={[p.label.e, Math.max(0, uk.heightAt(p.label.e, p.label.n)) * exaggeration + 800, -p.label.n]}>
+		<T.Group position={[p.label.e, Math.max(0, region.heightAt(p.label.e, p.label.n)) * exaggeration + 800, -p.label.n]}>
 			<HTML center pointerEvents="none" zIndexRange={[42, 42]}>
 				<span class="park" class:today>
 					{p.name}

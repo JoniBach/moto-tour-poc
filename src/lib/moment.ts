@@ -1,5 +1,5 @@
 // Shareable moments. A day URL can carry the moment on screen and what's open:
-//   /day/2026-09-16?t=10:40:12                      the ride at 10:40:12 (UK time)
+//   /day/2026-09-16?t=10:40:12                      the ride at 10:40:12 (the tour's time)
 //   /day/2026-09-16?t=10:40&post=2026-09-16-whinlatter   …with a blog post open
 //   /day/2026-09-16?photo=20260916_104035           …with a photo open (t defaults to its time)
 //   /?post=… or /?photo=…                           from the tour overview
@@ -9,11 +9,11 @@ import type { App } from './app.svelte';
 import { bisect } from './data';
 import type { Tour } from './tour.svelte';
 
-export { ukClock } from './time';
-import { ukClock } from './time';
+export { tourClock } from './time';
+import { tourClock } from './time';
 import { TOUR } from '$lib/tourConfig';
 
-/** "2026-09-16" + "10:40" / "10:40:12" (UK time) -> epoch seconds, or NaN. */
+/** "2026-09-16" + "10:40" / "10:40:12" (the tour's time) -> epoch seconds, or NaN. */
 export function ukToEpoch(day: string, clock: string): number {
 	const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(clock);
 	const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
@@ -61,7 +61,7 @@ export function momentUrl(
 	const tour = app.tour;
 	const url = new URL(tour ? `/day/${tour.data.track.day}` : '/', location.origin);
 	const t = extra.t ?? tour?.bike.time;
-	if (tour && t != null) url.searchParams.set('t', ukClock(t));
+	if (tour && t != null) url.searchParams.set('t', tourClock(t));
 	const post = extra.post ?? app.reading?.slug;
 	const photo = extra.photo ?? (app.gallery ? app.gallery.photos[app.gallery.index]?.id : undefined);
 	if (post) url.searchParams.set('post', post);

@@ -5,6 +5,7 @@
   the bike, national parks, photos, stories, pins and day markers; plays the day like the 3D view.
 -->
 <script lang="ts">
+	import { A, cap } from '$lib/activity';
 	import { distUnit } from '$lib/units';
 	import {
 		Map as MlMap,
@@ -308,7 +309,7 @@
 			const el = document.createElement('div');
 			el.className = 'bike';
 			el.setAttribute('role', 'img');
-			el.setAttribute('aria-label', 'The bike');
+			el.setAttribute('aria-label', cap(A.mover));
 			el.innerHTML =
 				'<svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="#0b7285" stroke="#fff" stroke-width="3"/><path d="M16 8l6 13-6-3.5-6 3.5z" fill="#fff"/></svg>';
 			bike = new Marker({ element: el, rotationAlignment: 'map' }).setLngLat(pts[0]?.p ?? [0, 0]).addTo(m);
@@ -376,7 +377,7 @@
 
 <div class="map2d" bind:this={container}></div>
 {#if tour && !follow}
-	<button type="button" class="follow" onclick={followBike}>◎ Follow the bike</button>
+	<button type="button" class="follow" onclick={followBike}>◎ Follow {A.mover}</button>
 {/if}
 
 <style>

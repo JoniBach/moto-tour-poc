@@ -4,6 +4,7 @@
   tour to that moment. Esc or the backdrop closes it.
 -->
 <script lang="ts">
+	import { A } from '$lib/activity';
 	import { TOUR } from '$lib/tourConfig';
 	import type { App } from '$lib/app.svelte';
 	import { clock, photoUrl } from '$lib/data';
@@ -78,7 +79,7 @@
 			<header>
 				<div class="meta">
 					{#if day}<b>Day {day.index + 1}</b> · {day.title}<br />{/if}
-					<span>{date(photo.t)} · {clock(photo.t)}{#if photo.placedBy === 'time-offride'} · off the bike{/if}</span>
+					<span>{date(photo.t)} · {clock(photo.t)}{#if photo.placedBy === 'time-offride'} · {A.off}{/if}</span>
 				</div>
 				<div class="actions">
 					<span class="pos">{g.index + 1} / {g.photos.length}</span>
@@ -90,7 +91,7 @@
 							onclick={() => {
 								app.rideTo(photo, onride);
 								close();
-							}}>Ride here</button
+							}}>{A.go} here</button
 						>
 					{/if}
 					<button class="close" onclick={close} aria-label="Close">×</button>

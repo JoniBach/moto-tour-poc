@@ -1,5 +1,5 @@
-// Shared geo helpers for the build scripts: British National Grid projection, day context,
-// Terrarium DEM sampling, GPX I/O.
+// Shared geo helpers for the build scripts: the tour's projection, day context, Terrarium DEM
+// sampling, GPX I/O.
 import fs from 'node:fs';
 import path from 'node:path';
 import proj4 from 'proj4';
@@ -9,16 +9,20 @@ import { PATHS, TOUR } from './tour.mjs';
 const R = 6371008.8;
 const RAD = Math.PI / 180;
 
-// British National Grid (EPSG:27700) with the OSGB36 datum shift. Keep in sync with src/lib/bng.ts.
-export const BNG_DEF =
-	'+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy ' +
-	'+towgs84=446.448,-125.157,542.06,0.15,0.247,0.842,-20.489 +units=m +no_defs';
-const bng = proj4('EPSG:4326', BNG_DEF);
-export const toBng = (lon, lat) => bng.forward([lon, lat]);
-export const fromBng = (e, n) => bng.inverse([e, n]);
+// The tour's flat world in metres: tour.config.json region.projection (British National Grid for
+// the UK), else a transverse Mercator on region.centre. Keep in sync with src/lib/tourConfig.ts.
+const { centre } = TOUR.region;
+export const PROJECTION =
+	TOUR.region.projection ??
+	`+proj=tmerc +lat_0=${centre[1]} +lon_0=${centre[0]} +k=1 +x_0=500000 +y_0=500000 +ellps=WGS84 +units=m +no_defs`;
+const grid = proj4('EPSG:4326', PROJECTION);
+/** lon/lat -> projected metres [east, north] */
+export const toGrid = (lon, lat) => grid.forward([lon, lat]);
+/** projected metres -> [lon, lat] */
+export const fromGrid = (e, n) => grid.inverse([e, n]);
 
 /**
- * Every day shares one world: British National Grid metres. Each day's data is stored relative
+ * Every day shares one world: the tour's projected metres. Each day's data is stored relative
  * to its own origin (originE, originN) so numbers stay small; the app offsets days against each
  * other using those origins. Returns metres: x = east, n = north (relative to the origin).
  */
@@ -27,10 +31,10 @@ export function makeProjection(originE, originN) {
 		originE,
 		originN,
 		forward: (lon, lat) => {
-			const [e, n] = toBng(lon, lat);
+			const [e, n] = toGrid(lon, lat);
 			return [e - originE, n - originN];
 		},
-		inverse: (x, n) => fromBng(x + originE, n + originN)
+		inverse: (x, n) => fromGrid(x + originE, n + originN)
 	};
 }
 
@@ -67,8 +71,9 @@ export class TerrariumSampler {
 		const [x0, y0] = TerrariumSampler.lonLatToPixel(minLon, maxLat, z);
 		const [x1, y1] = TerrariumSampler.lonLatToPixel(maxLon, minLat, z);
 		const jobs = [];
-		for (let ty = Math.floor(y0 / 256); ty <= Math.floor(y1 / 256); ty++)
-			for (let tx = Math.floor(x0 / 256); tx <= Math.floor(x1 / 256); tx++) jobs.push([tx, ty]);
+		// a pixel of margin: bilinear sampling at the edge reads its neighbour, which can be in the next tile
+		for (let ty = Math.floor((y0 - 1) / 256); ty <= Math.floor((y1 + 1) / 256); ty++)
+			for (let tx = Math.floor((x0 - 1) / 256); tx <= Math.floor((x1 + 1) / 256); tx++) jobs.push([tx, ty]);
 		console.log(`  terrarium z${z}: ${jobs.length} tiles`);
 		await this.#loadAll(jobs);
 	}
@@ -250,7 +255,7 @@ export function dayContext() {
 // ---------- privacy zones ----------
 
 const PRIVACY_FILE = PATHS.privacy;
-const privacyZones = fs.existsSync(PRIVACY_FILE) ? JSON.parse(fs.readFileSync(PRIVACY_FILE, 'utf8')).zones : [];
+export const privacyZones = fs.existsSync(PRIVACY_FILE) ? JSON.parse(fs.readFileSync(PRIVACY_FILE, 'utf8')).zones : [];
 
 /** True if a lon/lat falls inside any privacy zone (data/privacy.json). */
 export const inPrivacyZone = (lon, lat) =>
@@ -286,7 +291,7 @@ export function rawPositionAt(t) {
 		}
 		for (const fixes of rawByDate.values()) fixes.sort((a, b) => a.time - b.time);
 	}
-	const fixes = rawByDate.get(ukDate(t));
+	const fixes = rawByDate.get(tourDate(t));
 	if (!fixes?.length) return null;
 	let lo = 0;
 	let hi = fixes.length - 1;
@@ -304,20 +309,20 @@ export function inPrivacyZoneAt(t) {
 	return !!p && inPrivacyZone(p.lon, p.lat);
 }
 
-/** The calendar date in UK time ("2026-09-16") for epoch seconds. */
-export const ukDate = (sec) => new Date(sec * 1000).toLocaleDateString('en-CA', { timeZone: TOUR.timeZone });
+/** The calendar date in the tour's time zone ("2026-09-16") for epoch seconds. */
+export const tourDate = (sec) => new Date(sec * 1000).toLocaleDateString('en-CA', { timeZone: TOUR.timeZone });
 
-/** Parse "2026-09-16 11:30" (UK local time, BST/GMT handled) or a full ISO string to epoch seconds. */
-export function parseUkTime(s) {
+/** Parse "2026-09-16 11:30" (the tour's local time, daylight saving handled) or a full ISO string to epoch seconds. */
+export function parseTourTime(s) {
 	s = String(s).trim();
 	if (/[zZ]|[+-]\d\d:?\d\d$/.test(s)) return Date.parse(s) / 1000;
 	const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(s);
 	if (!m) return NaN;
 	const asUtc = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] ?? 0));
-	// offset of Europe/London at that moment (BST +60, GMT 0)
-	const london = new Date(new Date(asUtc).toLocaleString('en-US', { timeZone: TOUR.timeZone }));
+	// the time zone's offset at that moment (e.g. London: BST +60, GMT 0)
+	const local = new Date(new Date(asUtc).toLocaleString('en-US', { timeZone: TOUR.timeZone }));
 	const utc = new Date(new Date(asUtc).toLocaleString('en-US', { timeZone: 'UTC' }));
-	return (asUtc - (london - utc)) / 1000;
+	return (asUtc - (local - utc)) / 1000;
 }
 
 /** metres beyond a privacy zone where no place names are published (labels, "near …") */

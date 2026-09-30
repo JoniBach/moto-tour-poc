@@ -1,5 +1,5 @@
 // Turns raw GPX into the playback track, the route corridor mask and resolved pins.
-//  - projects fixes into the day's BNG metres and drapes them on full-res DEM tiles (not the
+//  - projects fixes into the day's projected metres and drapes them on full-res DEM tiles (not the
 //    possibly coarse day grid), so the line also sits on the streamed near-bike terrain
 //  - derives smoothed speed, heading and lean from the fixes
 //  - detects stops and builds a compressed "riding time" axis for the scrubber
@@ -9,7 +9,7 @@
 // Outputs (per day): track.json, corridor.bin, pins.json
 import fs from 'node:fs';
 import path from 'node:path';
-import { TerrariumSampler, dayContext, inPrivacyZone, loadTerrainGrid, makeProjection, outsidePrivacy, parseGpx } from './lib/geo.mjs';
+import { TerrariumSampler, dayContext, inPrivacyZone, loadTerrainGrid, makeProjection, outsidePrivacy, parseGpx, privacyZones } from './lib/geo.mjs';
 import { PATHS } from './lib/tour.mjs';
 
 const STOP_RADIUS = 40; // metres
@@ -147,7 +147,7 @@ const title =
 		path
 			.basename(f)
 			.replace(/\.gpx$/i, '')
-			.replace(/^\d{4}-\d{2}-\d{2}_?/, '')
+			.replace(/^\d{4}-\d{2}-\d{2}[-_ ]?/, '')
 			.replace(/^tour[_-]?/i, '')
 			.split(/[-_ ]+/)
 			.map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -216,6 +216,18 @@ for (let r = rows - 1; r >= 0; r--)
 // store in cells (spacing units), capped at 255
 const corridor = new Uint8Array(cols * rows);
 for (let i = 0; i < corridor.length; i++) corridor[i] = Math.min(255, Math.round(dfield[i] / 3));
+// a fix just outside a privacy zone can round to a cell whose centre is inside it, and the
+// distances around the route would still trace it in: every cell inside a zone reads "far away"
+for (const z of privacyZones) {
+	const [zx, zn] = proj.forward(z.lon, z.lat);
+	const reach = z.radius * 1.01;
+	const c0 = Math.max(0, Math.floor((zx - reach - x0) / spacing));
+	const c1 = Math.min(cols - 1, Math.ceil((zx + reach - x0) / spacing));
+	const r0 = Math.max(0, Math.floor((n1 - (zn + reach)) / spacing));
+	const r1 = Math.min(rows - 1, Math.ceil((n1 - (zn - reach)) / spacing));
+	for (let r = r0; r <= r1; r++)
+		for (let c = c0; c <= c1; c++) if (inPrivacyZone(...proj.inverse(x0 + c * spacing, n1 - r * spacing))) corridor[r * cols + c] = 255;
+}
 fs.writeFileSync(ctx.file('corridor.bin'), Buffer.from(corridor.buffer));
 
 // ---------- pins ----------

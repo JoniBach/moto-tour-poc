@@ -8,12 +8,14 @@
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { TOUR_ID } from './lib/tour.mjs';
+import { TOUR, TOUR_ID } from './lib/tour.mjs';
 
 const prod = process.argv.includes('--prod');
 // which set of release flags the build uses (src/lib/flags.ts); FEATURES passes straight through
 process.env.RELEASE = prod ? 'production' : 'preview';
 console.log(`Release flags: ${process.env.RELEASE} set${process.env.FEATURES ? `, overrides: ${process.env.FEATURES}` : ''}`);
+// test tours (tour.config.json "deploy": false) stay local
+if (TOUR.deploy === false) throw new Error(`Tour ${TOUR_ID} is marked "deploy": false`);
 // the child builds (vite, the scripts) pick the tour up from here too
 process.env.TOUR = TOUR_ID;
 console.log(`Tour: ${TOUR_ID}`);

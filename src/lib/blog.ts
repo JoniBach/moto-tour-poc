@@ -1,12 +1,13 @@
 // Helpers for the plain blog (routes under /blog): links into the 3D experience at an exact
-// moment, UK-time formatting, and readable sentences for each event.
+// moment, tour-time formatting, and readable sentences for each event.
 import { PIN_META, type FeedEvent } from './data';
-import { ukClock } from './time';
+import { tourClock } from './time';
 import { TOUR } from '$lib/tourConfig';
+import { A } from './activity';
 
 /** The 3D view at this moment (and with this post / photo open). */
 export function mapLink(day: string, t: number, open: { post?: string; photo?: string } = {}): string {
-	const q = new URLSearchParams({ t: ukClock(t) });
+	const q = new URLSearchParams({ t: tourClock(t) });
 	if (open.post) q.set('post', open.post);
 	if (open.photo) q.set('photo', open.photo);
 	return `/day/${day}?${q}`;
@@ -34,13 +35,13 @@ export function eventSentence(e: FeedEvent): { icon: string; label: string; text
 			return {
 				icon: '▶',
 				label: 'Set off',
-				text: e.rides > 1 ? `Set off on ride ${e.ride} of ${e.rides}${near(e.place, 'from')}` : `Set off${near(e.place, 'from')}`
+				text: e.rides > 1 ? `Set off on ${A.leg} ${e.ride} of ${e.rides}${near(e.place, 'from')}` : `Set off${near(e.place, 'from')}`
 			};
 		case 'finish':
 			return {
 				icon: '■',
 				label: 'Arrived',
-				text: e.rides > 1 && e.ride < e.rides ? `Finished ride ${e.ride}${near(e.place, 'at')}` : `Arrived${near(e.place, 'at')}`
+				text: e.rides > 1 && e.ride < e.rides ? `Finished ${A.leg} ${e.ride}${near(e.place, 'at')}` : `Arrived${near(e.place, 'at')}`
 			};
 		case 'break':
 			return { icon: '⏸', label: 'Break', text: `Stopped for ${duration(e.minutes)}${near(e.place)}` };

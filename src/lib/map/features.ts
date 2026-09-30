@@ -1,11 +1,11 @@
 // GeoJSON for the 2D map, from the tour's British National Grid data. Everything here is already
 // privacy-filtered by the build (routes, photo and post positions); this only reprojects it.
-import { fromBng } from '$lib/bng';
+import { fromGrid } from '$lib/projection';
 import { dayColor } from '$lib/colors';
 import type { BlogPost, DaySummary, Parks, Photo, Track } from '$lib/data';
 
 type Pos = [number, number];
-const ll = (e: number, n: number): Pos => fromBng(e, n);
+const ll = (e: number, n: number): Pos => fromGrid(e, n);
 const flat = (pts: number[]): Pos[] => {
 	const out: Pos[] = [];
 	for (let k = 0; k < pts.length; k += 2) out.push(ll(pts[k], pts[k + 1]));

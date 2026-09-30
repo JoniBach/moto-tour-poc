@@ -1,7 +1,7 @@
 <!--
-  L0: Great Britain's glowing coastline, plus (optional, "UK backdrop points" layer) a 1 km
+  L0: the region's glowing coastline, plus (optional, "Backdrop points" layer) a
   hologram point cloud of the land.
-  Positions are absolute BNG metres; the parent group applies the world origin offset.
+  Positions are absolute projected metres; the parent group applies the world origin offset.
   Points fade out inside the active day's grid so they don't double up with its own terrain,
   and screen density is capped by level of detail (pointLod.ts) so zooming out never white-outs.
 -->
@@ -23,14 +23,14 @@
 	import type { Settings } from '$lib/settings.svelte';
 
 	let {
-		uk,
+		region,
 		active,
 		settings,
 		parkMask
-	}: { uk: Terrain; active: DaySummary | undefined; settings: Settings; parkMask: Uint8Array | null } = $props();
+	}: { region: Terrain; active: DaySummary | undefined; settings: Settings; parkMask: Uint8Array | null } = $props();
 
-	// svelte-ignore state_referenced_locally — the UK grid never changes
-	const { cols, rows, spacing, x0, n1, maxH } = uk.meta;
+	// svelte-ignore state_referenced_locally — the backdrop grid never changes
+	const { cols, rows, spacing, x0, n1, maxH } = region.meta;
 
 	// deterministic per-cell jitter in [-0.5, 0.5): breaks up the moiré a perfectly regular grid
 	// of small points makes when seen from far away
@@ -47,7 +47,7 @@
 		for (let r = 0; r < rows; r++)
 			for (let c = 0; c < cols; c++) {
 				const i = r * cols + c;
-				const h = uk.heights[i];
+				const h = region.heights[i];
 				if (h <= 0.5) continue; // sea: the coastline carries it
 				pos.push(x0 + (c + jitter(i, 1) * 0.8) * spacing, h, -(n1 - (r + jitter(i, 2) * 0.8) * spacing));
 				levels.push(gridLevel(c, r));
@@ -63,17 +63,25 @@
 	}
 
 	function buildCoast() {
-		const [coast] = contours()
-			.size([cols, rows])
-			.thresholds([0.5])(Array.from(uk.heights));
 		const pos: number[] = [];
-		// d3 grid coords (cell centres at +0.5) -> BNG metres
+		// d3 grid coords (cell centres at +0.5) -> projected metres
 		const gx = (c: number) => x0 + (c - 0.5) * spacing;
 		const gz = (r: number) => -(n1 - (r - 0.5) * spacing);
-		for (const poly of coast.coordinates)
-			for (const ring of poly)
-				for (let i = 1; i < ring.length; i++)
-					pos.push(gx(ring[i - 1][0]), 1, gz(ring[i - 1][1]), gx(ring[i][0]), 1, gz(ring[i][1]));
+		const trace = (level: number, y: number) => {
+			const [line] = contours().size([cols, rows]).thresholds([level])(Array.from(region.heights));
+			for (const poly of line.coordinates)
+				for (const ring of poly)
+					for (let i = 1; i < ring.length; i++) {
+						// where land runs off the grid the contour closes along the edge: that's no line on
+						// the ground, so leave it out
+						const [a, b] = [ring[i - 1], ring[i]];
+						if ((a[0] === b[0] && (a[0] <= 0 || a[0] >= cols)) || (a[1] === b[1] && (a[1] <= 0 || a[1] >= rows))) continue;
+						pos.push(gx(a[0]), y, gz(a[1]), gx(b[0]), y, gz(b[1]));
+					}
+		};
+		// an inland region has no coast to outline: draw its shape with a line every 1,000 m instead
+		if (region.heights.some((h) => h <= 0.5)) trace(0.5, 1);
+		else for (let level = 1000; level < maxH; level += 1000) trace(level, level);
 		const g = new BufferGeometry();
 		g.setAttribute('position', new BufferAttribute(new Float32Array(pos), 3));
 		return g;
@@ -173,7 +181,7 @@
 </script>
 
 <!-- backdrop points are optional (off by default): the tour overview reads as coastline, parks and routes -->
-{#if settings.layers.ukPoints}
+{#if settings.layers.backdropPoints}
 	<T.Points geometry={points} {material} frustumCulled={false} />
 {/if}
 <T.LineSegments geometry={coast} material={coastMat} frustumCulled={false} />

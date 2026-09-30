@@ -112,6 +112,9 @@
 	// the surroundings keep their full height and open out like an aperture instead; this holds
 	// them level while the land beside them rises (the land group sits at -base × exag)
 	let haloLift = $state(0);
+	// …and as it goes flat it drops just below the plinth's floor, so the flat land never sits level
+	// with the plinth (two surfaces at one height flicker) and is tucked away at the moment of the swap
+	let sink = $state(0);
 
 	// sun and moon: small bodies on a wide arc around the globe
 	const ORBIT = V * 1.55;
@@ -168,6 +171,8 @@
 		exag = tour.exaggeration * r;
 		if (settled !== r > 0.999) settled = r > 0.999;
 		haloLift = Number.isFinite(globe.base) ? globe.base * (exag - tour.exaggeration) : 0;
+		// in the land's own metres (it's scaled by V / R): 3% of the globe's size below the floor at flat
+		sink = -(1 - shown()) * V * 0.03 * (R / V);
 		const b = tour.bike;
 		// scale the landscape so its radius R fills the globe's fixed size V
 		const k = V / R;
@@ -281,7 +286,7 @@
 <T is={land}>
 	<!-- a new size rebuilds what's cut to the circle; the floor eases to its new level -->
 	{#key R}
-		<T.Group scale.y={exag}>
+		<T.Group scale.y={exag} position.y={sink}>
 			<DioramaTerrain {tour} {globe} radius={R} fade={shown} />
 			{#if lines.length}<GlobeLines {tour} {globe} radius={R} {lines} fade={shown} />{/if}
 			{#if tour.layers.route}<RouteRibbon {tour} {globe} radius={R} {shade} fade={shown} />{/if}

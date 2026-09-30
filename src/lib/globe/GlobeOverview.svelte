@@ -156,6 +156,8 @@
 		// and fades away only at the very end (and back in at the very start)
 		const u = Math.min(1, r / 0.18);
 		const o = u * u * (3 - 2 * u);
+		// and drops below the plinth's floor as it goes flat (no flicker against it)
+		if (meadowGroup) meadowGroup.position.y = -(1 - o) * V * 0.03;
 		for (const m of [grassMat, soilMat]) if (m) m.opacity = o;
 	});
 

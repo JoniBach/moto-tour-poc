@@ -46,6 +46,13 @@ const VIEW_KEY = 'moto-tour:view';
 const [homeE, homeN] = toGrid(...TOUR.region.centre);
 const HOME = { e: Math.round(homeE / 1000) * 1000, n: Math.round(homeN / 1000) * 1000 };
 
+/** Is downloading the next day ahead of time worth it here? Not on phones, slow links or Save-Data. */
+function prefetchWorthIt(): boolean {
+	const c = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+	if (c?.saveData || /(^|-)(2g|3g)$/.test(c?.effectiveType ?? '')) return false;
+	return !matchMedia('(max-width: 900px), (pointer: coarse)').matches;
+}
+
 export class App {
 	readonly settings = new Settings();
 	index = $state.raw<TourIndex | null>(null);
@@ -285,9 +292,11 @@ export class App {
 				this.pendingSeek = null;
 			}
 			this.tour = tour;
-			// warm the cache for the next day so the following transition is instant
+			// warm the cache for the next day so the following transition is instant, where that's
+			// cheap: not on phones or slow or data-saving connections (a day is a few MB), where
+			// it's fetched when someone actually moves on
 			const next = this.neighbour(1);
-			if (next) this.fetchDay(next.day, light);
+			if (next && prefetchWorthIt()) this.fetchDay(next.day, light);
 			// keep only this day and its neighbours: a day is several MB, a whole tour would fill a phone
 			const keep = new Set([day, next?.day, this.neighbour(-1)?.day]);
 			for (const key of this.days.keys()) if (!keep.has(key.split(':')[0])) this.days.delete(key);

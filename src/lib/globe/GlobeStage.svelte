@@ -14,6 +14,7 @@
 	import GlobeOverview from './GlobeOverview.svelte';
 	import GlobeScene from './GlobeScene.svelte';
 	import Plinth from './Plinth.svelte';
+	import { busy } from './FrameGovernor.svelte';
 
 	let {
 		tour,
@@ -73,6 +74,8 @@
 	}
 
 	useTask((dt) => {
+		// full frame rate through a change of day, and a moment after (the light and sun settle)
+		if (phase !== 'idle' || waiting) busy(1500);
 		const eased = shadow + (shadowGoal - shadow) * Math.min(1, dt * 2);
 		if (Math.abs(eased - shadow) > 0.004) shadow = eased;
 		if (still) {

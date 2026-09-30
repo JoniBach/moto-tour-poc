@@ -230,9 +230,7 @@ export async function loadRegion(): Promise<Terrain> {
 	// packed like the day files (scripts/pack.mjs): the .bin isn't compressed by the host
 	const [meta, buf] = await Promise.all([packedJson<TerrainMeta>(`${DATA}/region/terrain.json`), fetchPacked(`${DATA}/region/terrain.bin`)]);
 	if (!meta || !buf) throw unavailable('the map of the region');
-	const raw = new Int16Array(buf);
-	const heights = Float32Array.from(raw, (v) => v * meta.scale);
-	return new Terrain(meta, heights, new Uint8Array(0), null);
+	return new Terrain(meta, heightsFrom(buf, meta.cols, meta.scale), new Uint8Array(0), null);
 }
 
 // ---------- national parks ----------
@@ -369,6 +367,33 @@ async function fetchPacked(url: string): Promise<ArrayBuffer | null> {
 	const plain = await fetch(url).catch(() => null);
 	return plain?.ok ? plain.arrayBuffer() : null;
 }
+/**
+ * A height grid's samples, in its own units, from either form: plain Int16, or packed by
+ * scripts/pack.mjs ('MTDELTA1', a step, a count, then the change from the cell to the left as
+ * low and high byte planes).
+ */
+export function heightsFrom(buf: ArrayBuffer, cols: number, scale: number): Float32Array {
+	const b = new Uint8Array(buf);
+	const MAGIC = 'MTDELTA1';
+	let packed = b.length > 13;
+	for (let k = 0; packed && k < MAGIC.length; k++) packed = b[k] === MAGIC.charCodeAt(k);
+	if (!packed) return Float32Array.from(new Int16Array(buf), (v) => v * scale);
+	const step = b[8];
+	const n = new DataView(buf).getUint32(9, true);
+	const lo = 13;
+	const hi = 13 + n;
+	const out = new Float32Array(n);
+	const k = step * scale;
+	let v = 0;
+	for (let i = 0; i < n; i++) {
+		let d = b[lo + i] | (b[hi + i] << 8);
+		if (d & 0x8000) d -= 0x10000;
+		v = i % cols ? v + d : d;
+		out[i] = v * k;
+	}
+	return out;
+}
+
 const packedJson = async <T>(url: string): Promise<T | null> => {
 	const buf = await fetchPacked(url);
 	return buf ? (JSON.parse(new TextDecoder().decode(buf)) as T) : null;
@@ -394,12 +419,10 @@ export async function loadTour(base: string, light = false): Promise<TourData> {
 	if (!meta || !track) throw new Error(`Couldn't load this day. Check the connection and try again.`);
 	if (light) return { terrain: new Terrain(meta, new Float32Array(0), new Uint8Array(0), null), track, pins: pins ?? [], osm, weather, light: true };
 	if (!heightsBuf || !corridorBuf) throw new Error(`Couldn't load this day's landscape. Check the connection and try again.`);
-	const raw = new Int16Array(heightsBuf);
-	const heights = new Float32Array(raw.length);
-	for (let i = 0; i < raw.length; i++) heights[i] = raw[i] * meta.scale;
+	const heights = heightsFrom(heightsBuf, meta.cols, meta.scale);
 	// bad single samples: a threshold that grows with the cell size, so steep real ground stays
 	despike(heights, meta.cols, meta.rows, 50 + meta.spacing * 0.3);
-	const water = waterBuf && waterBuf.byteLength === raw.length ? new Uint8Array(waterBuf) : null;
+	const water = waterBuf && waterBuf.byteLength === heights.length ? new Uint8Array(waterBuf) : null;
 	return { terrain: new Terrain(meta, heights, new Uint8Array(corridorBuf), water), track, pins: pins ?? [], osm, weather };
 }
 

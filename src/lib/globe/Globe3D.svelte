@@ -12,6 +12,7 @@
 	import type { App } from '$lib/app.svelte';
 	import type { Tour } from '$lib/tour.svelte';
 	import GlobeStage from './GlobeStage.svelte';
+	import FrameGovernor from './FrameGovernor.svelte';
 	import GlobeUI from './GlobeUI.svelte';
 	import MiniMap from './MiniMap.svelte';
 	import { VIEWS_ON } from '$lib/flags';
@@ -48,6 +49,7 @@
 
 <div class="globe" style:--top={top} style:--bottom={bottom}>
 	<Canvas {dpr} toneMapping={NoToneMapping} createRenderer={(canvas) => new WebGLRenderer({ canvas, alpha: true, antialias: true })}>
+		<FrameGovernor playing={() => app.tour?.playing ?? false} />
 		<GlobeStage
 			{tour}
 			waiting={!!app.pending}

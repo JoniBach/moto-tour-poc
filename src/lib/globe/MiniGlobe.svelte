@@ -8,6 +8,7 @@
 	import { NoToneMapping, WebGLRenderer } from 'three';
 	import type { App } from '$lib/app.svelte';
 	import GlobeScene from './GlobeScene.svelte';
+	import FrameGovernor from './FrameGovernor.svelte';
 
 	let { app }: { app: App } = $props();
 
@@ -20,6 +21,7 @@
 {#if tour && summary}
 	<button type="button" class="inset" style:--top={top} style:--bottom={bottom} onclick={() => app.setView('globe')} aria-label="Switch to the globe" title="Switch to the globe">
 		<Canvas dpr={1} toneMapping={NoToneMapping} createRenderer={(canvas) => new WebGLRenderer({ canvas, alpha: true, antialias: true })}>
+			<FrameGovernor playing={() => tour.playing} />
 			{#key tour}
 				<GlobeScene
 					{tour}

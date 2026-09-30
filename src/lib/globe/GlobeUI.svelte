@@ -5,7 +5,7 @@
   time, the weather, a slider through the day). On phones the drawer is the settings sheet.
 -->
 <script lang="ts">
-	import { A } from '$lib/activity';
+	import { A, cap } from '$lib/activity';
 	import { TOUR } from '$lib/tourConfig';
 	import { tempRound, tempUnit } from '$lib/units';
 	import { layerAvailable } from '$lib/flagLayers';
@@ -127,6 +127,10 @@
 	<label class="slider">
 		<span>Relief <output>{tour.exaggeration.toFixed(1)}×</output></span>
 		<input type="range" min="1" max="4" step="0.1" bind:value={tour.exaggeration} />
+	</label>
+	<label class="slider">
+		<span>{cap(A.mover.replace(/^the /, ''))} size <output>{tour.settings.vehicleScale.toFixed(1)}×</output></span>
+		<input type="range" min="0.5" max="3" step="0.1" bind:value={tour.settings.vehicleScale} />
 	</label>
 	<div class="reset-row">
 		<button type="button" class="reset" disabled={!tour.settings.globeCustomised} onclick={() => tour.settings.resetGlobe()}>

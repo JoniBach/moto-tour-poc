@@ -1,7 +1,7 @@
 // Viewer settings shared across the whole tour: they survive moving between days, and the
 // globe's "customise" ones live in the page's URL too (only where they differ from the defaults),
 // so a refresh or a shared link keeps the viewer's setup:
-//   surface=satellite  route=plain  size=3000  relief=1.5  halo=0  off=roads,labels  on=backdropPoints
+//   surface=satellite  route=plain  size=3000  relief=1.5  vehicle=1.5  halo=0  off=roads,labels  on=backdropPoints
 import { speedShade } from './config';
 import type { MapStyle } from './imagery';
 
@@ -24,6 +24,8 @@ export class Settings {
 	autoAdvance = $state(true);
 	/** the globe view: metres of landscape from the bike to the rim */
 	globeRadius = $state(4000);
+	/** how big the vehicle is drawn (1 = its configured size) */
+	vehicleScale = $state(1);
 	/** the globe: faint elevation lines and route carrying on beyond the rim */
 	globeHalo = $state(true);
 	/** the globe's route: terracotta ('plain') or shaded by the ride's data, like the 3D view */
@@ -56,6 +58,7 @@ export class Settings {
 		if (this.globeRadius !== d.globeRadius) params.set('size', String(this.globeRadius));
 		if (this.exaggeration !== d.exaggeration) params.set('relief', this.exaggeration.toFixed(1));
 		if (this.globeHalo !== d.globeHalo) params.set('halo', this.globeHalo ? '1' : '0');
+		if (this.vehicleScale !== d.vehicleScale) params.set('vehicle', this.vehicleScale.toFixed(1));
 		const keys = Object.keys(d.layers) as (keyof Settings['layers'])[];
 		const off = keys.filter((k) => d.layers[k] && !this.layers[k]);
 		const on = keys.filter((k) => !d.layers[k] && this.layers[k]);
@@ -79,6 +82,8 @@ export class Settings {
 		const relief = num('relief', 1, 4);
 		if (relief != null) this.exaggeration = Math.round(relief * 10) / 10;
 		if (params.has('halo')) this.globeHalo = params.get('halo') !== '0';
+		const vehicle = num('vehicle', 0.5, 3);
+		if (vehicle != null) this.vehicleScale = Math.round(vehicle * 10) / 10;
 		const list = (key: string) => (params.get(key) ?? '').split(',').filter((k) => k in this.layers) as (keyof Settings['layers'])[];
 		for (const k of list('off')) this.layers[k] = false;
 		for (const k of list('on')) this.layers[k] = true;
@@ -92,6 +97,7 @@ export class Settings {
 		this.globeRadius = d.globeRadius;
 		this.exaggeration = d.exaggeration;
 		this.globeHalo = d.globeHalo;
+		this.vehicleScale = d.vehicleScale;
 		Object.assign(this.layers, d.layers);
 	}
 
@@ -113,6 +119,7 @@ const DEFAULTS = (() => {
 		globeRadius: s.globeRadius,
 		exaggeration: s.exaggeration,
 		globeHalo: s.globeHalo,
+		vehicleScale: s.vehicleScale,
 		layers: { ...s.layers }
 	};
 })();

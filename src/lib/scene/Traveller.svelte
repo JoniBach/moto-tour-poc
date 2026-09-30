@@ -19,6 +19,7 @@
 	import { onMount } from 'svelte';
 	import type { BufferGeometry } from 'three';
 	import { vehicleGeometry, vehicleReady } from './vehicleModel';
+	import { app } from '$lib/app.svelte';
 
 	let {
 		tour,
@@ -65,7 +66,7 @@
 		if (leanGroup) leanGroup.rotation.z = A.leans ? -b.lean : 0;
 		const dist = camera.current.getWorldPosition(tmp).distanceTo(outer.position);
 		const s = Math.min(60, Math.max(1, dist / 45));
-		outer.scale.setScalar(s * grow);
+		outer.scale.setScalar(s * grow * app.settings.vehicleScale);
 		// the marker beam only helps when zoomed out; hide it for close-ups
 		if (beam) beam.visible = beacon && s > 6;
 	});

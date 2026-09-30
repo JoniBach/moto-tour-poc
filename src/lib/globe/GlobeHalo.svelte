@@ -22,7 +22,9 @@
 		lines,
 		shade,
 		marks,
-		open
+		open,
+		fogIn = 1.55,
+		fogOut = 2.6
 	}: {
 		tour: Tour;
 		globe: GlobeState;
@@ -37,6 +39,10 @@
 		marks: HaloMark[];
 		/** how far the surroundings have opened out from the rim, 0 to 1, like an aperture (the stage's transitions) */
 		open?: () => number;
+		/** where the inner fog has cleared, in multiples of the radius (live) */
+		fogIn?: number;
+		/** where the outer fog has closed in, and how far the surroundings reach (a new value rebuilds) */
+		fogOut?: number;
 	} = $props();
 
 	// svelte-ignore state_referenced_locally — a new radius remounts this component
@@ -44,9 +50,13 @@
 	// svelte-ignore state_referenced_locally
 	const { terrain, track: tr } = tour.data;
 	/** where the lines start (just past the plinth) and fade out */
-	const INNER = R * 1.2;
-	const OUTER = R * 2.6;
-	const N = 160; // grid cells across
+	// from the land's own edge: how far out they're hidden is the inner fog's job (fogIn)
+	const INNER = R;
+	// svelte-ignore state_referenced_locally — a new reach remounts this component
+	const OUTER = R * fogOut;
+	// grid cells across: finer cells for a wider reach, within reason
+	// svelte-ignore state_referenced_locally
+	const N = Math.min(260, Math.round((160 * fogOut) / 2.6));
 	const CELL = (OUTER * 2) / N;
 	const REBUILD = R * 0.25; // metres the bike moves before the surroundings re-build
 
@@ -54,6 +64,8 @@
 		uniform vec2 uBike;
 		uniform float uInner;
 		uniform float uOuter;
+		uniform float uClear;
+		uniform float uFadeFrom;
 		uniform float uBase;
 		uniform float uDip;
 		uniform float uOpen;
@@ -61,7 +73,8 @@
 			float d = distance(xz, uBike);
 			if (d < uInner) return 0.0;
 			// out from the plinth, then away into the air
-			float f = smoothstep(uInner, uInner + (uOuter - uInner) * 0.25, d) * (1.0 - smoothstep(uOuter * 0.7, uOuter, d));
+			// the inner fog clears by uClear; the outer fog closes in from uFadeFrom to uOuter
+			float f = smoothstep(uInner, max(uClear, uInner + 1.0), d) * (1.0 - smoothstep(uFadeFrom, uOuter, d));
 			// the aperture: open out from the rim to the full reach, a soft edge on the way
 			float edge = mix(uInner, uOuter * 1.08, uOpen);
 			f *= 1.0 - smoothstep(edge - (uOuter - uInner) * 0.12, edge, d);
@@ -73,6 +86,8 @@
 		uBike: { value: new Vector2() },
 		uInner: { value: INNER },
 		uOuter: { value: OUTER },
+		uClear: { value: R * 1.55 },
+		uFadeFrom: { value: OUTER * 0.7 },
 		uBase: { value: 0 },
 		uDip: { value: R * 0.08 },
 		uOpen: { value: 1 }
@@ -330,6 +345,8 @@
 			m.uniforms.uBike.value.set(b.x, -b.n);
 			m.uniforms.uBase.value = globe.base;
 			m.uniforms.uOpen.value = open?.() ?? 1;
+			m.uniforms.uClear.value = R * fogIn;
+			m.uniforms.uFadeFrom.value = Math.max(R * fogIn, OUTER * 0.7);
 		}
 		routeMat.uniforms.uFix.value = b.i + b.f;
 	});

@@ -78,9 +78,11 @@
 	const material = new ShaderMaterial({
 		side: DoubleSide, // winding varies with direction of travel
 		transparent: true,
+		// pulled well towards the camera and drawn after the map's lines, so where they cross the
+		// route always wins (no flicker between the two); hills in front still hide it
 		polygonOffset: true,
-		polygonOffsetFactor: -2,
-		polygonOffsetUnits: -4,
+		polygonOffsetFactor: -6,
+		polygonOffsetUnits: -60,
 		uniforms: { uBike: { value: new Vector2() }, uR: { value: 0 }, uFix: { value: 0 }, uFade: { value: 1 } },
 		vertexShader: /* glsl */ `
 			attribute float aFix;
@@ -141,4 +143,4 @@
 </script>
 
 <!-- above the roads -->
-<T.Mesh {geometry} {material} frustumCulled={false} renderOrder={3} />
+<T.Mesh {geometry} {material} frustumCulled={false} renderOrder={4} />

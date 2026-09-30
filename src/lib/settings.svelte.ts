@@ -1,7 +1,7 @@
 // Viewer settings shared across the whole tour: they survive moving between days, and the
 // globe's "customise" ones live in the page's URL too (only where they differ from the defaults),
 // so a refresh or a shared link keeps the viewer's setup:
-//   surface=satellite  route=plain  size=3000  relief=1.5  vehicle=1.5  halo=0  off=roads,labels  on=backdropPoints
+//   surface=satellite  route=plain  size=3000  relief=1.5  vehicle=1.5  fog=1.40,3.50  halo=0  off=roads,labels
 import { speedShade } from './config';
 import type { MapStyle } from './imagery';
 
@@ -24,6 +24,13 @@ export class Settings {
 	autoAdvance = $state(true);
 	/** the globe view: metres of landscape from the bike to the rim */
 	globeRadius = $state(4000);
+	/**
+	 * The surroundings' fog, in multiples of the globe's radius from the centre: the inner fog
+	 * (next to the plinth) has cleared by `fogIn`, and the outer fog has closed in completely by
+	 * `fogOut`, which is also how far the surroundings reach.
+	 */
+	fogIn = $state(1.55);
+	fogOut = $state(2.6);
 	/** how big the vehicle is drawn (1 = its configured size) */
 	vehicleScale = $state(1);
 	/** the globe: faint elevation lines and route carrying on beyond the rim */
@@ -59,6 +66,7 @@ export class Settings {
 		if (this.exaggeration !== d.exaggeration) params.set('relief', this.exaggeration.toFixed(1));
 		if (this.globeHalo !== d.globeHalo) params.set('halo', this.globeHalo ? '1' : '0');
 		if (this.vehicleScale !== d.vehicleScale) params.set('vehicle', this.vehicleScale.toFixed(1));
+		if (this.fogIn !== d.fogIn || this.fogOut !== d.fogOut) params.set('fog', `${this.fogIn.toFixed(2)},${this.fogOut.toFixed(2)}`);
 		const keys = Object.keys(d.layers) as (keyof Settings['layers'])[];
 		const off = keys.filter((k) => d.layers[k] && !this.layers[k]);
 		const on = keys.filter((k) => !d.layers[k] && this.layers[k]);
@@ -82,6 +90,11 @@ export class Settings {
 		const relief = num('relief', 1, 4);
 		if (relief != null) this.exaggeration = Math.round(relief * 10) / 10;
 		if (params.has('halo')) this.globeHalo = params.get('halo') !== '0';
+		const fog = (params.get('fog') ?? '').split(',').map(Number);
+		if (fog.length === 2 && fog.every(Number.isFinite)) {
+			this.fogOut = Math.min(FOG_MAX, Math.max(FOG_MIN + FOG_GAP, fog[1]));
+			this.fogIn = Math.min(this.fogOut - FOG_GAP, Math.max(FOG_MIN, fog[0]));
+		}
 		const vehicle = num('vehicle', 0.5, 3);
 		if (vehicle != null) this.vehicleScale = Math.round(vehicle * 10) / 10;
 		const list = (key: string) => (params.get(key) ?? '').split(',').filter((k) => k in this.layers) as (keyof Settings['layers'])[];
@@ -98,6 +111,8 @@ export class Settings {
 		this.exaggeration = d.exaggeration;
 		this.globeHalo = d.globeHalo;
 		this.vehicleScale = d.vehicleScale;
+		this.fogIn = d.fogIn;
+		this.fogOut = d.fogOut;
 		Object.assign(this.layers, d.layers);
 	}
 
@@ -110,6 +125,10 @@ export class Settings {
 }
 
 const MAP_STYLES: MapStyle[] = ['hologram', 'satellite', 'sentinel', 'topo'];
+/** the fog's limits (multiples of the radius): the land's edge, far out, and the least gap */
+export const FOG_MIN = 1;
+export const FOG_MAX = 5;
+export const FOG_GAP = 0.3;
 /** The settings as they start (read once: the defaults the URL and reset measure against). */
 const DEFAULTS = (() => {
 	const s = new Settings();
@@ -120,6 +139,8 @@ const DEFAULTS = (() => {
 		exaggeration: s.exaggeration,
 		globeHalo: s.globeHalo,
 		vehicleScale: s.vehicleScale,
+		fogIn: s.fogIn,
+		fogOut: s.fogOut,
 		layers: { ...s.layers }
 	};
 })();

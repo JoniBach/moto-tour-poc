@@ -306,7 +306,21 @@
 		</T.Group>
 		{#if tour.settings.globeHalo && !mini}
 			<T.Group scale.y={tour.exaggeration} position.y={haloLift}>
-				<GlobeHalo {tour} {globe} radius={R} contours={tour.layers.contours} route={tour.layers.route} {lines} {shade} {marks} open={risen} />
+				{#key tour.settings.fogOut}
+					<GlobeHalo
+						{tour}
+						{globe}
+						radius={R}
+						contours={tour.layers.contours}
+						route={tour.layers.route}
+						{lines}
+						{shade}
+						{marks}
+						open={risen}
+						fogIn={tour.settings.fogIn}
+						fogOut={tour.settings.fogOut}
+					/>
+				{/key}
 			</T.Group>
 		{/if}
 		{#if !mini && settled}

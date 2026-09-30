@@ -296,7 +296,7 @@ flaky connection just re-run. `node scripts/deploy.mjs --prod` would publish pub
 The globe's "Customise" drawer (surface, route colour, what to show, surroundings, size, relief)
 (and the vehicle's size) keeps its choices in the page's address, only where they differ from the defaults, so a refresh or
 a shared link opens the globe the same way: `surface=satellite`, `route=plain`, `size=3000` (metres
-to the rim; default 4000), `relief=1.5`, `vehicle=1.5`, `halo=0`, `off=roads,labels`, `on=backdropPoints`
+to the rim; default 4000), `relief=1.5`, `vehicle=1.5`, `fog=1.4,3.5` (where the surroundings' inner fog has cleared and the outer fog has closed in, in multiples of the radius), `halo=0`, `off=roads,labels`, `on=backdropPoints`
 (`Settings.writeParams` / `readParams` in `src/lib/settings.svelte.ts`). "Reset to the defaults"
 clears them.
 

@@ -22,6 +22,8 @@
 	import type { Parks } from '$lib/data';
 	import { ui } from '$lib/ui.svelte';
 	import DayCard from '$lib/ui/DayCard.svelte';
+	import RangeSlider from '$lib/ui/RangeSlider.svelte';
+	import { FOG_GAP, FOG_MAX, FOG_MIN } from '$lib/settings.svelte';
 
 	let { tour, parks, originE, originN }: { tour: Tour; parks: Parks | null; originE: number; originN: number } = $props();
 
@@ -70,6 +72,13 @@
 	$effect(() => {
 		size = tour.settings.globeRadius;
 	});
+	// the fog: the inner edge applies live; the outer one (it rebuilds the surroundings) on release
+	// svelte-ignore state_referenced_locally
+	let fogOut = $state(tour.settings.fogOut);
+	$effect(() => {
+		fogOut = tour.settings.fogOut;
+	});
+	const fogKm = (k: number) => km(k * tour.settings.globeRadius);
 	const km = (m: number) => `${(m / 1000).toFixed(m < 10000 ? 1 : 0)} km`;
 
 	const clock = $derived(tourClock(tour.bike.time).slice(0, 5));
@@ -128,6 +137,24 @@
 		<span>Relief <output>{tour.exaggeration.toFixed(1)}×</output></span>
 		<input type="range" min="1" max="4" step="0.1" bind:value={tour.exaggeration} />
 	</label>
+	{#if tour.settings.globeHalo}
+		<div class="slider">
+			<span>Surroundings fog <output>clear {fogKm(tour.settings.fogIn)} · gone {fogKm(fogOut)}</output></span>
+			<RangeSlider
+				min={FOG_MIN}
+				max={FOG_MAX}
+				step={0.05}
+				gap={FOG_GAP}
+				bind:lo={tour.settings.fogIn}
+				bind:hi={fogOut}
+				loLabel="Inner fog: the surroundings are clear from"
+				hiLabel="Outer fog: the surroundings have faded out by"
+				loText="{fogKm(tour.settings.fogIn)} from the centre"
+				hiText="{fogKm(fogOut)} from the centre"
+				onhicommit={(v) => (tour.settings.fogOut = v)}
+			/>
+		</div>
+	{/if}
 	<label class="slider">
 		<span>{cap(A.mover.replace(/^the /, ''))} size <output>{tour.settings.vehicleScale.toFixed(1)}×</output></span>
 		<input type="range" min="0.5" max="3" step="0.1" bind:value={tour.settings.vehicleScale} />

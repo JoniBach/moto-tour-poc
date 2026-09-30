@@ -59,8 +59,8 @@
 	let phase: 'idle' | 'fall' | 'rise' = 'idle';
 	let t = 0;
 	let from = 1;
-	const FALL = 0.5;
-	const RISE = 1.1;
+	const FALL = 0.7;
+	const RISE = 1.4;
 	const easeInOut = (u: number) => (u < 0.5 ? 4 * u * u * u : 1 - (-2 * u + 2) ** 3 / 2);
 	const clamp = (u: number) => Math.min(1, Math.max(0, u));
 
@@ -111,7 +111,8 @@
 	<OrbitControls target={[0, V * 0.04, 0]} enablePan={false} enableDamping minDistance={V * 1.3} maxDistance={V * 6 * fit} maxPolarAngle={Math.PI * 0.47} />
 </T.PerspectiveCamera>
 
-<Plinth R={V} title={plinth.title} date={plinth.date} {shadow} />
+<!-- the lettering fades out as the land falls and back in as the new land rises -->
+<Plinth R={V} title={plinth.title} date={plinth.date} {shadow} lettering={() => (phase === 'idle' ? 1 : rise)} />
 
 <!-- a keyed list, not {#if}: a day's scene keeps its own tour to the end, never null mid-teardown -->
 {#each shown ? [shown] : [] as day (day)}

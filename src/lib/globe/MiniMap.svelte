@@ -70,6 +70,7 @@
 
 <style>
 	.inset {
+		animation: settle 0.5s ease backwards;
 		position: absolute;
 		z-index: 100;
 		top: 84px;
@@ -160,6 +161,12 @@
 		}
 		.inset:hover {
 			transform: none;
+		}
+	}
+	@keyframes settle {
+		from {
+			opacity: 0;
+			transform: translateY(6px);
 		}
 	}
 </style>

@@ -134,6 +134,7 @@
 		pointer-events: none;
 	}
 	.gp {
+		animation: appear 0.7s ease backwards;
 		position: relative;
 		display: grid;
 		place-items: center;
@@ -209,6 +210,12 @@
 		.gp {
 			transition: opacity 0.2s;
 			transform: none;
+		}
+	}
+	@keyframes appear {
+		from {
+			opacity: 0;
+			transform: translateY(6px);
 		}
 	}
 </style>

@@ -50,6 +50,7 @@
 
 <style>
 	.daycard {
+		animation: settle 0.5s ease backwards;
 		position: absolute;
 		z-index: 100;
 		top: 84px;
@@ -148,5 +149,11 @@
 	}
 	.drawer {
 		margin-top: 4px;
+	}
+	@keyframes settle {
+		from {
+			opacity: 0;
+			transform: translateY(6px);
+		}
 	}
 </style>

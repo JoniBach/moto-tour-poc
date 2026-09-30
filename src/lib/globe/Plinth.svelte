@@ -4,10 +4,23 @@
   the day's name and date lettered around the front, and a soft shadow underneath.
 -->
 <script lang="ts">
-	import { T } from '@threlte/core';
-	import { CanvasTexture, CylinderGeometry, RingGeometry, SRGBColorSpace } from 'three';
+	import { T, useTask } from '@threlte/core';
+	import { CanvasTexture, CylinderGeometry, MeshStandardMaterial, RingGeometry, SRGBColorSpace } from 'three';
 
-	let { R, title, date, shadow }: { R: number; title: string; date: string; shadow: number } = $props();
+	let {
+		R,
+		title,
+		date,
+		shadow,
+		lettering
+	}: {
+		R: number;
+		title: string;
+		date: string;
+		shadow: number;
+		/** how visible the lettering is, 0 to 1 (the stage fades it out and back in between days) */
+		lettering?: () => number;
+	} = $props();
 
 	// svelte-ignore state_referenced_locally — the size is fixed for the component's lifetime
 	const OUT = R * 1.13;
@@ -87,8 +100,9 @@
 		return t;
 	}
 
-	function band(label: string) {
-		const W = 4096;
+	/** the side: cream with a thin moulding at top and bottom (the lettering is a layer over it) */
+	function side() {
+		const W = 1024;
 		const Hpx = 256;
 		const c = document.createElement('canvas');
 		c.width = W;
@@ -96,10 +110,22 @@
 		const ctx = c.getContext('2d')!;
 		ctx.fillStyle = CREAM;
 		ctx.fillRect(0, 0, W, Hpx);
-		// a thin moulding at top and bottom
 		ctx.fillStyle = 'rgba(92, 76, 60, 0.25)';
 		ctx.fillRect(0, 14, W, 3);
 		ctx.fillRect(0, Hpx - 17, W, 3);
+		const t = new CanvasTexture(c);
+		t.colorSpace = SRGBColorSpace;
+		return t;
+	}
+
+	/** the lettering alone, on transparent, so it can fade */
+	function band(label: string) {
+		const W = 4096;
+		const Hpx = 256;
+		const c = document.createElement('canvas');
+		c.width = W;
+		c.height = Hpx;
+		const ctx = c.getContext('2d')!;
 		ctx.textAlign = 'center';
 		ctx.textBaseline = 'middle';
 		ctx.font = `600 64px ${FONT}`;
@@ -124,6 +150,16 @@
 	}
 
 	const ringTex = compass();
+	const sideTex = side();
+	const letters = new MeshStandardMaterial({ transparent: true, roughness: 0.85, emissive: '#ffffff', emissiveIntensity: 0.35, depthWrite: false });
+	$effect(() => {
+		letters.map = bandTex;
+		letters.emissiveMap = bandTex;
+		letters.needsUpdate = true;
+	});
+	useTask(() => {
+		letters.opacity = Math.min(1, Math.max(0, lettering?.() ?? 1));
+	});
 	const shadeTex = shadowTex();
 	const label = $derived(`${title.toUpperCase()}   ·   ${date.toUpperCase()}`);
 	const bandTex = $derived(band(label));
@@ -140,16 +176,19 @@
 
 	$effect(() => () => {
 		ringTex.dispose();
+		sideTex.dispose();
+		letters.dispose();
 		shadeTex.dispose();
 		body.dispose();
 		cap.dispose();
 	});
 </script>
 
-<!-- side, with the lettering -->
+<!-- side, and the lettering over it (its own layer, so it can fade between days) -->
 <T.Mesh geometry={body} position.y={-H / 2}>
-	<T.MeshStandardMaterial map={bandTex} emissiveMap={bandTex} emissive="#ffffff" emissiveIntensity={0.35} roughness={0.85} />
+	<T.MeshStandardMaterial map={sideTex} emissiveMap={sideTex} emissive="#ffffff" emissiveIntensity={0.35} roughness={0.85} />
 </T.Mesh>
+<T.Mesh geometry={body} position.y={-H / 2} scale={[1.002, 1, 1.002]} material={letters} renderOrder={1} />
 <!-- the compass ring, flat on top (rotated so the texture's up is north) -->
 <T.Mesh geometry={cap} rotation.x={-Math.PI / 2} position.y={0.5}>
 	<T.MeshStandardMaterial map={ringTex} emissiveMap={ringTex} emissive="#ffffff" emissiveIntensity={0.35} roughness={0.8} />

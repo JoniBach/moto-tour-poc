@@ -64,6 +64,8 @@
 
 <style>
 	.gl {
+		/* labels arrive softly once the land has risen, not all at once */
+		animation: appear 0.7s ease backwards;
 		display: block;
 		white-space: nowrap;
 		font: 500 11px/1.2 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
@@ -121,6 +123,11 @@
 		.gl {
 			transition: opacity 0.2s;
 			transform: none;
+		}
+	}
+	@keyframes appear {
+		from {
+			opacity: 0;
 		}
 	}
 </style>

@@ -2,7 +2,8 @@
 // generated JSON from static/data, so each page ships just the slice it shows — never the whole
 // photo list or the 3D app.
 import fs from 'node:fs';
-import type { BlogPost, Feed, FeedDay, FeedEvent, Photo } from '$lib/data';
+import type { BlogPost, Feed, FeedDay, FeedEvent, Photo, TourIndex } from '$lib/data';
+import { sketch, type Sketch } from '$lib/sketch';
 import { on } from '$lib/flags';
 import { DATA_DIR } from '$lib/tourConfig';
 import { distRound } from '../units';
@@ -18,6 +19,19 @@ function read<T>(file: string, fallback: T): T {
 const rawFeed = () => read<Feed>('feed.json', { days: [] });
 const posts = () => (on('stories') ? read<{ posts: BlogPost[] }>('blog.json', { posts: [] }).posts : []);
 const photos = () => (on('photos') ? read<{ photos: Photo[] }>('photos.json', { photos: [] }).photos : []);
+const tourIndex = () => read<TourIndex>('tour.json', { days: [] });
+
+/** A day's route sketch (tour.json's simplified lines), with a moment marked if given. */
+export function sketchOf(day: string, dot?: { e: number; n: number }, max = 160): Sketch {
+	const d = tourIndex().days.find((x) => x.day === day);
+	return sketch(d?.lines ?? [], { dot, max });
+}
+
+/** The journey rail: every day, in order, with a small sketch. */
+export function railDays() {
+	return feed().days.map((d) => ({ day: d.day, index: d.index, title: d.title, start: d.start, sketch: sketchOf(d.day, undefined, 40) }));
+}
+export type RailDay = ReturnType<typeof railDays>[number];
 
 /** The feed as released (src/lib/flags.ts): without the photos, stories or weather that are switched off. */
 const keep = (e: FeedEvent) => (e.kind === 'photos' ? on('photos') : e.kind === 'post' ? on('stories') : true);
@@ -36,7 +50,7 @@ const feed = (): Feed =>
 export type PostCard = Pick<BlogPost, 'slug' | 'title' | 'excerpt' | 'minutes' | 'cover'>;
 /** A feed event with its post resolved and photo sizes attached (for width/height, no layout shift). */
 export type BlogEvent = FeedEvent & { card?: PostCard; sizes?: Record<string, [number, number]> };
-export type BlogDay = Omit<FeedDay, 'events'> & { events: BlogEvent[] };
+export type BlogDay = Omit<FeedDay, 'events'> & { events: BlogEvent[]; sketch: Sketch };
 export type DayRef = Pick<FeedDay, 'day' | 'index' | 'title'>;
 
 const ref = (d: FeedDay): DayRef => ({ day: d.day, index: d.index, title: d.title });
@@ -46,6 +60,7 @@ function resolve(d: FeedDay, maxPhotos: number): BlogDay {
 	const bySlug = new Map(posts().map((p) => [p.slug, p]));
 	return {
 		...d,
+		sketch: sketchOf(d.day),
 		events: d.events.map((e): BlogEvent => {
 			if (e.kind === 'post') {
 				const p = bySlug.get(e.post);
@@ -101,11 +116,19 @@ export function postPage(slug: string) {
 	if (!d) return null;
 	const cover = post.cover ? photos().find((p) => p.id === post.cover) : undefined;
 	const place = d.events.find((e) => e.kind === 'post' && e.post === slug)?.place ?? null;
-	const nav = (p?: BlogPost) => (p ? { slug: p.slug, day: p.day, title: p.title } : null);
+	const days = feed().days;
+	const nav = (p?: BlogPost) => {
+		if (!p) return null;
+		const pd = days.find((x) => x.day === p.day);
+		const c = p.cover ? photos().find((x) => x.id === p.cover) : undefined;
+		return { slug: p.slug, day: p.day, index: pd?.index ?? 0, title: p.title, excerpt: p.excerpt, cover: c ? { id: c.id, w: c.w, h: c.h } : null };
+	};
 	return {
 		post,
 		cover: cover ? { id: cover.id, w: cover.w, h: cover.h } : null,
 		day: ref(d),
+		dayCount: days.length,
+		where: sketchOf(d.day, { e: post.e, n: post.n }),
 		place,
 		prev: nav(all[k - 1]),
 		next: nav(all[k + 1])

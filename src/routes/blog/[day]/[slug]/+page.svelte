@@ -1,12 +1,20 @@
-<!-- A blog post as a normal article page. -->
+<!--
+  A story, as an article pinned to its moment of the journey: its day and time, a large cover,
+  the text set at a comfortable measure (about 65 characters a line), then where it happened (the
+  day's route with the moment marked, and a link to it in the tour) and the stories either side
+  of it as postcards.
+-->
 <script lang="ts">
 	import { TOUR } from '$lib/tourConfig';
 	import { tourOn, TOUR_NAME } from '$lib/flags';
 	import { iso, longDate, mapLink, time } from '$lib/blog';
+	import { dayColor } from '$lib/colors';
 	import Photo from '$lib/blog/Photo.svelte';
+	import RouteSketch from '$lib/ui/RouteSketch.svelte';
 
 	let { data } = $props();
-	const { post, cover, day, place, prev, next } = $derived(data);
+	const { post, cover, day, dayCount, where, place, prev, next } = $derived(data);
+	const c = $derived(dayColor(day.index, dayCount));
 </script>
 
 <svelte:head>
@@ -14,7 +22,7 @@
 	<meta name="description" content={post.excerpt} />
 </svelte:head>
 
-<article class="post">
+<article class="post" style:--c={c}>
 	<nav aria-label="Breadcrumb" class="crumb">
 		<ol>
 			<li><a href="/blog">All days</a></li>
@@ -23,26 +31,53 @@
 		</ol>
 	</nav>
 	<header>
-		<p class="kicker">Day {day.index + 1} · {day.title}</p>
+		<p class="kicker"><span class="chip">Day {day.index + 1}</span> {day.title}</p>
 		<h1>{post.title}</h1>
 		<p class="meta">
-			<time datetime={iso(post.t)}>{longDate(post.t)}, {time(post.t)}</time>{#if place} · near {place}{/if} ·
-			{post.minutes} minute read
+			<time datetime={iso(post.t)}>{longDate(post.t)}, {time(post.t)}</time>{#if place}{' · '}near {place}{/if}{' · '}{post.minutes} minute read
 		</p>
 	</header>
 	{#if cover}
 		<!-- the page's main image: fetched first, never lazy -->
-		<Photo class="cover" id={cover.id} size={[cover.w, cover.h]} alt="" sizes="(max-width: 46rem) 100vw, 44rem" priority />
+		<Photo class="cover" id={cover.id} size={[cover.w, cover.h]} alt="" sizes="(max-width: 46rem) 100vw, 46rem" priority />
 	{/if}
 	<div class="prose">
 		<!-- the author's own Markdown, rendered at build time (scripts/build-blog.mjs) -->
 		{@html post.html}
 	</div>
-	{#if tourOn}<p><a class="dx" href={mapLink(day.day, post.t, { post: post.slug })}>See this moment in the {TOUR_NAME}<span aria-hidden="true"> ↗</span></a></p>{/if}
-	<nav class="pager" aria-label="Other stories">
-		{#if prev}<a rel="prev" href="/blog/{prev.day}/{prev.slug}"><span aria-hidden="true">← </span>{prev.title}</a>{:else}<span></span>{/if}
-		{#if next}<a rel="next" href="/blog/{next.day}/{next.slug}">{next.title}<span aria-hidden="true"> →</span></a>{/if}
-	</nav>
+
+	<aside class="where" aria-labelledby="where-h">
+		<span class="route">
+			<RouteSketch s={where} color={c} label="Day {day.index + 1}'s route, with this story's moment marked" />
+		</span>
+		<div>
+			<h2 id="where-h">Where this happened</h2>
+			<p>
+				Day {day.index + 1}, {day.title}, at {time(post.t)}{#if place}{' '}near {place}{/if}.
+			</p>
+			{#if tourOn}
+				<a class="go" href={mapLink(day.day, post.t, { post: post.slug })}>See this moment in the {TOUR_NAME}<span aria-hidden="true"> →</span></a>
+			{/if}
+		</div>
+	</aside>
+
+	{#if prev || next}
+		<nav class="more" aria-label="Other stories">
+			{#each [prev, next] as s, k (k)}
+				{#if s}
+					<a class="card" rel={k ? 'next' : 'prev'} href="/blog/{s.day}/{s.slug}" style:--c={dayColor(s.index, dayCount)}>
+						{#if s.cover}<span class="thumb"><Photo id={s.cover.id} size={[s.cover.w, s.cover.h]} alt="" sizes="12rem" /></span>{/if}
+						<span class="txt">
+							<span class="which">{k ? 'Next story' : 'Previous story'} · Day {s.index + 1}</span>
+							<span class="t">{s.title}</span>
+						</span>
+					</a>
+				{:else}
+					<span></span>
+				{/if}
+			{/each}
+		</nav>
+	{/if}
 </article>
 
 <style>
@@ -71,16 +106,28 @@
 		min-width: 2.75rem;
 	}
 	.kicker {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.5rem;
 		margin: 0;
-		font-size: 0.9rem;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: var(--b-warm-text);
+		font-weight: 650;
+		color: var(--b-muted);
+	}
+	.chip {
+		padding: 0.15rem 0.7rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--c) 28%, var(--b-card));
+		box-shadow: inset 0 0 0 2px var(--c);
+		color: var(--b-text);
+		font-size: 0.85rem;
+		font-weight: 750;
+		letter-spacing: 0.04em;
 	}
 	h1 {
-		margin: 0.3rem 0 0.4rem;
-		font-size: clamp(1.8rem, 5vw, 2.6rem);
-		line-height: 1.15;
+		margin: 0.5rem 0 0.5rem;
+		font-size: clamp(2.1rem, 6vw, 3.1rem);
+		line-height: 1.08;
 	}
 	.meta {
 		color: var(--b-muted);
@@ -89,67 +136,167 @@
 		display: block;
 		width: 100%;
 		height: auto;
-		max-height: 70vh;
+		max-height: 72vh;
 		object-fit: cover;
-		border-radius: 12px;
-		margin-bottom: 1.5rem;
+		border-radius: 24px;
+		margin: 0.5rem 0 2rem;
+		box-shadow: 0 12px 30px rgb(70 55 30 / 0.15);
 	}
+	/* the reading measure: about 65 characters a line */
 	.prose {
-		font-size: 1.125rem;
+		max-width: 65ch;
+		font-size: 1.15rem;
 		line-height: 1.75;
 	}
 	.prose :global(p) {
 		margin: 0 0 1.5em;
 	}
+	/* a drop cap to open, unless the story opens on an italic aside */
+	.prose > :global(p:first-child:not(:has(> em:first-child))::first-letter) {
+		float: left;
+		margin: 0.1em 0.12em 0 0;
+		font-family: var(--font-display);
+		font-weight: 700;
+		font-size: 3.4em;
+		line-height: 0.85;
+		color: var(--b-accent);
+	}
 	.prose :global(em) {
 		color: var(--b-muted);
 	}
 	.prose :global(figure) {
-		margin: 1.5rem 0;
+		margin: 2rem 0;
 	}
 	.prose :global(figure img) {
 		display: block;
 		width: 100%;
 		height: auto;
-		border-radius: 10px;
+		border-radius: 18px;
 	}
 	.prose :global(figcaption) {
-		margin-top: 0.4rem;
+		margin-top: 0.5rem;
 		font-size: 0.95rem;
 		color: var(--b-muted);
 	}
 	.prose :global(blockquote) {
 		margin: 0 0 1.5em;
-		padding-left: 1rem;
-		border-left: 4px solid var(--b-warm);
+		padding: 0.6rem 1.2rem;
+		border-left: 5px solid var(--c);
+		border-radius: 4px 16px 16px 4px;
+		background: var(--b-card);
+		font-family: var(--font-display);
+		font-size: 1.2em;
+		color: var(--b-text);
+	}
+	/* where it happened: the day's route with the moment on it */
+	.where {
+		display: grid;
+		grid-template-columns: 8rem minmax(0, 1fr);
+		align-items: center;
+		gap: 1.25rem;
+		margin: 2.5rem 0 0;
+		padding: 1.1rem;
+		border-radius: 24px;
+		background: var(--b-card);
+		box-shadow:
+			0 0 0 1px var(--b-line),
+			inset 0 6px 0 var(--c);
+	}
+	.route {
+		width: 8rem;
+		height: 8rem;
+		border-radius: 18px;
+		background: color-mix(in srgb, var(--c) 10%, var(--b-bg));
+	}
+	.where h2 {
+		margin: 0 0 0.3rem;
+		font-size: 1.3rem;
+	}
+	.where p {
+		margin: 0 0 0.6rem;
 		color: var(--b-muted);
 	}
-	.dx {
+	.go {
 		display: inline-flex;
 		align-items: center;
 		min-height: 2.75rem;
-		padding: 0 1rem;
-		border-radius: 8px;
+		padding: 0 1.1rem;
+		border-radius: 999px;
 		background: var(--b-accent);
 		color: var(--b-bg) !important;
-		font-weight: 600;
+		font-weight: 650;
 		text-decoration: none;
 	}
-	.pager {
-		display: flex;
-		justify-content: space-between;
+	/* the stories either side, as postcards */
+	.more {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
 		gap: 1rem;
-		margin-top: 2.5rem;
-		padding-top: 1rem;
-		border-top: 1px solid var(--b-line);
-		font-weight: 600;
+		margin-top: 2rem;
 	}
-	.pager a {
-		display: inline-flex;
-		align-items: center;
-		min-height: 2.75rem;
+	.card {
+		display: flex;
+		flex-direction: column;
+		border-radius: 20px;
+		background: var(--b-card);
+		box-shadow:
+			0 0 0 1px var(--b-line),
+			0 3px 0 rgb(38 50 56 / 0.12);
+		color: var(--b-text) !important;
+		text-decoration: none;
+		overflow: hidden;
+		transition: transform 0.15s ease;
 	}
-	.pager a[rel='next'] {
+	.card:hover {
+		transform: translateY(-2px) rotate(-0.3deg);
+	}
+	.card[rel='next'] {
 		text-align: right;
+	}
+	.thumb :global(img) {
+		display: block;
+		width: 100%;
+		height: 7.5rem;
+		object-fit: cover;
+	}
+	.txt {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+		padding: 0.8rem 1rem 1rem;
+		border-top: 5px solid var(--c);
+	}
+	.which {
+		font-size: 0.8rem;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--b-muted);
+	}
+	.t {
+		font-family: var(--font-display);
+		font-weight: 650;
+		font-size: 1.15rem;
+		line-height: 1.2;
+	}
+	@media (max-width: 34rem) {
+		.where {
+			grid-template-columns: 5.5rem minmax(0, 1fr);
+		}
+		.route {
+			width: 5.5rem;
+			height: 5.5rem;
+		}
+		.more {
+			grid-template-columns: 1fr;
+		}
+		.card[rel='next'] {
+			text-align: left;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.card:hover {
+			transform: none;
+		}
 	}
 </style>

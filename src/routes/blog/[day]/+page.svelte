@@ -10,6 +10,7 @@
 	import { arrange, shows, view } from '$lib/blog/view.svelte';
 	import ViewControls from '$lib/blog/ViewControls.svelte';
 	import { dayColor } from '$lib/colors';
+	import RouteSketch from '$lib/ui/RouteSketch.svelte';
 
 	let { data } = $props();
 	const { day: d, dayCount, prev, next } = $derived(data);
@@ -30,8 +31,13 @@
 		</ol>
 	</nav>
 	<header>
-		<p class="daynum">Day {d.index + 1} · <time datetime={iso(d.start)}>{longDate(d.start)}</time></p>
-		<h1>{d.title}</h1>
+		<div class="top">
+			<div>
+				<p class="daynum">Day {d.index + 1} of {dayCount} · <time datetime={iso(d.start)}>{longDate(d.start)}</time></p>
+				<h1>{d.title}</h1>
+			</div>
+			<span class="route"><RouteSketch s={d.sketch} color={dayColor(d.index, dayCount)} label="The day's route, from the hollow start dot to the solid finish" /></span>
+		</div>
 		<ul class="facts">
 			<li><strong>{distRound(d.km)}</strong> {distWord}{#if d.rides > 1} over {d.rides} {A.legs}{/if}</li>
 			{#if d.weather}<li>
@@ -106,8 +112,34 @@
 	}
 	h1 {
 		margin: 0.3rem 0 0.6rem;
-		font-size: clamp(1.7rem, 4vw, 2.3rem);
-		line-height: 1.2;
+		font-size: clamp(1.9rem, 4.5vw, 2.6rem);
+	}
+	.top {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 8rem;
+		align-items: center;
+		gap: 1.25rem;
+	}
+	.route {
+		width: 8rem;
+		height: 8rem;
+		padding: 0.4rem;
+		box-sizing: border-box;
+		border-radius: 24px;
+		background: var(--b-card);
+		box-shadow:
+			0 0 0 1px var(--b-line),
+			inset 0 -5px 0 var(--c);
+	}
+	@media (max-width: 30rem) {
+		.top {
+			grid-template-columns: minmax(0, 1fr) 5rem;
+		}
+		.route {
+			width: 5rem;
+			height: 5rem;
+			border-radius: 16px;
+		}
 	}
 	.facts {
 		list-style: none;

@@ -63,8 +63,11 @@ for (const view of ['3d', '2d', 'globe']) {
 await page.setBypassCSP(true);
 const blogStatus = await visit('/blog', 1500);
 if (blogStatus === 404) console.log('blog · switched off in this build');
-else
-	for (const path of ['/blog', `/blog/${DAY}`]) {
+else {
+	// and one of the day's stories, if it has one
+	await visit(`/blog/${DAY}`, 500);
+	const story = await page.evaluate(() => document.querySelector('h3.title a')?.getAttribute('href') ?? null);
+	for (const path of ['/blog', `/blog/${DAY}`, ...(story ? [story] : [])]) {
 		console.log(`blog · ${path}`);
 		const status = await visit(path, 1500);
 		if (status !== 200) fail(`status ${status}`);
@@ -77,6 +80,7 @@ else
 		violations.length ? fail(`axe: ${violations.join(', ')}`) : pass('axe WCAG 2.2 AAA: clean');
 		errors.length ? fail(`errors: ${errors.slice(0, 3).join(' | ')}`) : pass('no errors');
 	}
+}
 
 // ---- unknown pages -------------------------------------------------------------------------
 console.log('404');

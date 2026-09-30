@@ -8,6 +8,8 @@
 	import { distRound, distUnit, tempRound, tempUnit } from '$lib/units';
 	import { dayColor } from '$lib/colors';
 	import { photoUrl, type DaySummary, type Photo } from '$lib/data';
+	import { sketch } from '$lib/sketch';
+	import RouteSketch from './RouteSketch.svelte';
 
 	let {
 		d,
@@ -23,37 +25,13 @@
 		new Date(d.start * 1000).toLocaleDateString(TOUR.locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: TOUR.timeZone })
 	);
 
-	// the day's route, fitted into a 100 × 100 box (north up, aspect kept)
-	const sketch = $derived.by(() => {
-		const { minE, maxE, minN, maxN } = d.extent;
-		const span = Math.max(maxE - minE, maxN - minN) || 1;
-		const ox = (100 - ((maxE - minE) / span) * 84) / 2;
-		const oy = (100 - ((maxN - minN) / span) * 84) / 2;
-		const x = (e: number) => (ox + ((e - minE) / span) * 84).toFixed(1);
-		const y = (n: number) => (oy + ((maxN - n) / span) * 84).toFixed(1);
-		const paths = d.lines.map((line) => {
-			let s = '';
-			for (let k = 0; k < line.length; k += 2) s += `${k ? 'L' : 'M'}${x(line[k])} ${y(line[k + 1])}`;
-			return s;
-		});
-		const first = d.lines[0];
-		const last = d.lines[d.lines.length - 1];
-		return {
-			paths,
-			start: first ? [x(first[0]), y(first[1])] : null,
-			end: last ? [x(last[last.length - 2]), y(last[last.length - 1])] : null
-		};
-	});
+	const drawn = $derived(sketch(d.lines, { pad: 8 }));
 </script>
 
 <a class="card" class:current {href} style:--c={color} aria-current={current ? 'page' : undefined} data-day={d.day}>
 	<span class="art" class:photo={!!photo}>
 		{#if photo}<img src={photoUrl(photo, 'thumb')} alt="" loading="lazy" draggable="false" />{/if}
-		<svg viewBox="0 0 100 100" aria-hidden="true">
-			{#each sketch.paths as p, i (i)}<path d={p} />{/each}
-			{#if sketch.start}<circle class="start" cx={sketch.start[0]} cy={sketch.start[1]} r="3.2" />{/if}
-			{#if sketch.end}<circle class="end" cx={sketch.end[0]} cy={sketch.end[1]} r="3.2" />{/if}
-		</svg>
+		<span class="map"><RouteSketch s={drawn} {color} width={4} /></span>
 		<span class="stamp" aria-hidden="true"><small>Day</small>{d.index + 1}</span>
 	</span>
 	<span class="body">
@@ -124,7 +102,8 @@
 		inset: 0;
 		background: linear-gradient(160deg, transparent 40%, color-mix(in srgb, var(--c) 45%, transparent));
 	}
-	svg {
+	.map {
+		display: block;
 		position: absolute;
 		z-index: 1;
 		right: 6px;
@@ -135,21 +114,6 @@
 		border-radius: 14px;
 		background: rgb(255 253 248 / 0.82);
 		box-sizing: border-box;
-	}
-	path {
-		fill: none;
-		stroke: var(--c);
-		stroke-width: 4;
-		stroke-linecap: round;
-		stroke-linejoin: round;
-	}
-	circle.start {
-		fill: #fff;
-		stroke: var(--ink);
-		stroke-width: 2;
-	}
-	circle.end {
-		fill: var(--ink);
 	}
 	/* a postage stamp: scalloped edge from a dotted border, the day number in Fraunces */
 	.stamp {

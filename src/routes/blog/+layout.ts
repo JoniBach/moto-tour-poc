@@ -7,6 +7,7 @@ import { on } from '$lib/flags';
 export const ssr = true;
 export const prerender = on('blog');
 
-export const load = () => {
+export const load = ({ data }) => {
 	if (!on('blog')) error(404, 'Not found');
+	return data;
 };

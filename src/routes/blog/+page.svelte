@@ -1,4 +1,8 @@
-<!-- The whole tour as a blog: every day and every one of its events, in order. -->
+<!--
+  The whole tour as a blog: every day a chapter (its stamp, date, title, facts and route sketch),
+  every moment in order under it, stories as the big cards. The journey rail beside it (in the
+  layout) follows along as you scroll.
+-->
 <script lang="ts">
 	import { distRound, distWord, tempRound, tempUnit } from '$lib/units';
 	import { SITE_NAME, TOUR } from '$lib/tourConfig';
@@ -9,6 +13,7 @@
 	import { arrange, inRange, shows, view } from '$lib/blog/view.svelte';
 	import ViewControls from '$lib/blog/ViewControls.svelte';
 	import { dayColor } from '$lib/colors';
+	import RouteSketch from '$lib/ui/RouteSketch.svelte';
 
 	let { data } = $props();
 	const { days, totals } = $derived(data);
@@ -34,33 +39,34 @@
 </svelte:head>
 
 <header class="intro">
+	<p class="eyebrow">{TOUR.name} · {TOUR.when}</p>
 	<h1>{TOUR.title}</h1>
 	<p class="lede">
-		{totals.days} days, {totals.distance.toLocaleString(TOUR.locale)} {distWord}{#if totals.parks}{' '}and {totals.parks} {TOUR.protectedAreas.many}{/if}{#if totals.photos},
-			{totals.photos} photos{/if}{#if totals.stories}{' '}and {totals.stories} stories{/if}, {TOUR.summary}.{#if tourOn}{' '}Every moment below links to the same spot in the {TOUR_NAME}.{/if}
+		{totals.days} days {TOUR.summary}, told moment by moment.{#if tourOn}{' '}Every moment links to the same spot in the {TOUR_NAME}.{/if}
 	</p>
-	<nav aria-label="Jump to a day" class="jump">
-		<ul>
-			{#each visible as { d } (d.day)}
-				<li>
-					<a href="#day-{d.index + 1}" style:--c={dayColor(d.index, days.length)}>
-						<span class="sr">Day </span>{d.index + 1}<span class="sr">: {d.title}</span>
-					</a>
-				</li>
-			{/each}
-		</ul>
-	</nav>
+	<ul class="stats" aria-label="The tour in numbers">
+		<li class="sage"><strong>{totals.days}</strong> days</li>
+		<li class="sky"><strong>{totals.distance.toLocaleString(TOUR.locale)}</strong> {distWord}</li>
+		{#if totals.parks}<li class="butter"><strong>{totals.parks}</strong> {TOUR.protectedAreas.many}</li>{/if}
+		{#if totals.photos}<li class="lilac"><strong>{totals.photos}</strong> photos</li>{/if}
+		{#if totals.stories}<li class="peach"><strong>{totals.stories}</strong> {totals.stories === 1 ? 'story' : 'stories'}</li>{/if}
+	</ul>
 	{#if on('blogFilters')}<ViewControls days={dayOptions} {shown} {total} />{/if}
 </header>
 
 {#each visible as { d, rows } (d.day)}
-	<section class="day" id="day-{d.index + 1}" aria-labelledby="h-{d.day}" style:--c={dayColor(d.index, days.length)}>
-		<header>
-			<p class="daynum">Day {d.index + 1} · <time datetime={iso(d.start)}>{longDate(d.start)}</time></p>
-			<h2 id="h-{d.day}"><a href="/blog/{d.day}">{d.title}</a></h2>
-			<p class="meta">
-				{distRound(d.km)} {distWord}{#if d.weather}{' · '}{tempRound(d.weather.minTemp)} to {tempRound(d.weather.maxTemp)} {tempUnit}{/if}{#if d.parks.length}{' · '}{d.parks.join(', ')}{/if}
-			</p>
+	{@const c = dayColor(d.index, days.length)}
+	<section class="day" id="day-{d.index + 1}" data-day={d.day} aria-labelledby="h-{d.day}" style:--c={c}>
+		<header class="chapter">
+			<span class="stamp" aria-hidden="true"><small>Day</small>{d.index + 1}</span>
+			<div class="heading">
+				<p class="daynum"><span class="sr">Day {d.index + 1}, </span><time datetime={iso(d.start)}>{longDate(d.start)}</time></p>
+				<h2 id="h-{d.day}"><a href="/blog/{d.day}">{d.title}</a></h2>
+				<p class="meta">
+					{distRound(d.km)} {distWord}{#if d.weather}{' · '}{tempRound(d.weather.minTemp)} to {tempRound(d.weather.maxTemp)} {tempUnit}{/if}{#if d.parks.length}{' · '}{d.parks.join(', ')}{/if}
+				</p>
+			</div>
+			<span class="route"><RouteSketch s={d.sketch} color={c} /></span>
 		</header>
 		<ol class="events" aria-label="Day {d.index + 1}, moment by moment">
 			{#each rows as r (r.key)}
@@ -79,37 +85,66 @@
 
 <style>
 	.intro {
-		margin-bottom: 2rem;
+		margin: 0.5rem 0 2rem;
+	}
+	.eyebrow {
+		margin: 0 0 0.4rem;
+		font-size: 0.8rem;
+		font-weight: 750;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--b-accent);
 	}
 	h1 {
-		margin: 0 0 0.5rem;
-		font-size: clamp(1.7rem, 4vw, 2.3rem);
-		line-height: 1.2;
+		margin: 0 0 0.6rem;
+		font-size: clamp(2rem, 5vw, 2.9rem);
 	}
 	.lede {
-		font-size: 1.1rem;
+		font-size: 1.15rem;
 		color: var(--b-muted);
+		max-width: 36em;
+		margin-bottom: 1rem;
 	}
-	.jump ul {
-		list-style: none;
-		margin: 0;
-		padding: 0;
+	.stats {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.35rem;
+		gap: 0.45rem;
+		margin: 0 0 1.25rem;
+		padding: 0;
+		list-style: none;
+		font-size: 0.95rem;
 	}
-	.jump a {
-		display: grid;
-		place-items: center;
-		min-width: 2.75rem;
-		height: 2.75rem;
+	.stats li {
+		padding: 0.3rem 0.85rem;
 		border-radius: 999px;
 		background: var(--b-card);
-		box-shadow:
-			0 0 0 1px var(--b-line),
-			inset 0 -4px 0 var(--c);
-		font-weight: 700;
-		text-decoration: none;
+		box-shadow: 0 0 0 1px var(--b-line);
+	}
+	/* pastel pills in the light theme; plain cards in the dark one (ink contrast stays ≥ 7:1) */
+	@media (prefers-color-scheme: light), (prefers-color-scheme: no-preference) {
+		.sage {
+			background: #d5e8d8 !important;
+			color: #214a32;
+		}
+		.sky {
+			background: #d9e9f3 !important;
+			color: #1f4560;
+		}
+		.butter {
+			background: #f7e9b8 !important;
+			color: #524008;
+		}
+		.lilac {
+			background: #e6def3 !important;
+			color: #44356a;
+		}
+		.peach {
+			background: #f9e2d6 !important;
+			color: #7a2e0f;
+		}
+		.stats li {
+			box-shadow: none;
+		}
 	}
 	.none {
 		padding: 1.5rem 0;
@@ -128,15 +163,66 @@
 		content-visibility: auto;
 		contain-intrinsic-size: auto 1800px;
 	}
+	/* a chapter heading: stamp · date, title, facts · the day's route */
+	.chapter {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr) 5.5rem;
+		align-items: center;
+		gap: 1rem;
+		margin-bottom: 0.5rem;
+	}
+	.stamp {
+		display: grid;
+		place-items: center;
+		width: 3.1rem;
+		height: 3.5rem;
+		border: 3px dotted var(--c);
+		border-radius: 7px;
+		/* the day's colour as a tint with dark ink: the number stays at AAA contrast */
+		background: color-mix(in srgb, var(--c) var(--b-tint), var(--b-card));
+		color: var(--b-text);
+		font-family: var(--font-display);
+		font-weight: 700;
+		font-size: 1.45rem;
+		line-height: 1;
+		transform: rotate(-4deg);
+		box-shadow: 0 0 0 1px var(--b-line);
+	}
+	.stamp small {
+		font-family: var(--font-ui);
+		font-size: 0.6rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+	.route {
+		width: 5.5rem;
+		height: 5.5rem;
+		padding: 0.3rem;
+		box-sizing: border-box;
+		border-radius: 18px;
+		background: color-mix(in srgb, var(--c) 10%, var(--b-bg));
+	}
+	.heading > * {
+		margin: 0;
+	}
+	@media (max-width: 30rem) {
+		.chapter {
+			grid-template-columns: auto minmax(0, 1fr);
+		}
+		.route {
+			display: none;
+		}
+	}
 	.daynum {
 		margin: 0;
-		font-size: 0.9rem;
+		font-size: 0.85rem;
+		font-weight: 700;
 		text-transform: uppercase;
-		letter-spacing: 0.05em;
+		letter-spacing: 0.08em;
 		color: var(--b-muted);
 	}
 	h2 {
-		margin: 0.2rem 0 0.3rem;
+		margin: 0.1rem 0 0.2rem;
 		font-size: 1.6rem;
 		line-height: 1.25;
 	}

@@ -7,8 +7,9 @@
 	import { TOUR } from '$lib/tourConfig';
 	import { on, tourOn, TOUR_NAME } from '$lib/flags';
 	import { page } from '$app/state';
+	import JourneyRail from '$lib/blog/JourneyRail.svelte';
 
-	let { children } = $props();
+	let { data, children } = $props();
 
 	// "Open the 3D tour" (or map / globe: the default view) at the day you're reading
 	const tourHref = $derived(page.params.day ? `/day/${page.params.day}` : '/');
@@ -31,9 +32,12 @@
 		</div>
 	</header>
 
-	<main id="content" tabindex="-1">
-		{@render children()}
-	</main>
+	<div class="shell">
+		{#if data.rail?.length}<JourneyRail days={data.rail} />{/if}
+		<main id="content" tabindex="-1">
+			{@render children()}
+		</main>
+	</div>
 
 	<footer class="site">
 		<div class="inner">
@@ -59,6 +63,8 @@
 		--b-warm: #c9a227;
 		--b-warm-text: #524008;
 		--b-soft: #f9e2d6;
+		/* how strongly a day's colour tints a stamp under dark ink (AAA in each theme) */
+		--b-tint: 30%;
 		min-height: 100vh;
 		background: var(--b-bg);
 		color: var(--b-text);
@@ -80,6 +86,7 @@
 			--b-warm: #f0d78c;
 			--b-warm-text: #f0d78c;
 			--b-soft: #3a2a22;
+			--b-tint: 16%;
 		}
 	}
 	/* keep focused / jumped-to content clear of the sticky header (WCAG 2.4.12) */
@@ -127,7 +134,7 @@
 		top: 0.5rem;
 	}
 	.inner {
-		max-width: 46rem;
+		max-width: 74rem;
 		margin: 0 auto;
 		padding: 0 1rem;
 	}
@@ -204,11 +211,26 @@
 		color: var(--b-bg) !important;
 		box-shadow: 0 3px 0 color-mix(in srgb, var(--b-accent) 60%, #000);
 	}
-	main {
-		max-width: 46rem;
+	/* the journey rail beside the reading column; on narrower screens it's a strip above it */
+	.shell {
+		display: grid;
+		grid-template-columns: 17rem minmax(0, 46rem);
+		justify-content: center;
+		gap: 3rem;
+		max-width: 74rem;
 		margin: 0 auto;
 		padding: 1.5rem 1rem 3rem;
+	}
+	main {
+		min-width: 0;
 		outline: none;
+	}
+	@media (max-width: 68rem) {
+		.shell {
+			display: block;
+			max-width: 46rem;
+			padding-top: 0;
+		}
 	}
 	footer.site {
 		border-top: 1px solid var(--b-line);

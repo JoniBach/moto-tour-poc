@@ -76,7 +76,7 @@ marked.use({
 				return '';
 			}
 			const alt = text.replace(/"/g, '&quot;');
-			return `<figure><img src="/photos/${TOUR.id}/large/${p.id}.webp" width="${p.w}" height="${p.h}" alt="${alt}" loading="lazy" data-photo="${p.id}">${text ? `<figcaption>${text}</figcaption>` : ''}</figure>`;
+			return `<figure><img src="/${TOUR.slug ?? TOUR.id}/photos/${TOUR.id}/large/${p.id}.webp" width="${p.w}" height="${p.h}" alt="${alt}" loading="lazy" data-photo="${p.id}">${text ? `<figcaption>${text}</figcaption>` : ''}</figure>`;
 		}
 	}
 });

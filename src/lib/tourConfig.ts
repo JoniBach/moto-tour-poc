@@ -1,8 +1,11 @@
+import { base } from '$app/paths';
 // The tour this build is for (tours/<id>/tour.config.json, chosen with TOUR=<id> at build time
 // and baked in by vite.config.ts): its name and wording, activity, locale, time zone, units and
 // speed policy. Everything tour- or country-specific in the site reads from here.
 export interface TourConfig {
 	id: string;
+	/** the tour's path on the site: every page lives under /<slug> (the bare domain sends people there) */
+	slug: string;
 	/** false: npm run deploy refuses it (test tours) */
 	deploy?: boolean;
 	/** short name: "UK Tour" */
@@ -82,8 +85,8 @@ export const PROJECTION =
 export const SITE_NAME = `${TOUR.name} · ${TOUR.when}`;
 
 /** Where this tour's data is served from (the pipeline writes static/data/tours/<id>/). */
-export const DATA = `/data/tours/${TOUR.id}`;
+export const DATA = `${base}/data/tours/${TOUR.id}`;
 /** …and where it sits on disk at build time (for the prerendered blog). */
 export const DATA_DIR = `static/data/tours/${TOUR.id}`;
 /** A photo in one of its sizes: /photos/<tour>/<size>/<id>.webp */
-export const photoSrc = (size: 'thumb' | 'medium' | 'large', id: string) => `/photos/${TOUR.id}/${size}/${id}.webp`;
+export const photoSrc = (size: 'thumb' | 'medium' | 'large', id: string) => `${base}/photos/${TOUR.id}/${size}/${id}.webp`;

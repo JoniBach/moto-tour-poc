@@ -1,5 +1,6 @@
 <!-- One photo as a page: the picture, when and where, previous / next within the day. -->
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { TOUR } from '$lib/tourConfig';
 	import { tourOn, TOUR_NAME } from '$lib/flags';
 	import { goto } from '$app/navigation';
@@ -14,7 +15,7 @@
 	function onkeydown(e: KeyboardEvent) {
 		if (e.altKey || e.ctrlKey || e.metaKey || (e.target as HTMLElement).closest('input, textarea')) return;
 		const to = e.key === 'ArrowLeft' ? prev : e.key === 'ArrowRight' ? next : null;
-		if (to) goto(`/blog/${day.day}/photo/${to}`, { noScroll: true });
+		if (to) goto(`${base}/blog/${day.day}/photo/${to}`, { noScroll: true });
 	}
 </script>
 
@@ -26,8 +27,8 @@
 
 <nav aria-label="Breadcrumb" class="crumb">
 	<ol>
-		<li><a href="/blog">All days</a></li>
-		<li><a href="/blog/{day.day}">Day {day.index + 1}</a></li>
+		<li><a href="{base}/blog">All days</a></li>
+		<li><a href="{base}/blog/{day.day}">Day {day.index + 1}</a></li>
 		<li aria-current="page">Photo {position} of {count}</li>
 	</ol>
 </nav>
@@ -40,12 +41,12 @@
 	</figcaption>
 </figure>
 <nav class="pager" aria-label="Other photos">
-	{#if prev}<a rel="prev" href="/blog/{day.day}/photo/{prev}"><span aria-hidden="true">← </span>Previous photo</a>{:else}<span></span>{/if}
-	{#if next}<a rel="next" href="/blog/{day.day}/photo/{next}">Next photo<span aria-hidden="true"> →</span></a>{/if}
+	{#if prev}<a rel="prev" href="{base}/blog/{day.day}/photo/{prev}"><span aria-hidden="true">← </span>Previous photo</a>{:else}<span></span>{/if}
+	{#if next}<a rel="next" href="{base}/blog/{day.day}/photo/{next}">Next photo<span aria-hidden="true"> →</span></a>{/if}
 </nav>
 <p class="hint">Tip: the left and right arrow keys move between photos.</p>
 <p class="links">
-	<a href="/blog/{day.day}">Back to Day {day.index + 1}</a>
+	<a href="{base}/blog/{day.day}">Back to Day {day.index + 1}</a>
 	{#if tourOn}<a class="dx" href={mapLink(day.day, photo.t, { photo: photo.id })}>See where it was taken in the {TOUR_NAME}<span aria-hidden="true"> ↗</span></a>{/if}
 </p>
 

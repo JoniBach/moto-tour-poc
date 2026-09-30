@@ -1,8 +1,9 @@
 # GT Retrospective
 
 A grand-touring retrospective: a tour told as a little globe you can turn, a street map and a
-blog, from its rides, photos and stories. Live at https://gt-retrospective.vercel.app (the old
-moto-tour-poc.vercel.app address redirects there). It began as the proof of concept described below.
+blog, from its rides, photos and stories. Live at https://gt-retrospective.vercel.app/the-parks-26 (the bare domain and the old
+moto-tour-poc.vercel.app address redirect there). Each tour lives under its own path, its
+`slug` in tour.config.json (SvelteKit's `paths.base`). It began as the proof of concept described below.
 
 Proof of concept for the UK motorcycle tour experience: a hologram-style 3D terrain with the
 ride draped on it, a solid "detail bubble" that follows the bike, pins linked by place or by
@@ -58,6 +59,7 @@ git-ignored.
 | Field | Example | Used for |
 | --- | --- | --- |
 | `id` | `uk-2026` | folder names and URLs of data and photos |
+| `slug` | `the-parks-26` | the tour's path on the site: every page, and its data and photos, live under `/<slug>` |
 | `deploy` | `false` | optional: `npm run deploy` refuses the tour (test tours) |
 | `name`, `when` | `UK Tour`, `September 2026` | site name, titles, headers |
 | `title`, `summary` | `A motorcycle tour of Britain's national parks`, `from Pembrokeshire to the Cairngorms and back` | blog headline and intro, globe overview |

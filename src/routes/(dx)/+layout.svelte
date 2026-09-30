@@ -3,6 +3,7 @@
   animates within one scene instead of remounting it. Pages only say which day to show.
 -->
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { on, tourOn, VIEWS_ON } from '$lib/flags';
 	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
@@ -26,12 +27,12 @@
 
 	let { children } = $props();
 
-	const openDay = (day: string) => goto(`/day/${day}`);
+	const openDay = (day: string) => goto(`${base}/day/${day}`);
 
 	onMount(() => {
 		// every view of the tour switched off in this release: the blog is the whole site
 		if (!tourOn) {
-			if (on('blog')) location.replace('/blog');
+			if (on('blog')) location.replace(`${base}/blog`);
 			return;
 		}
 		app.onAdvance = openDay;

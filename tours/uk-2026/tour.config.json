@@ -1,7 +1,8 @@
 {
 	"$comment": "Everything about this tour the site and pipeline need that isn't in its data. Public (committed); private inputs live beside it, git-ignored: gpx/, photos-src/, privacy.json.",
 	"id": "uk-2026",
-	"name": "UK Tour",
+	"slug": "the-parks-26",
+	"name": "Parks Tour 26",
 	"when": "September 2026",
 	"title": "A motorcycle tour of Britain's national parks",
 	"summary": "from Pembrokeshire to the Cairngorms and back",

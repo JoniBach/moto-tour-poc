@@ -4,6 +4,7 @@
   layout) follows along as you scroll.
 -->
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { distRound, distWord, tempRound, tempUnit } from '$lib/units';
 	import { SITE_NAME, TOUR } from '$lib/tourConfig';
 	import { on, tourOn, TOUR_NAME } from '$lib/flags';
@@ -60,13 +61,13 @@
 	<section class="day" id="day-{d.index + 1}" data-day={d.day} aria-labelledby="h-{d.day}" style:--c={c}>
 		<header class="chapter">
 			<!-- the day as a postcard: a photo from it (or its colour), its stamp and its route -->
-			<a class="banner" class:photo={!!d.cover} href="/blog/{d.day}" tabindex="-1" aria-hidden="true">
+			<a class="banner" class:photo={!!d.cover} href="{base}/blog/{d.day}" tabindex="-1" aria-hidden="true">
 				{#if d.cover}<Photo id={d.cover.id} size={[d.cover.w, d.cover.h]} alt="" sizes="(max-width: 46rem) 100vw, 46rem" />{/if}
 				<span class="stamp"><small>Day</small>{d.index + 1}</span>
 				<span class="route"><RouteSketch s={d.sketch} color={c} /></span>
 			</a>
 			<p class="daynum"><span class="sr">Day {d.index + 1}, </span><time datetime={iso(d.start)}>{longDate(d.start)}</time></p>
-			<h2 id="h-{d.day}"><a href="/blog/{d.day}">{d.title}</a></h2>
+			<h2 id="h-{d.day}"><a href="{base}/blog/{d.day}">{d.title}</a></h2>
 			<p class="meta">
 				{distRound(d.km)} {distWord}{#if d.weather}{' · '}{tempRound(d.weather.minTemp)} to {tempRound(d.weather.maxTemp)} {tempUnit}{/if}{#if d.parks.length}{' · '}{d.parks.join(', ')}{/if}
 			</p>
@@ -80,7 +81,7 @@
 				{/if}
 			{/each}
 		</ol>
-		<p class="dayfoot"><a href="/blog/{d.day}">Day {d.index + 1} on its own page<span aria-hidden="true"> →</span></a></p>
+		<p class="dayfoot"><a href="{base}/blog/{d.day}">Day {d.index + 1} on its own page<span aria-hidden="true"> →</span></a></p>
 	</section>
 {:else}
 	<p class="none">No events match these settings. Use “Reset to show everything” above to see the whole tour again.</p>

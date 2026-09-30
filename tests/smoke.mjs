@@ -1,5 +1,5 @@
 // Smoke tests against a running site (dev server, `npm run preview`, or a deployment):
-//   BASE=http://localhost:5199 npm run test:smoke
+//   BASE=http://localhost:5199/the-parks-26 npm run test:smoke   (the tour's base path included)
 // Needs Chrome (CHROME=path overrides the default Windows location). Checks that each released
 // view loads and plays without errors, and that the blog meets WCAG 2.2 AAA per axe-core.
 // Exits non-zero on any failure.
@@ -66,7 +66,10 @@ if (blogStatus === 404) console.log('blog · switched off in this build');
 else {
 	// and one of the day's stories, if it has one
 	await visit(`/blog/${DAY}`, 500);
-	const story = await page.evaluate(() => document.querySelector('h3.title a')?.getAttribute('href') ?? null);
+	// the link is absolute (it carries the site's base path, which BASE already includes)
+	let story = await page.evaluate(() => document.querySelector('h3.title a')?.getAttribute('href') ?? null);
+	const basePath = new URL(BASE).pathname.replace(/\/$/, '');
+	if (story && basePath && story.startsWith(basePath)) story = story.slice(basePath.length);
 	for (const path of ['/blog', `/blog/${DAY}`, ...(story ? [story] : [])]) {
 		console.log(`blog · ${path}`);
 		const status = await visit(path, 1500);

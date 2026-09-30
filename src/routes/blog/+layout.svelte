@@ -5,6 +5,7 @@
   zoom, and every moment links back into the tour.
 -->
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { TOUR } from '$lib/tourConfig';
 	import { on, VIEWS_ON } from '$lib/flags';
 	import { page } from '$app/state';
@@ -13,7 +14,7 @@
 	let { data, children } = $props();
 
 	// the other views open at the day you're reading
-	const at = $derived(page.params.day ? `/day/${page.params.day}` : '/');
+	const at = $derived(page.params.day ? `${base}/day/${page.params.day}` : `${base}/`);
 	const views = (
 		[
 			{ id: 'globe', label: 'Globe', icon: '◍' },
@@ -25,7 +26,7 @@
 <div class="blog">
 	<a class="skip" href="#content">Skip to content</a>
 	<header class="site">
-		<a class="pill brand" href="/" title="The tour">
+		<a class="pill brand" href="{base}/" title="The tour">
 			<span class="mark" aria-hidden="true">
 				<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M4.5 15c3-1 4-5 7.5-5s3.5 3 7.5 2" /></svg>
 			</span>
@@ -35,7 +36,7 @@
 			{#each views as v (v.id)}
 				<a href="{at}?view={v.id}"><span aria-hidden="true">{v.icon}</span> {v.label}</a>
 			{/each}
-			<a href="/blog" class="on" aria-current={page.url.pathname === '/blog' ? 'page' : 'true'}><span aria-hidden="true">✎</span> Blog</a>
+			<a href="{base}/blog" class="on" aria-current={page.url.pathname === `${base}/blog` ? 'page' : 'true'}><span aria-hidden="true">✎</span> Blog</a>
 		</nav>
 	</header>
 

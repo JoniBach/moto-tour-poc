@@ -5,6 +5,7 @@
   fold: their card always shows.
 -->
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { tourOn } from '$lib/flags';
 	import { eventSentence, mapLink, time } from '$lib/blog';
 	import type { BlogEvent } from '$lib/server/blog-data';
@@ -35,7 +36,7 @@
 <Row href={here} t={e.t} icon={s.icon} cls={e.kind} label={title} {foldable} always={!!card} bind:open>
 	{#snippet head()}
 		{#if card}
-			<h3 class="title"><a href="/blog/{day}/{card.slug}">{card.title}</a></h3>
+			<h3 class="title"><a href="{base}/blog/{day}/{card.slug}">{card.title}</a></h3>
 		{:else if e.kind === 'pin'}
 			<p class="title"><strong>{s.label}:</strong> {e.pin.title}</p>
 		{:else}
@@ -45,14 +46,14 @@
 	{#if card}
 		<article class="story" aria-label="Story: {card.title}">
 			{#if card.cover}
-				<a href="/blog/{day}/{card.slug}" tabindex="-1" aria-hidden="true">
+				<a href="{base}/blog/{day}/{card.slug}" tabindex="-1" aria-hidden="true">
 					<Photo id={card.cover} alt="" size={e.sizes?.[card.cover]} sizes="(max-width: 46rem) 100vw, 42rem" />
 				</a>
 			{/if}
 			<p class="kicker">Story{where}</p>
 			<p>{card.excerpt}</p>
 			<p class="more">
-				<a href="/blog/{day}/{card.slug}">Continue reading<span class="sr"> “{card.title}”</span></a>
+				<a href="{base}/blog/{day}/{card.slug}">Continue reading<span class="sr"> “{card.title}”</span></a>
 				<span aria-hidden="true"> · </span>
 				<span>{card.minutes} minute read</span>
 			</p>
@@ -61,7 +62,7 @@
 		<ul class="grid" class:large aria-label="Photos taken at {time(e.t)}">
 			{#each shown as id, i (id)}
 				<li>
-					<a href="/blog/{day}/photo/{id}">
+					<a href="{base}/blog/{day}/photo/{id}">
 						<Photo
 							{id}
 							size={e.sizes?.[id]}
@@ -73,7 +74,7 @@
 			{/each}
 			{#if e.photos.length > shown.length}
 				<li class="rest">
-					<a href="/blog/{day}/photo/{e.photos[shown.length]}">
+					<a href="{base}/blog/{day}/photo/{e.photos[shown.length]}">
 						{e.photos.length - shown.length} more<span class="sr"> photos from {time(e.t)}</span>
 					</a>
 				</li>

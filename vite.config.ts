@@ -41,6 +41,10 @@ export default defineConfig({
 
 			adapter: adapter(),
 
+			// the tour lives under its own path (/the-parks-26): pages, data, photos, all of it; the bare
+			// domain redirects there (vercel.json)
+			paths: { base: `/${TOUR.slug ?? TOUR.id}` },
+
 			// a tour without photos (or stories) has no pages under those routes: that's fine
 			prerender: {
 				handleUnseenRoutes: ({ routes }) => console.warn(`Nothing to prerender for ${routes.join(', ')} in this tour`)

@@ -4,6 +4,7 @@
   tapping the open one's button closes it.
 -->
 <script lang="ts">
+	import { base } from '$app/paths';
 	import type { App, View } from '$lib/app.svelte';
 	import { on, VIEWS_ON } from '$lib/flags';
 	import { ui } from '$lib/ui.svelte';
@@ -35,7 +36,7 @@
 		</button>
 	{/if}
 	{#if on('blog')}
-		<a class="btn" href={app.tour ? `/blog/${app.tour.data.track.day}` : '/blog'} aria-label="Read as a blog">📖</a>
+		<a class="btn" href={app.tour ? `${base}/blog/${app.tour.data.track.day}` : `${base}/blog`} aria-label="Read as a blog">📖</a>
 	{/if}
 	<button class:on={ui.sheet === 'info'} onclick={() => ui.toggle('info')} aria-label="Map info and credits">ⓘ</button>
 </nav>

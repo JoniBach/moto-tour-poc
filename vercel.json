@@ -8,7 +8,27 @@
 					"value": "moto-tour-poc.vercel.app"
 				}
 			],
-			"destination": "https://gt-retrospective.vercel.app/:path*",
+			"destination": "https://gt-retrospective.vercel.app/the-parks-26/:path*",
+			"permanent": true
+		},
+		{
+			"source": "/",
+			"destination": "/the-parks-26",
+			"permanent": false
+		},
+		{
+			"source": "/day/:path*",
+			"destination": "/the-parks-26/day/:path*",
+			"permanent": true
+		},
+		{
+			"source": "/blog",
+			"destination": "/the-parks-26/blog",
+			"permanent": true
+		},
+		{
+			"source": "/blog/:path*",
+			"destination": "/the-parks-26/blog/:path*",
 			"permanent": true
 		}
 	],

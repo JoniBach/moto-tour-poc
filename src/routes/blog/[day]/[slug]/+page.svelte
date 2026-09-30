@@ -5,6 +5,7 @@
   of it as postcards.
 -->
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { TOUR } from '$lib/tourConfig';
 	import { tourOn, TOUR_NAME } from '$lib/flags';
 	import { iso, longDate, mapLink, time } from '$lib/blog';
@@ -25,8 +26,8 @@
 <article class="post" style:--c={c}>
 	<nav aria-label="Breadcrumb" class="crumb">
 		<ol>
-			<li><a href="/blog">All days</a></li>
-			<li><a href="/blog/{day.day}">Day {day.index + 1}</a></li>
+			<li><a href="{base}/blog">All days</a></li>
+			<li><a href="{base}/blog/{day.day}">Day {day.index + 1}</a></li>
 			<li aria-current="page">Story</li>
 		</ol>
 	</nav>
@@ -65,7 +66,7 @@
 		<nav class="more" aria-label="Other stories">
 			{#each [prev, next] as s, k (k)}
 				{#if s}
-					<a class="card" rel={k ? 'next' : 'prev'} href="/blog/{s.day}/{s.slug}" style:--c={dayColor(s.index, dayCount)}>
+					<a class="card" rel={k ? 'next' : 'prev'} href="{base}/blog/{s.day}/{s.slug}" style:--c={dayColor(s.index, dayCount)}>
 						{#if s.cover}<span class="thumb"><Photo id={s.cover.id} size={[s.cover.w, s.cover.h]} alt="" sizes="12rem" /></span>{/if}
 						<span class="txt">
 							<span class="which">{k ? 'Next story' : 'Previous story'} · Day {s.index + 1}</span>

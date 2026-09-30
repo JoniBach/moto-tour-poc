@@ -5,6 +5,7 @@
   move. While the next day loads, the stepper says so.
 -->
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { A } from '$lib/activity';
 	import { TOUR } from '$lib/tourConfig';
 	import { on, VIEWS_ON } from '$lib/flags';
@@ -54,7 +55,7 @@
 </script>
 
 <header class="top">
-	<a class="brand display" class:on={!activeDay && !app.pending} href="/" title="Every day of the tour">
+	<a class="brand display" class:on={!activeDay && !app.pending} href="{base}/" title="Every day of the tour">
 		<span class="mark" aria-hidden="true">
 			<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M4.5 15c3-1 4-5 7.5-5s3.5 3 7.5 2" /></svg>
 		</span><span class="name">{TOUR.name}</span>
@@ -62,7 +63,7 @@
 
 	{#if active}
 		<nav class="stepper" aria-label="Days" style:--c={dayColor(active.index, days.length)}>
-			<a class="step" class:disabled={!prev} href={prev ? `/day/${prev.day}` : undefined} aria-label="Previous day">‹</a>
+			<a class="step" class:disabled={!prev} href={prev ? `${base}/day/${prev.day}` : undefined} aria-label="Previous day">‹</a>
 			<button type="button" class="today" aria-expanded={menuOpen} aria-haspopup="true" onclick={() => (menuOpen = !menuOpen)}>
 				<span class="stamp" aria-hidden="true">{active.index + 1}</span>
 				<span class="what">
@@ -71,14 +72,14 @@
 				</span>
 				<span class="caret" aria-hidden="true">▾</span>
 			</button>
-			<a class="step" class:disabled={!next} href={next ? `/day/${next.day}` : undefined} aria-label="Next day">›</a>
+			<a class="step" class:disabled={!next} href={next ? `${base}/day/${next.day}` : undefined} aria-label="Next day">›</a>
 			{#if menuOpen}
 				<div class="menu scroll-y" bind:this={menu}>
-					<a class="all" href="/">All days as postcards</a>
+					<a class="all" href="{base}/">All days as postcards</a>
 					<ol>
 						{#each days as d (d.day)}
 							<li>
-								<a href="/day/{d.day}" aria-current={d.day === activeDay ? 'page' : undefined} style:--c={dayColor(d.index, days.length)}>
+								<a href="{base}/day/{d.day}" aria-current={d.day === activeDay ? 'page' : undefined} style:--c={dayColor(d.index, days.length)}>
 									<span class="stamp" aria-hidden="true">{d.index + 1}</span>
 									<span class="what">
 										<span class="t">{d.title}</span>
@@ -105,7 +106,7 @@
 					{/each}
 				</div>
 			{/if}
-			{#if on('blog')}<a class="blog" href={activeDay ? `/blog/${activeDay}` : '/blog'} title="Read the tour as a blog">Blog</a>{/if}
+			{#if on('blog')}<a class="blog" href={activeDay ? `${base}/blog/${activeDay}` : `${base}/blog`} title="Read the tour as a blog">Blog</a>{/if}
 		</div>
 	{/if}
 </header>

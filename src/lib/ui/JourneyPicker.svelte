@@ -5,6 +5,7 @@
   cards; each card opens its day.
 -->
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { A } from '$lib/activity';
 	import { on } from '$lib/flags';
 	import { TOUR } from '$lib/tourConfig';
@@ -60,8 +61,8 @@
 		{#if app.photos.length}<li class="lilac"><b>{app.photos.length}</b> photos</li>{/if}
 	</ul>
 	<div class="actions">
-		{#if days[0]}<a class="go" href="/day/{days[0].day}">{A.go} from day 1 <span aria-hidden="true">→</span></a>{/if}
-		{#if on('blog')}<a class="read" href="/blog">Read the blog</a>{/if}
+		{#if days[0]}<a class="go" href="{base}/day/{days[0].day}">{A.go} from day 1 <span aria-hidden="true">→</span></a>{/if}
+		{#if on('blog')}<a class="read" href="{base}/blog">Read the blog</a>{/if}
 	</div>
 </section>
 
@@ -76,7 +77,7 @@
 	<ol class="rail scroll-x" bind:this={rail} {onscroll} {onwheel}>
 		{#each days as d (d.day)}
 			<li>
-				<DayPostcard {d} total={days.length} photo={cover(d.day)} photos={photosByDay.get(d.day)?.length ?? 0} href="/day/{d.day}" />
+				<DayPostcard {d} total={days.length} photo={cover(d.day)} photos={photosByDay.get(d.day)?.length ?? 0} href="{base}/day/{d.day}" />
 			</li>
 		{/each}
 	</ol>

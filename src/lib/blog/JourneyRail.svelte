@@ -6,6 +6,7 @@
   anchors on the page), elsewhere it's the page's day (the days are links).
 -->
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { page } from '$app/state';
 	import { TOUR } from '$lib/tourConfig';
 	import { dayColor } from '$lib/colors';
@@ -14,7 +15,7 @@
 
 	let { days }: { days: RailDay[] } = $props();
 
-	const onIndex = $derived(page.url.pathname === '/blog');
+	const onIndex = $derived(page.url.pathname === `${base}/blog`);
 	// on the all-days page: the day section nearest the top of the screen
 	let scrolled = $state<string | null>(null);
 	const current = $derived(onIndex ? scrolled : (page.params.day ?? null));
@@ -53,7 +54,7 @@
 	});
 
 	const date = (s: number) => new Date(s * 1000).toLocaleDateString(TOUR.locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: TOUR.timeZone });
-	const href = (d: RailDay) => (onIndex ? `#day-${d.index + 1}` : `/blog/${d.day}`);
+	const href = (d: RailDay) => (onIndex ? `#day-${d.index + 1}` : `${base}/blog/${d.day}`);
 </script>
 
 <nav class="rail" aria-label="The journey, day by day" style:--p={at < 0 ? 0 : (at + 0.5) / days.length}>

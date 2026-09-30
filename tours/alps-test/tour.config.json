@@ -1,6 +1,7 @@
 {
 	"$comment": "A made-up test tour to prove the site works away from the UK and for another activity: synthetic rides (node scripts/make-sample-gpx.mjs tours/alps-test/sample-rides.json), no photos. Never deployed.",
 	"id": "alps-test",
+	"slug": "alps-test",
 	"deploy": false,
 	"name": "Alps Test",
 	"when": "July 2026",

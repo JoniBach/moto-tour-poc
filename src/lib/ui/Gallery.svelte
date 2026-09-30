@@ -4,6 +4,7 @@
   tour to that moment. Esc or the backdrop closes it.
 -->
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { A } from '$lib/activity';
 	import { TOUR } from '$lib/tourConfig';
 	import type { App } from '$lib/app.svelte';
@@ -14,7 +15,7 @@
 	async function share() {
 		if (!photo?.day) return;
 		const url = new URL(momentUrl(app, { photo: photo.id, t: photo.t }));
-		url.pathname = `/day/${photo.day}`;
+		url.pathname = `${base}/day/${photo.day}`;
 		url.searchParams.delete('post');
 		linked = await copyLink(url.toString());
 		setTimeout(() => (linked = false), 1500);

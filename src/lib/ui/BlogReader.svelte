@@ -4,6 +4,7 @@
   Photos embedded in the post open the gallery. Esc or × closes it.
 -->
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { A } from '$lib/activity';
 	import { TOUR } from '$lib/tourConfig';
 	import { photoSrc } from '$lib/tourConfig';
@@ -17,7 +18,7 @@
 		if (!post) return;
 		// the post's own moment, whichever day is on screen
 		const url = new URL(momentUrl(app, { post: post.slug, t: post.t }));
-		url.pathname = `/day/${post.day}`;
+		url.pathname = `${base}/day/${post.day}`;
 		url.searchParams.delete('photo');
 		linked = await copyLink(url.toString());
 		setTimeout(() => (linked = false), 1500);
@@ -79,7 +80,7 @@
 			<span class="actions">
 				<button class="ride" onclick={() => app.rideTo(post, onride)}>▶ {A.go} here</button>
 				<button class="link" onclick={share} title="Copy a link to this post">{linked ? '✓ Copied' : '🔗 Link'}</button>
-				{#if on('blog')}<a class="link" href="/blog/{post.day}/{post.slug}">📖 Read in the blog</a>{/if}
+				{#if on('blog')}<a class="link" href="{base}/blog/{post.day}/{post.slug}">📖 Read in the blog</a>{/if}
 			</span>
 			<nav>
 				<button disabled={!prev} onclick={() => (app.reading = prev)} title={prev?.title}>‹ Previous</button>

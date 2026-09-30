@@ -1,5 +1,6 @@
 <!-- One day of the tour as a blog page: its details, then every event with larger photos. -->
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { A } from '$lib/activity';
 	import { TOUR } from '$lib/tourConfig';
 	import { distRound, distWord, tempRound, tempUnit } from '$lib/units';
@@ -27,7 +28,7 @@
 <article style:--c={dayColor(d.index, dayCount)}>
 	<nav aria-label="Breadcrumb" class="crumb">
 		<ol>
-			<li><a href="/blog">All days</a></li>
+			<li><a href="{base}/blog">All days</a></li>
 			<li aria-current="page">Day {d.index + 1}</li>
 		</ol>
 	</nav>
@@ -49,9 +50,9 @@
 			{#if d.parks.length}<li>{d.parks.join(', ')}</li>{/if}
 		</ul>
 		<p class="go">
-			{#if on('dx3d')}<a class="dx" href="/day/{d.day}?view=3d">{A.go} this day in the 3D tour<span aria-hidden="true"> ↗</span></a>{/if}
-			{#if on('map')}<a class="dx alt" href="/day/{d.day}?view=2d">See it on a map<span aria-hidden="true"> ↗</span></a>{/if}
-			{#if on('globe')}<a class="dx alt" href="/day/{d.day}?view=globe">Watch it as a globe<span aria-hidden="true"> ↗</span></a>{/if}
+			{#if on('dx3d')}<a class="dx" href="{base}/day/{d.day}?view=3d">{A.go} this day in the 3D tour<span aria-hidden="true"> ↗</span></a>{/if}
+			{#if on('map')}<a class="dx alt" href="{base}/day/{d.day}?view=2d">See it on a map<span aria-hidden="true"> ↗</span></a>{/if}
+			{#if on('globe')}<a class="dx alt" href="{base}/day/{d.day}?view=globe">Watch it as a globe<span aria-hidden="true"> ↗</span></a>{/if}
 		</p>
 		{#if on('blogFilters')}<ViewControls {shown} total={d.events.length} />{/if}
 	</header>
@@ -71,8 +72,8 @@
 	{/if}
 
 	<nav class="pager" aria-label="Other days">
-		{#if prev}<a rel="prev" href="/blog/{prev.day}"><span aria-hidden="true">← </span>Day {prev.index + 1}: {prev.title}</a>{:else}<span></span>{/if}
-		{#if next}<a rel="next" href="/blog/{next.day}">Day {next.index + 1}: {next.title}<span aria-hidden="true"> →</span></a>{/if}
+		{#if prev}<a rel="prev" href="{base}/blog/{prev.day}"><span aria-hidden="true">← </span>Day {prev.index + 1}: {prev.title}</a>{:else}<span></span>{/if}
+		{#if next}<a rel="next" href="{base}/blog/{next.day}">Day {next.index + 1}: {next.title}<span aria-hidden="true"> →</span></a>{/if}
 	</nav>
 </article>
 

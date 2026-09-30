@@ -1,6 +1,7 @@
 // Helpers for the plain blog (routes under /blog): links into the 3D experience at an exact
 // moment, tour-time formatting, and readable sentences for each event.
 import { PIN_META, type FeedEvent } from './data';
+import { base } from '$app/paths';
 import { tourClock } from './time';
 import { TOUR } from '$lib/tourConfig';
 import { A } from './activity';
@@ -10,7 +11,7 @@ export function mapLink(day: string, t: number, open: { post?: string; photo?: s
 	const q = new URLSearchParams({ t: tourClock(t) });
 	if (open.post) q.set('post', open.post);
 	if (open.photo) q.set('photo', open.photo);
-	return `/day/${day}?${q}`;
+	return `${base}/day/${day}?${q}`;
 }
 
 const tz = { timeZone: TOUR.timeZone } as const;

@@ -7,6 +7,7 @@
 //   …&surface=satellite&size=3000&off=roads …       the globe as customised (Settings.writeParams)
 // The layout keeps the URL in step (replaceState, no history spam); the pages read it on load.
 import type { App } from './app.svelte';
+import { base } from '$app/paths';
 import { bisect } from './data';
 import type { Tour } from './tour.svelte';
 
@@ -60,7 +61,7 @@ export function momentUrl(
 	extra: { post?: string; photo?: string; t?: number } = {}
 ): string {
 	const tour = app.tour;
-	const url = new URL(tour ? `/day/${tour.data.track.day}` : '/', location.origin);
+	const url = new URL(tour ? `${base}/day/${tour.data.track.day}` : `${base}/`, location.origin);
 	const t = extra.t ?? tour?.bike.time;
 	if (tour && t != null) url.searchParams.set('t', tourClock(t));
 	const post = extra.post ?? app.reading?.slug;

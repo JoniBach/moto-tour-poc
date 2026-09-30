@@ -1,5 +1,6 @@
 <!-- Any page that isn't there (or fails): say so plainly and offer the ways back in. -->
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { TOUR } from '$lib/tourConfig';
 	import { page } from '$app/state';
 	import { on, tourOn, TOUR_NAME } from '$lib/flags';
@@ -22,8 +23,8 @@
 		{/if}
 	</p>
 	<ul>
-		{#if tourOn}<li><a href="/">Open the {TOUR_NAME}</a></li>{/if}
-		{#if on('blog')}<li><a href="/blog">Read the tour as a blog</a></li>{/if}
+		{#if tourOn}<li><a href="{base}/">Open the {TOUR_NAME}</a></li>{/if}
+		{#if on('blog')}<li><a href="{base}/blog">Read the tour as a blog</a></li>{/if}
 	</ul>
 </main>
 

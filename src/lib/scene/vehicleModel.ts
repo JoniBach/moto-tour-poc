@@ -5,6 +5,7 @@
 import { Box3, BufferGeometry, Mesh, Vector3 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { TOUR } from '$lib/tourConfig';
+import { base } from '$app/paths';
 
 let loading: Promise<BufferGeometry | null> | null = null;
 let loaded: BufferGeometry | null = null;
@@ -29,8 +30,8 @@ async function load(cfg: NonNullable<typeof TOUR.model>): Promise<BufferGeometry
 		import('three/examples/jsm/loaders/GLTFLoader.js'),
 		import('three/examples/jsm/loaders/DRACOLoader.js')
 	]);
-	const draco = new DRACOLoader().setDecoderPath('/draco/'); // three's decoder, served from static/draco
-	const gltf = await new GLTFLoader().setDRACOLoader(draco).loadAsync(cfg.src);
+	const draco = new DRACOLoader().setDecoderPath(`${base}/draco/`); // three's decoder, served from static/draco
+	const gltf = await new GLTFLoader().setDRACOLoader(draco).loadAsync(`${base}${cfg.src}`);
 	draco.dispose();
 
 	// every mesh, with its place in the file baked in, as one geometry (position + normal only)

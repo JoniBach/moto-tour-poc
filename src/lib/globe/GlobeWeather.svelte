@@ -2,13 +2,24 @@
   Weather inside the globe, from the day's recorded weather at the current moment: soft clouds
   (as many as the cloud cover says) drifting with the real wind, greying as it rains, and rain
   falling from them onto the land, slanted by the wind. All in scene space around the centre.
+  Clouds come and go gently as the cover changes; between days (presence, from the stage) they
+  lift away one after another and the next day's settle in the same way, the rain easing with them.
 -->
 <script lang="ts">
 	import { T, useTask } from '@threlte/core';
 	import { BufferAttribute, BufferGeometry, Color, Group, Mesh, MeshStandardMaterial, ShaderMaterial, SphereGeometry, Vector3 } from 'three';
 	import type { GlobeState } from './state';
 
-	let { globe, show }: { globe: GlobeState; show: boolean } = $props();
+	let {
+		globe,
+		show,
+		presence
+	}: {
+		globe: GlobeState;
+		show: boolean;
+		/** 0..1: how settled the weather is (the stage's transitions); 1 when there's no stage */
+		presence?: () => number;
+	} = $props();
 
 	// svelte-ignore state_referenced_locally — fixed for the component's lifetime
 	const R = globe.R;
@@ -18,13 +29,18 @@
 	const MAX_CLOUDS = 5;
 	const puffGeo = new SphereGeometry(1, 20, 14);
 	// soft and bright: partly self-lit so they stay white rather than going grey in the shade
-	const cloudMat = new MeshStandardMaterial({ color: '#ffffff', emissive: '#ffffff', emissiveIntensity: 0.45, roughness: 1, transparent: true, opacity: 0.82, depthWrite: false });
+	const OPACITY = 0.82;
+	const cloudMats = Array.from(
+		{ length: MAX_CLOUDS },
+		() => new MeshStandardMaterial({ color: '#ffffff', emissive: '#ffffff', emissiveIntensity: 0.45, roughness: 1, transparent: true, opacity: OPACITY, depthWrite: false })
+	);
 	const rand = (() => {
 		let s = 7;
 		return () => ((s = (s * 16807) % 2147483647) / 2147483647);
 	})();
-	const clouds = Array.from({ length: MAX_CLOUDS }, () => {
+	const clouds = Array.from({ length: MAX_CLOUDS }, (_, index) => {
 		const g = new Group();
+		const cloudMat = cloudMats[index];
 		const size = R * (0.05 + rand() * 0.035);
 		// a few overlapping puffs make one cloud
 		for (let k = 0; k < 6; k++) {
@@ -34,7 +50,8 @@
 			m.position.set((rand() - 0.5) * size * 2.4, (rand() - 0.3) * size * 0.5, (rand() - 0.5) * size * 1.2);
 			g.add(m);
 		}
-		return { g, lateral: (rand() - 0.5) * 1.3 * R, phase: rand(), lift: rand() * R * 0.12 };
+		// on: eases to 1 while the cover calls for this cloud, to 0 when it doesn't
+		return { g, mat: cloudMat, lateral: (rand() - 0.5) * 1.3 * R, phase: rand(), lift: rand() * R * 0.12, on: 0 };
 	});
 	const root = new Group();
 	for (const c of clouds) root.add(c.g);
@@ -119,26 +136,36 @@
 		const span = R * 2;
 		const speed = R * 0.012 * (1 + mph / 6);
 		const n = Math.round(cover * MAX_CLOUDS);
-		cloudMat.color.copy(white).lerp(rainy, globe.rain);
-		cloudMat.emissive.copy(white).lerp(rainy, globe.rain);
+		const here = Math.min(1, Math.max(0, presence?.() ?? 1));
 		clouds.forEach((c, k) => {
-			c.g.visible = k < n;
+			c.on += ((k < n ? 1 : 0) - c.on) * Math.min(1, dt * 0.8);
+			// staggered: the first cloud settles first and leaves last
+			const s = Math.min(1, Math.max(0, (here - k * 0.1) / 0.5));
+			const settle = s * s * (3 - 2 * s);
+			const amount = c.on * settle;
+			c.g.visible = amount > 0.005;
 			if (!c.g.visible) return;
+			c.mat.color.copy(white).lerp(rainy, globe.rain);
+			c.mat.emissive.copy(white).lerp(rainy, globe.rain);
+			c.mat.opacity = OPACITY * amount;
 			const along = ((((c.phase * span + t * speed) % span) + span) % span) - span / 2;
 			const pos = downwind.clone().multiplyScalar(along).add(across.clone().multiplyScalar(c.lateral));
 			const edge = Math.hypot(pos.x, pos.z) / R;
-			c.g.scale.setScalar(Math.max(0.001, 1 - Math.max(0, edge - 0.6) / 0.35));
-			c.g.position.set(pos.x, CLOUD_Y + c.lift, pos.z);
+			c.g.scale.setScalar(Math.max(0.001, (1 - Math.max(0, edge - 0.6) / 0.35) * (0.7 + 0.3 * amount)));
+			// lifted up and away as it leaves, settling down as it arrives
+			c.g.position.set(pos.x, CLOUD_Y + c.lift + (1 - settle) * R * 0.5, pos.z);
 		});
 		const u = rainMat.uniforms;
 		u.uTime.value = t;
-		u.uIntensity.value = show ? globe.rain : 0;
+		// the rain eases off before the clouds lift, and back on once they're down
+		const r = Math.min(1, Math.max(0, (here - 0.5) / 0.5));
+		u.uIntensity.value = show ? globe.rain * r * r * (3 - 2 * r) : 0;
 		u.uWind.value.copy(downwind).multiplyScalar(Math.min(1, mph / 25));
 	});
 
 	$effect(() => () => {
 		puffGeo.dispose();
-		cloudMat.dispose();
+		for (const m of cloudMats) m.dispose();
 		rainGeo.dispose();
 		rainMat.dispose();
 	});

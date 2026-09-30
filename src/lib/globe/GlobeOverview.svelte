@@ -196,4 +196,4 @@
 
 <Traveller tour={parked} beacon={false} />
 
-<GlobeWeather {globe} show />
+<GlobeWeather {globe} show presence={rise} />

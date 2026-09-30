@@ -166,8 +166,7 @@
 		const w = weatherAt(tour.data.weather, tour.rt);
 		globe.weather = w;
 		const drizzle = w && w.code >= 51 && w.code <= 57 ? 0.25 : 0;
-		// (fading in and out with the map between days)
-		globe.rain = tour.layers.weather && w ? Math.min(1, Math.max(drizzle, (w.precip ?? 0) / 1.5)) * shown() : 0;
+		globe.rain = tour.layers.weather && w ? Math.min(1, Math.max(drizzle, (w.precip ?? 0) / 1.5)) : 0;
 
 		// sun and moon for this place and moment
 		const [lon, lat] = fromGrid(b.x + originE, b.n + originN);
@@ -270,7 +269,7 @@
 	<Traveller {tour} beacon={false} grow={R / V} groundAt={(x, n) => globe.ground(x, n) * risen()} />
 </T>
 
-{#if !mini}<GlobeWeather {globe} show={tour.layers.weather} />{/if}
+{#if !mini}<GlobeWeather {globe} show={tour.layers.weather} presence={risen} />{/if}
 
 <T is={sunBody} />
 <T is={moonBody} />

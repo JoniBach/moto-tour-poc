@@ -23,7 +23,7 @@
 		shade,
 		marks,
 		open,
-		fogIn = 1.55,
+		fogIn = 1.2,
 		fogOut = 2.6
 	}: {
 		tour: Tour;
@@ -39,7 +39,7 @@
 		marks: HaloMark[];
 		/** how far the surroundings have opened out from the rim, 0 to 1, like an aperture (the stage's transitions) */
 		open?: () => number;
-		/** where the inner fog has cleared, in multiples of the radius (live) */
+		/** where the surroundings begin (a crisp edge, then a short fade-in), in multiples of the radius (live) */
 		fogIn?: number;
 		/** where the outer fog has closed in, and how far the surroundings reach (a new value rebuilds) */
 		fogOut?: number;
@@ -71,12 +71,12 @@
 		uniform float uOpen;
 		float haloFade(vec2 xz, float h) {
 			float d = distance(xz, uBike);
-			if (d < uInner) return 0.0;
-			// out from the plinth, then away into the air
-			// the inner fog clears by uClear; the outer fog closes in from uFadeFrom to uOuter
-			float f = smoothstep(uInner, max(uClear, uInner + 1.0), d) * (1.0 - smoothstep(uFadeFrom, uOuter, d));
-			// the aperture: open out from the rim to the full reach, a soft edge on the way
-			float edge = mix(uInner, uOuter * 1.08, uOpen);
+			// a crisp inner edge where the surroundings begin (uClear), then a short fade-in over a
+			// quarter of their depth, and the outer fog closing in from uFadeFrom to uOuter
+			if (d < uClear) return 0.0;
+			float f = smoothstep(uClear, uClear + (uOuter - uClear) * 0.25, d) * (1.0 - smoothstep(uFadeFrom, uOuter, d));
+			// the aperture: open out from the inner edge to the full reach, a soft edge on the way
+			float edge = mix(uClear, uOuter * 1.08, uOpen);
 			f *= 1.0 - smoothstep(edge - (uOuter - uInner) * 0.12, edge, d);
 			// ground below the globe's floor would sit in front of the plinth: let it go
 			return f * smoothstep(uBase - uDip, uBase, h);
@@ -86,7 +86,7 @@
 		uBike: { value: new Vector2() },
 		uInner: { value: INNER },
 		uOuter: { value: OUTER },
-		uClear: { value: R * 1.55 },
+		uClear: { value: R * 1.2 },
 		uFadeFrom: { value: OUTER * 0.7 },
 		uBase: { value: 0 },
 		uDip: { value: R * 0.08 },
@@ -346,7 +346,7 @@
 			m.uniforms.uBase.value = globe.base;
 			m.uniforms.uOpen.value = open?.() ?? 1;
 			m.uniforms.uClear.value = R * fogIn;
-			m.uniforms.uFadeFrom.value = Math.max(R * fogIn, OUTER * 0.7);
+			m.uniforms.uFadeFrom.value = Math.max(R * fogIn + (OUTER - R * fogIn) * 0.25, OUTER * 0.7);
 		}
 		routeMat.uniforms.uFix.value = b.i + b.f;
 	});

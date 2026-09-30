@@ -139,7 +139,7 @@
 	</label>
 	{#if tour.settings.globeHalo}
 		<div class="slider">
-			<span>Surroundings fog <output>clear {fogKm(tour.settings.fogIn)} · gone {fogKm(fogOut)}</output></span>
+			<span>Surroundings <output>from {fogKm(tour.settings.fogIn)} · gone by {fogKm(fogOut)}</output></span>
 			<RangeSlider
 				min={FOG_MIN}
 				max={FOG_MAX}
@@ -147,7 +147,7 @@
 				gap={FOG_GAP}
 				bind:lo={tour.settings.fogIn}
 				bind:hi={fogOut}
-				loLabel="Inner fog: the surroundings are clear from"
+				loLabel="Inner edge: the surroundings begin at"
 				hiLabel="Outer fog: the surroundings have faded out by"
 				loText="{fogKm(tour.settings.fogIn)} from the centre"
 				hiText="{fogKm(fogOut)} from the centre"

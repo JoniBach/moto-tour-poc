@@ -25,11 +25,11 @@ export class Settings {
 	/** the globe view: metres of landscape from the bike to the rim */
 	globeRadius = $state(4000);
 	/**
-	 * The surroundings' fog, in multiples of the globe's radius from the centre: the inner fog
-	 * (next to the plinth) has cleared by `fogIn`, and the outer fog has closed in completely by
-	 * `fogOut`, which is also how far the surroundings reach.
+	 * The surroundings, in multiples of the globe's radius from the centre: they begin at `fogIn`
+	 * (a crisp edge, just past the plinth by default; the land's own edge at the minimum, then a
+	 * short fade-in) and the outer fog has closed in completely by `fogOut`, their reach.
 	 */
-	fogIn = $state(1.55);
+	fogIn = $state(1.2);
 	fogOut = $state(2.6);
 	/** how big the vehicle is drawn (1 = its configured size) */
 	vehicleScale = $state(1);

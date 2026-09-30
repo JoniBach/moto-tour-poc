@@ -70,7 +70,7 @@
 		position: fixed;
 		inset: 0;
 		z-index: 150;
-		background: rgba(2, 5, 9, 0.45);
+		background: rgb(38 50 56 / 0.35);
 	}
 	.sheet {
 		position: fixed;
@@ -82,9 +82,9 @@
 		flex-direction: column;
 		border: 1px solid var(--line);
 		border-bottom: none;
-		border-radius: 18px 18px 0 0;
+		border-radius: 24px 24px 0 0;
 		/* themeable: the events sheet over the globe is light */
-		background: var(--sheet-bg, rgba(4, 12, 20, 0.94));
+		background: var(--sheet-bg, var(--card));
 		backdrop-filter: blur(14px);
 		color: var(--text);
 		padding-bottom: env(safe-area-inset-bottom);
@@ -116,7 +116,8 @@
 	h2 {
 		margin: 0;
 		font-size: 15px;
-		color: var(--accent);
+		color: var(--text);
+		font-family: var(--font-display);
 	}
 	.close {
 		all: unset;

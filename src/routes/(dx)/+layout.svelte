@@ -198,7 +198,7 @@
 		position: absolute;
 		z-index: 104;
 		left: 50%;
-		bottom: var(--banner-bottom, 196px);
+		bottom: var(--banner-bottom, 232px);
 		transform: translateX(-50%);
 		width: min(720px, calc(100% - 32px));
 	}

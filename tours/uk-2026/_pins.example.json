@@ -1,0 +1,29 @@
+[
+	{
+		"type": "poi",
+		"title": "Whinlatter Pass",
+		"body": "Sample POI placed by lat/lon. Forest pass west of Keswick.",
+		"lat": 54.6083,
+		"lon": -3.2263
+	},
+	{
+		"type": "poi",
+		"title": "Honister Pass",
+		"body": "Sample POI placed by lat/lon. 356 m, slate mine at the top, 25% down into Borrowdale.",
+		"lat": 54.5105,
+		"lon": -3.1968
+	},
+	{
+		"type": "poi",
+		"title": "Kirkstone Pass",
+		"body": "Sample POI placed by lat/lon. Highest pass open to traffic in the Lakes, with the inn at the top.",
+		"lat": 54.4633,
+		"lon": -2.9291
+	},
+	{
+		"type": "food",
+		"title": "Long stop (130 min)",
+		"body": "Sample pin placed by timestamp during the longest stop detected in the GPX. Swap in the real receipt.",
+		"time": "2026-09-16T11:40:00Z"
+	}
+]

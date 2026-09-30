@@ -133,8 +133,9 @@
 		grid-template-columns: minmax(0, 1fr);
 		place-items: center;
 		padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
-		background: rgba(2, 5, 9, 0.82);
-		backdrop-filter: blur(6px);
+		/* the page dimmed in the tour's slate, not black */
+		background: rgb(38 50 56 / 0.55);
+		backdrop-filter: blur(8px);
 	}
 	.viewer {
 		display: flex;
@@ -144,10 +145,11 @@
 		min-width: 0;
 		max-height: 100%;
 		box-sizing: border-box;
-		padding: 12px;
-		border: 1px solid var(--line);
-		border-radius: 16px;
-		background: var(--glass);
+		padding: 14px;
+		border: 0;
+		border-radius: 26px;
+		background: var(--card);
+		box-shadow: var(--shadow);
 		outline: none;
 	}
 	header {
@@ -158,7 +160,9 @@
 		font-size: 13px;
 	}
 	.meta b {
-		color: var(--accent);
+		font-family: var(--font-display);
+		font-size: 15px;
+		color: var(--accent-ink);
 	}
 	.meta span,
 	.pos {
@@ -174,16 +178,27 @@
 	.actions button {
 		all: unset;
 		cursor: pointer;
-		padding: 5px 12px;
-		border-radius: 8px;
-		background: var(--accent-soft);
-		font-size: 12px;
+		padding: 7px 14px;
+		border-radius: 999px;
+		background: var(--accent);
+		color: var(--on-accent);
+		font-size: 13px;
+		font-weight: 650;
+		box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 55%, #000);
 	}
 	.actions .close {
-		padding: 0 6px;
-		background: none;
+		width: 36px;
+		height: 36px;
+		padding: 0;
+		display: grid;
+		place-items: center;
+		border-radius: 50%;
+		background: var(--card);
+		box-shadow:
+			var(--press),
+			0 0 0 1px var(--line);
 		font-size: 22px;
-		color: var(--muted);
+		color: var(--text);
 	}
 	.stage {
 		position: relative;
@@ -198,7 +213,7 @@
 		max-height: calc(100dvh - 230px);
 		width: auto;
 		height: auto;
-		border-radius: 10px;
+		border-radius: 16px;
 		animation: fade 0.25s ease-out;
 	}
 	@keyframes fade {
@@ -217,8 +232,10 @@
 		display: grid;
 		place-items: center;
 		border-radius: 50%;
-		background: rgba(4, 12, 20, 0.7);
-		border: 1px solid var(--line);
+		background: rgb(255 253 248 / 0.92);
+		box-shadow:
+			var(--press),
+			0 0 0 1px var(--line);
 		color: var(--text);
 		font-size: 26px;
 	}
@@ -242,9 +259,9 @@
 		flex: 0 0 auto;
 		width: 64px;
 		height: 48px;
-		border-radius: 6px;
+		border-radius: 10px;
 		overflow: hidden;
-		opacity: 0.55;
+		opacity: 0.6;
 		border: 2px solid transparent;
 	}
 	.strip button.on {

@@ -100,12 +100,13 @@
 		width: 400px;
 		box-sizing: border-box;
 		padding: 0 0 16px;
-		border: 1px solid #ffd166;
-		border-radius: 14px;
-		background: rgba(4, 12, 20, 0.9);
-		backdrop-filter: blur(12px);
+		border: 0;
+		border-radius: 24px;
+		background: var(--card);
 		color: var(--text);
-		box-shadow: 0 0 24px rgba(255, 209, 102, 0.18);
+		box-shadow:
+			var(--shadow),
+			0 0 0 1px var(--line);
 		user-select: text;
 	}
 	.reader.beside-drawer {
@@ -123,13 +124,16 @@
 		position: absolute;
 		top: 8px;
 		right: 10px;
-		width: 28px;
-		height: 28px;
+		width: 34px;
+		height: 34px;
 		display: grid;
 		place-items: center;
 		border-radius: 50%;
-		background: rgba(4, 12, 20, 0.8);
-		color: var(--muted);
+		background: var(--card);
+		box-shadow:
+			var(--press),
+			0 0 0 1px var(--line);
+		color: var(--text);
 		font-size: 20px;
 		z-index: 1;
 	}
@@ -138,7 +142,7 @@
 		width: 100%;
 		height: 200px;
 		object-fit: cover;
-		border-radius: 13px 13px 0 0;
+		border-radius: 24px 24px 0 0;
 	}
 	.kicker,
 	h1,
@@ -148,18 +152,25 @@
 		padding: 0 18px;
 	}
 	.kicker {
-		margin: 14px 0 4px;
+		margin: 16px 0 4px;
 		font-size: 11px;
-		letter-spacing: 0.06em;
-		color: #ffd166;
+		font-weight: 750;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--accent-ink);
 	}
 	.kicker b {
 		font-weight: 600;
 	}
 	h1 {
 		margin: 0;
-		font-size: 22px;
-		line-height: 1.25;
+		font-family: var(--font-display);
+		font-variation-settings:
+			'SOFT' 100,
+			'WONK' 1;
+		font-weight: 650;
+		font-size: 26px;
+		line-height: 1.15;
 	}
 	.when {
 		margin: 4px 0 12px;
@@ -167,9 +178,9 @@
 		color: var(--muted);
 	}
 	.prose {
-		font-size: 14px;
-		line-height: 1.65;
-		color: #cfe6ef;
+		font-size: 15px;
+		line-height: 1.7;
+		color: var(--text);
 	}
 	.prose :global(p) {
 		margin: 0 0 12px;
@@ -178,7 +189,7 @@
 		color: var(--muted);
 	}
 	.prose :global(a) {
-		color: var(--accent);
+		color: var(--accent-ink);
 	}
 	.prose :global(h2),
 	.prose :global(h3) {
@@ -188,8 +199,9 @@
 	.prose :global(blockquote) {
 		margin: 0 0 12px;
 		padding-left: 12px;
-		border-left: 2px solid #ffd166;
-		color: var(--muted);
+		border-left: 4px solid var(--accent);
+		font-family: var(--font-display);
+		color: var(--text);
 	}
 	.prose :global(figure) {
 		margin: 14px -18px;
@@ -217,13 +229,15 @@
 	footer button {
 		all: unset;
 		cursor: pointer;
-		padding: 5px 10px;
-		border-radius: 8px;
-		font-size: 12px;
+		padding: 7px 14px;
+		border-radius: 999px;
+		font-size: 13px;
+		font-weight: 650;
 	}
 	.ride {
-		background: rgba(255, 209, 102, 0.18);
-		color: #ffe3a3;
+		background: var(--accent);
+		color: var(--on-accent);
+		box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 55%, #000);
 	}
 	.actions {
 		display: flex;
@@ -234,9 +248,10 @@
 		text-decoration: none;
 	}
 	a.link {
-		padding: 5px 10px;
-		border-radius: 8px;
-		font-size: 12px;
+		padding: 7px 12px;
+		border-radius: 999px;
+		font-size: 13px;
+		font-weight: 650;
 	}
 	.link:hover {
 		color: var(--text);
@@ -268,8 +283,7 @@
 			bottom: 0;
 			width: auto;
 			max-height: 86dvh;
-			border-radius: 18px 18px 0 0;
-			border-bottom: none;
+			border-radius: 24px 24px 0 0;
 			padding-bottom: calc(16px + env(safe-area-inset-bottom));
 		}
 		.close {
@@ -279,7 +293,7 @@
 		}
 		.cover {
 			height: 170px;
-			border-radius: 17px 17px 0 0;
+			border-radius: 24px 24px 0 0;
 		}
 		footer button {
 			padding: 10px 12px;

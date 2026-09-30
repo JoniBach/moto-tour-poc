@@ -363,7 +363,9 @@
 	});
 </script>
 
-{#if contours}<T.Mesh geometry={surface} material={surfaceMat} frustumCulled={false} renderOrder={5} />{/if}
-{#if lines.length}<T.LineSegments geometry={lineGeo} material={lineMat} frustumCulled={false} renderOrder={5} />{/if}
-{#if marks.length}<T.Points geometry={markGeo} material={markMat} frustumCulled={false} renderOrder={7} />{/if}
-{#if route}<T.LineSegments geometry={routeGeo} material={routeMat} frustumCulled={false} renderOrder={6} />{/if}
+<!-- drawn before the land's own lines and route (renderOrder 2 and 4), so nothing out here ever
+     paints over the ride's route where they meet near the rim -->
+{#if contours}<T.Mesh geometry={surface} material={surfaceMat} frustumCulled={false} renderOrder={1} />{/if}
+{#if lines.length}<T.LineSegments geometry={lineGeo} material={lineMat} frustumCulled={false} renderOrder={1} />{/if}
+{#if marks.length}<T.Points geometry={markGeo} material={markMat} frustumCulled={false} renderOrder={3} />{/if}
+{#if route}<T.LineSegments geometry={routeGeo} material={routeMat} frustumCulled={false} renderOrder={2} />{/if}

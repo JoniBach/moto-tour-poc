@@ -11,7 +11,7 @@
 	import type { GlobeLine } from './lines';
 	import type { GlobeState } from './state';
 
-	let { tour, globe, radius, lines }: { tour: Tour; globe: GlobeState; radius: number; lines: GlobeLine[] } = $props();
+	let { tour, globe, radius, lines, fade }: { tour: Tour; globe: GlobeState; radius: number; lines: GlobeLine[]; fade?: () => number } = $props();
 
 	// svelte-ignore state_referenced_locally — a new radius remounts this component
 	const LIFT = Math.max(1.5, radius / 1200);
@@ -83,7 +83,7 @@
 		polygonOffsetFactor: -1,
 		polygonOffsetUnits: -2,
 		// svelte-ignore state_referenced_locally
-		uniforms: { uBike: { value: new Vector2() }, uR: { value: 0 }, uDash: { value: radius * 0.02 } },
+		uniforms: { uBike: { value: new Vector2() }, uR: { value: 0 }, uDash: { value: radius * 0.02 }, uFade: { value: 1 } },
 		vertexShader: /* glsl */ `
 			attribute float aDist;
 			attribute vec4 aLook;
@@ -101,6 +101,7 @@
 			}
 		`,
 		fragmentShader: /* glsl */ `
+			uniform float uFade;
 			uniform vec2 uBike;
 			uniform float uR;
 			uniform float uDash;
@@ -111,12 +112,13 @@
 			void main() {
 				if (distance(vXZ, uBike) > uR - 2.0) discard;
 				if (vDashed > 0.5 && fract(vDist / uDash) > 0.55) discard;
-				gl_FragColor = vLook;
+				gl_FragColor = vec4(vLook.rgb, vLook.a * uFade);
 			}
 		`
 	});
 
 	useTask(() => {
+		material.uniforms.uFade.value = fade?.() ?? 1;
 		if ((globe.version !== built || lines !== builtLines) && Number.isFinite(globe.patch.x)) {
 			built = globe.version;
 			builtLines = lines;

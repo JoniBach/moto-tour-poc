@@ -147,10 +147,15 @@
 
 	// the meadow's band of earth rises and falls with the stage; the bike stays on the grass
 	let meadowGroup = $state<import('three').Group>();
+	let grassMat = $state<import('three').MeshStandardMaterial>();
+	let soilMat = $state<import('three').MeshStandardMaterial>();
 	useTask(() => {
 		const r = Math.max(0.001, rise?.() ?? 1);
 		if (meadowGroup) meadowGroup.scale.y = r;
 		(parked.bike as { h: number }).h = TURF * r;
+		// and fades into the plinth's cream floor as it goes
+		const o = Math.min(1, r * 1.25);
+		for (const m of [grassMat, soilMat]) if (m) m.opacity = o;
 	});
 
 	const grass = meadow();
@@ -180,11 +185,11 @@
 <!-- the meadow on its band of earth -->
 <T.Group bind:ref={meadowGroup}>
 	<T.Mesh geometry={rim} position.y={TURF / 2}>
-		<T.MeshStandardMaterial map={soil} roughness={0.95} />
+		<T.MeshStandardMaterial bind:ref={soilMat} map={soil} roughness={0.95} transparent />
 	</T.Mesh>
 	<T.Mesh rotation.x={-Math.PI / 2} position.y={TURF}>
 		<T.CircleGeometry args={[V, 160]} />
-		<T.MeshStandardMaterial map={grass} roughness={0.95} />
+		<T.MeshStandardMaterial bind:ref={grassMat} map={grass} roughness={0.95} transparent />
 	</T.Mesh>
 </T.Group>
 

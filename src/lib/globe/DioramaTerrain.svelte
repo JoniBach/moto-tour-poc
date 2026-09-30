@@ -13,7 +13,18 @@
 	import type { GlobeState } from './state';
 
 	/** radius: metres of landscape from the bike to the rim */
-	let { tour, globe, radius }: { tour: Tour; globe: GlobeState; radius: number } = $props();
+	let {
+		tour,
+		globe,
+		radius,
+		fade
+	}: {
+		tour: Tour;
+		globe: GlobeState;
+		radius: number;
+		/** 1 the map shows, 0 it has faded into the plinth's cream (the stage's transitions) */
+		fade?: () => number;
+	} = $props();
 
 	// svelte-ignore state_referenced_locally — both are fixed for the component's lifetime
 	const { terrain } = tour.data;
@@ -124,6 +135,11 @@
 		uniform vec3 uLight;
 		uniform float uStrength;
 		uniform float uDay;
+		uniform float uFade;
+		// the plinth's cream: what the map fades into (and out of) between days
+		vec3 faded(vec3 col) {
+			return mix(vec3(0.93, 0.91, 0.87), col, uFade);
+		}
 		vec3 lit(vec3 base, vec3 n) {
 			float diff = max(dot(n, uLightDir), 0.0);
 			vec3 sky = mix(vec3(0.34, 0.38, 0.52), vec3(0.62, 0.66, 0.70), uDay);
@@ -142,7 +158,8 @@
 		uLight: { value: new Color('#ffffff') },
 		uStrength: { value: 1 },
 		uDay: { value: 1 },
-		uExag: { value: 2 }
+		uExag: { value: 2 },
+		uFade: { value: 1 }
 	});
 
 	const material = new ShaderMaterial({
@@ -239,7 +256,7 @@
 
 				// a hairline where the land meets the rim
 				col *= 1.0 - 0.25 * smoothstep(uR - 12.0, uR, d);
-				gl_FragColor = vec4(col, 1.0);
+				gl_FragColor = vec4(faded(col), 1.0);
 			}
 		`
 	});
@@ -301,7 +318,7 @@
 				vec3 clay = mix(vec3(0.78, 0.66, 0.52), vec3(0.70, 0.60, 0.50), bands);
 				col = mix(col, clay, smoothstep(40.0, 70.0, vDepth));
 				col = mix(col, vec3(0.84, 0.80, 0.74), smoothstep(0.62, 0.7, sin(z * 0.013)) * smoothstep(90.0, 140.0, vDepth));
-				gl_FragColor = vec4(lit(col, normalize(vN)), 1.0);
+				gl_FragColor = vec4(faded(lit(col, normalize(vN))), 1.0);
 			}
 		`
 	});
@@ -332,6 +349,7 @@
 			u.uStrength.value = globe.lightStrength;
 			u.uDay.value = globe.daylight;
 			u.uExag.value = exag;
+			u.uFade.value = fade?.() ?? 1;
 		}
 		const m = material.uniforms;
 		m.uBike.value.set(x, -n);

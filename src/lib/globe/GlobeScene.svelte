@@ -94,6 +94,9 @@
 	/** labels and pins stand at full height: they wait until the land has risen */
 	let settled = $state(true);
 	const risen = () => rise?.() ?? 1;
+	// the map fades into the plinth's cream as it falls and back out as it rises, so the moment
+	// one day's land gives way to the next is plain cream: nothing to see jump
+	const shown = () => Math.min(1, risen() * 1.25);
 	// the surroundings keep their full height and open out like an aperture instead; this holds
 	// them level while the land beside them rises (the land group sits at -base × exag)
 	let haloLift = $state(0);
@@ -160,7 +163,8 @@
 		const w = weatherAt(tour.data.weather, tour.rt);
 		globe.weather = w;
 		const drizzle = w && w.code >= 51 && w.code <= 57 ? 0.25 : 0;
-		globe.rain = tour.layers.weather && w ? Math.min(1, Math.max(drizzle, (w.precip ?? 0) / 1.5)) : 0;
+		// (fading in and out with the map between days)
+		globe.rain = tour.layers.weather && w ? Math.min(1, Math.max(drizzle, (w.precip ?? 0) / 1.5)) * shown() : 0;
 
 		// sun and moon for this place and moment
 		const [lon, lat] = fromGrid(b.x + originE, b.n + originN);
@@ -245,9 +249,9 @@
 	<!-- a new size rebuilds what's cut to the circle; the floor eases to its new level -->
 	{#key R}
 		<T.Group scale.y={exag}>
-			<DioramaTerrain {tour} {globe} radius={R} />
-			{#if lines.length}<GlobeLines {tour} {globe} radius={R} {lines} />{/if}
-			{#if tour.layers.route}<RouteRibbon {tour} {globe} radius={R} {shade} />{/if}
+			<DioramaTerrain {tour} {globe} radius={R} fade={shown} />
+			{#if lines.length}<GlobeLines {tour} {globe} radius={R} {lines} fade={shown} />{/if}
+			{#if tour.layers.route}<RouteRibbon {tour} {globe} radius={R} {shade} fade={shown} />{/if}
 		</T.Group>
 		{#if tour.settings.globeHalo && !mini}
 			<T.Group scale.y={tour.exaggeration} position.y={haloLift}>

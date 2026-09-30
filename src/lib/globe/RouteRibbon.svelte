@@ -11,7 +11,7 @@
 	import type { GlobeState } from './state';
 
 	/** shade: per-fix sRGB colours for the ridden part (the ride's data), or null for terracotta */
-	let { tour, globe, radius, shade }: { tour: Tour; globe: GlobeState; radius: number; shade: Float32Array | null } = $props();
+	let { tour, globe, radius, shade, fade }: { tour: Tour; globe: GlobeState; radius: number; shade: Float32Array | null; fade?: () => number } = $props();
 
 	// svelte-ignore state_referenced_locally — fixed for the component's lifetime
 	const tr = tour.data.track;
@@ -81,7 +81,7 @@
 		polygonOffset: true,
 		polygonOffsetFactor: -2,
 		polygonOffsetUnits: -4,
-		uniforms: { uBike: { value: new Vector2() }, uR: { value: 0 }, uFix: { value: 0 } },
+		uniforms: { uBike: { value: new Vector2() }, uR: { value: 0 }, uFix: { value: 0 }, uFade: { value: 1 } },
 		vertexShader: /* glsl */ `
 			attribute float aFix;
 			attribute vec3 aCol;
@@ -99,6 +99,7 @@
 			}
 		`,
 		fragmentShader: /* glsl */ `
+			uniform float uFade;
 			uniform vec2 uBike;
 			uniform float uR;
 			uniform float uFix;
@@ -115,12 +116,13 @@
 				// gradient scale) still read on the pastel land
 				float edge = smoothstep(0.3, 0.42, abs(vSide - 0.5));
 				col = mix(col, col * 0.45, edge * (done ? 0.9 : 0.35));
-				gl_FragColor = vec4(col, done ? 1.0 : 0.85);
+				gl_FragColor = vec4(col, (done ? 1.0 : 0.85) * uFade);
 			}
 		`
 	});
 
 	useTask(() => {
+		material.uniforms.uFade.value = fade?.() ?? 1;
 		if ((globe.version !== built || shade !== builtShade) && Number.isFinite(globe.patch.x)) {
 			built = globe.version;
 			builtShade = shade;

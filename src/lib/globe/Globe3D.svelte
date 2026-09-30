@@ -11,6 +11,8 @@
 	import GlobeOverview from './GlobeOverview.svelte';
 	import GlobeScene from './GlobeScene.svelte';
 	import GlobeUI from './GlobeUI.svelte';
+	import MiniMap from './MiniMap.svelte';
+	import { VIEWS_ON } from '$lib/flags';
 
 	let { app, dpr }: { app: App; dpr: number } = $props();
 
@@ -53,6 +55,10 @@
 		{/if}
 	</Canvas>
 	{#if tour}
+		<!-- the map as a small card in the corner (when the map view is released) -->
+		{#if VIEWS_ON.includes('2d')}
+			{#key tour}<MiniMap {app} {tour} />{/key}
+		{/if}
 		{#key tour}
 			<GlobeUI {tour} parks={app.parks} originE={summary?.originE ?? 0} originN={summary?.originN ?? 0} />
 		{/key}

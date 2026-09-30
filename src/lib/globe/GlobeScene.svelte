@@ -34,7 +34,8 @@
 		date,
 		onsky,
 		onphotos,
-		onpost
+		onpost,
+		mini = false
 	}: {
 		tour: Tour;
 		originE: number;
@@ -45,6 +46,11 @@
 		onsky: (top: string, bottom: string) => void;
 		onphotos: (photos: Photo[]) => void;
 		onpost: (post: BlogPost) => void;
+		/**
+		 * The small live globe in the map view's corner: follows the ride (the map plays it), no
+		 * controls, labels, pins, surroundings or weather, framed for a small square.
+		 */
+		mini?: boolean;
 	} = $props();
 
 	/** the globe's size on screen (scene units): fixed; the landscape is scaled to fit it */
@@ -69,7 +75,7 @@
 	// (follows the window: turning a phone re-frames the globe)
 	let width = $state(globalThis.innerWidth ?? 1);
 	let height = $state(globalThis.innerHeight ?? 1);
-	const fit = $derived(Math.max(1, 1.25 / Math.max(0.3, width / height)));
+	const fit = $derived(mini ? 1.15 : Math.max(1, 1.25 / Math.max(0.3, width / height)));
 	const globe = new GlobeState(V);
 	const RAD = Math.PI / 180;
 
@@ -123,7 +129,7 @@
 	const tmp = new Color();
 
 	useTask((dt) => {
-		tour.advance(Math.min(dt, 0.1));
+		if (!mini) tour.advance(Math.min(dt, 0.1)); // the mini globe follows whoever plays the ride
 		exag = tour.exaggeration;
 		const b = tour.bike;
 		// scale the landscape so its radius R fills the globe's fixed size V
@@ -168,10 +174,10 @@
 		if (sunLight) {
 			sunLight.position.copy(globe.lightDir).multiplyScalar(R * 3);
 			sunLight.color.copy(globe.light);
-			sunLight.intensity = globe.lightStrength * 2.2;
+			sunLight.intensity = globe.lightStrength * 1.6;
 		}
 		if (hemi) {
-			hemi.intensity = 0.6 + 0.8 * globe.daylight;
+			hemi.intensity = 0.55 + 0.6 * globe.daylight;
 			hemi.color.copy(tmp.set(colours.top));
 		}
 		const s = Math.round((0.2 + 0.35 * globe.daylight) * 20) / 20;
@@ -197,6 +203,7 @@
 
 <T.PerspectiveCamera makeDefault position={[0, V * 2.1 * fit, V * 3.9 * fit]} fov={34} near={V * 0.01} far={V * 40}>
 	<OrbitControls
+		enabled={!mini}
 		target={[0, V * 0.05, 0]}
 		enablePan={false}
 		enableDamping
@@ -216,20 +223,22 @@
 	{#key R}
 		<T.Group scale.y={exag}>
 			<DioramaTerrain {tour} {globe} radius={R} />
-			{#if tour.settings.globeHalo}
+			{#if tour.settings.globeHalo && !mini}
 				<GlobeHalo {tour} {globe} radius={R} contours={tour.layers.contours} route={tour.layers.route} {lines} {shade} {marks} />
 			{/if}
 			{#if lines.length}<GlobeLines {tour} {globe} radius={R} {lines} />{/if}
 			{#if tour.layers.route}<RouteRibbon {tour} {globe} radius={R} {shade} />{/if}
 		</T.Group>
-		{#if tour.layers.labels && tour.data.osm}<GlobeLabels {tour} {globe} radius={R} places={tour.data.osm.places} />{/if}
-		<GlobePins {tour} {globe} radius={R} {originE} {originN} {onphotos} {onpost} />
+		{#if !mini}
+			{#if tour.layers.labels && tour.data.osm}<GlobeLabels {tour} {globe} radius={R} places={tour.data.osm.places} />{/if}
+			<GlobePins {tour} {globe} radius={R} {originE} {originN} {onphotos} {onpost} />
+		{/if}
 	{/key}
 	<!-- the same size on screen whatever the landscape's scale -->
 	<Bike {tour} beacon={false} grow={R / V} groundAt={(x, n) => globe.ground(x, n)} />
 </T>
 
-<GlobeWeather {globe} show={tour.layers.weather} />
+{#if !mini}<GlobeWeather {globe} show={tour.layers.weather} />{/if}
 
 <T is={sunBody} />
 <T is={moonBody} />

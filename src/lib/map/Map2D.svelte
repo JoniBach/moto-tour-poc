@@ -267,7 +267,11 @@
 			const s = app.summary(t.data.track.day)!;
 			for (const pin of t.data.pins) {
 				const meta = PIN_META[pin.type];
-				const el = button('pin', `${meta.label}: ${pin.title}`, meta.icon, () => (t.selectedPin = pin.id));
+				// no pop-up card: jump the ride there, and the event banner tells the rest
+				const el = button('pin', `${meta.label}: ${pin.title}`, meta.icon, () => {
+					t.seek(pin.rt);
+					t.selectedPin = pin.id;
+				});
 				el.style.setProperty('--c', meta.color);
 				pinMarkers.push(new Marker({ element: el }).setLngLat(F.at(pin.x + s.originE, pin.n + s.originN)).addTo(m));
 			}
@@ -380,9 +384,14 @@
 		inset: 0;
 		background: #e9eef0;
 	}
-	/* under the trip bar */
+	/* under the trip bar, and on desktop under the mini globe in the corner */
 	.map2d :global(.maplibregl-ctrl-top-right) {
 		top: 64px;
+	}
+	@media (min-width: 901px) {
+		.map2d :global(.maplibregl-ctrl-top-right) {
+			top: 264px;
+		}
 	}
 	.map2d :global(.maplibregl-ctrl-bottom-left) {
 		bottom: 130px;

@@ -3,7 +3,7 @@
   animates within one scene instead of remounting it. Pages only say which day to show.
 -->
 <script lang="ts">
-	import { on, tourOn } from '$lib/flags';
+	import { on, tourOn, VIEWS_ON } from '$lib/flags';
 	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { momentUrl } from '$lib/moment';
@@ -13,8 +13,7 @@
 	import ControlPanel from '$lib/ui/ControlPanel.svelte';
 	import EventsDrawer from '$lib/ui/EventsDrawer.svelte';
 	import Gallery from '$lib/ui/Gallery.svelte';
-	import PhotoPopups from '$lib/ui/PhotoPopups.svelte';
-	import PinCard from '$lib/ui/PinCard.svelte';
+	import GlobeBanner from '$lib/globe/GlobeBanner.svelte';
 	import Scrubber from '$lib/ui/Scrubber.svelte';
 	import TourIntro from '$lib/ui/TourIntro.svelte';
 	import TripBar from '$lib/ui/TripBar.svelte';
@@ -100,6 +99,12 @@
 			{#await import('$lib/map/Map2D.svelte') then { default: Map2D }}
 				<Map2D {app} onselect={openDay} />
 			{/await}
+			<!-- a small live globe in the corner (its own chunk; only when the globe is released) -->
+			{#if tour && VIEWS_ON.includes('globe')}
+				{#await import('$lib/globe/MiniGlobe.svelte') then { default: MiniGlobe }}
+					<MiniGlobe {app} />
+				{/await}
+			{/if}
 		{:else}
 			{#await import('$lib/globe/Globe3D.svelte') then { default: Globe3D }}
 				<Globe3D {app} {dpr} />
@@ -117,10 +122,10 @@
 				<div class="events-wrap" class:light={app.view === 'globe'}>
 					<EventsDrawer {tour} />
 				</div>
-				<!-- the globe has its own quiet event banner instead of the pop-up cards (place cards too) -->
+				<!-- no pop-up cards anywhere: one quiet banner names the latest moment (the globe has
+				     its own, in its play bar; here it sits above the scrubber) -->
 				{#if app.view !== 'globe'}
-					<PinCard {tour} />
-					<PhotoPopups {tour} />
+					<div class="banner-dock"><GlobeBanner {tour} /></div>
 				{/if}
 			{/key}
 		{:else if !app.pending}
@@ -175,6 +180,19 @@
 		/* an app surface, not a document: drags (scrubbing, orbiting over labels) shouldn't select text */
 		user-select: none;
 		-webkit-user-select: none;
+	}
+	.banner-dock {
+		position: absolute;
+		z-index: 104;
+		left: 50%;
+		bottom: var(--banner-bottom, 196px);
+		transform: translateX(-50%);
+		width: min(720px, calc(100% - 32px));
+	}
+	@media (max-width: 900px) {
+		.banner-dock {
+			bottom: var(--banner-bottom-phone, 182px);
+		}
 	}
 	.events-wrap {
 		display: contents;

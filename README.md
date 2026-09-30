@@ -164,6 +164,14 @@ day plays. **◍ Globe** in the trip bar (phones: the view button steps 3D → m
   shade only, lean, gradient), with a key; a darker edge keeps pale colours readable.
 - The events list (drawer / ☰ sheet) works over the globe, restyled light; the pop-up place
   cards don't show there (the banner covers them; a place pin jumps the ride to its moment).
+- Dual view: in the globe, a small map card in the corner (`MiniMap.svelte`, SVG: the day's
+  route, the part ridden, the bike, north, a ring for the ground the globe covers); in the map, a
+  small live globe (`MiniGlobe.svelte`: the globe scene in `mini` mode, its own chunk, following
+  the ride the map plays). Each switches to the other view; shown only when both are released.
+- No pop-ups anywhere: one quiet event banner (`GlobeBanner.svelte`) names the latest moment in
+  every view (above the scrubber in 3D and the map); clicking a place pin jumps the ride there.
+- Light: sky fill plus sun with a soft ceiling, so a clear midday sun (or weather switched off)
+  can't wash the pastel land out.
 - `RouteRibbon.svelte`: the route as a ribbon on the land, terracotta behind the bike and chalk
   ahead, re-draped on the landscape's own heights each re-sample.
 - `Plinth.svelte`: engraved compass ring and the day's name and date lettered around the front.

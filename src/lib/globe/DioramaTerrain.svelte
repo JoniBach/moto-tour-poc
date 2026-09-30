@@ -127,7 +127,13 @@
 		vec3 lit(vec3 base, vec3 n) {
 			float diff = max(dot(n, uLightDir), 0.0);
 			vec3 sky = mix(vec3(0.34, 0.38, 0.52), vec3(0.62, 0.66, 0.70), uDay);
-			return base * (sky + uLight * diff * uStrength);
+			vec3 k = sky + uLight * diff * uStrength;
+			// soft ceiling: passes through up to 0.9, then eases off, so a clear midday sun (full
+			// strength, no cloud to soften it) can't wash the pastel land out, while overcast
+			// days look as before
+			vec3 over = max(k - 0.9, 0.0);
+			k = min(k, vec3(0.9)) + over / (1.0 + over * 3.0);
+			return base * k;
 		}
 	`;
 

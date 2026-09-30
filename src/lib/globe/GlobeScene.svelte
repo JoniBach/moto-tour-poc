@@ -94,9 +94,12 @@
 	/** labels and pins stand at full height: they wait until the land has risen */
 	let settled = $state(true);
 	const risen = () => rise?.() ?? 1;
-	// the map fades into the plinth's cream as it falls and back out as it rises, so the moment
-	// one day's land gives way to the next is plain cream: nothing to see jump
-	const shown = () => Math.min(1, risen() * 1.25);
+	// the land fades away only at the very end of its fall, and back in at the very start of its
+	// rise: solid the rest of the way, and nothing there at the moment one day gives way to the next
+	const shown = () => {
+		const u = Math.min(1, risen() / 0.18);
+		return u * u * (3 - 2 * u);
+	};
 	// the surroundings keep their full height and open out like an aperture instead; this holds
 	// them level while the land beside them rises (the land group sits at -base × exag)
 	let haloLift = $state(0);

@@ -111,12 +111,6 @@
 	<OrbitControls target={[0, V * 0.04, 0]} enablePan={false} enableDamping minDistance={V * 1.3} maxDistance={V * 6 * fit} maxPolarAngle={Math.PI * 0.47} />
 </T.PerspectiveCamera>
 
-<!-- the plinth's floor: the cream the land fades into (and grows out of) between days -->
-<T.Mesh rotation.x={-Math.PI / 2} position.y={-2}>
-	<T.CircleGeometry args={[V * 0.99, 160]} />
-	<T.MeshStandardMaterial color="#efe9dd" roughness={0.9} emissive="#ffffff" emissiveIntensity={0.25} />
-</T.Mesh>
-
 <!-- the lettering fades out as the land falls and back in as the new land rises -->
 <Plinth R={V} title={plinth.title} date={plinth.date} {shadow} lettering={() => (phase === 'idle' ? 1 : rise)} />
 

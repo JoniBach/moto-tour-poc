@@ -153,8 +153,9 @@
 		const r = Math.max(0.001, rise?.() ?? 1);
 		if (meadowGroup) meadowGroup.scale.y = r;
 		(parked.bike as { h: number }).h = TURF * r;
-		// and fades into the plinth's cream floor as it goes
-		const o = Math.min(1, r * 1.25);
+		// and fades away only at the very end (and back in at the very start)
+		const u = Math.min(1, r / 0.18);
+		const o = u * u * (3 - 2 * u);
 		for (const m of [grassMat, soilMat]) if (m) m.opacity = o;
 	});
 

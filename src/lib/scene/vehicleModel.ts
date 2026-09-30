@@ -7,15 +7,21 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { TOUR } from '$lib/tourConfig';
 
 let loading: Promise<BufferGeometry | null> | null = null;
+let loaded: BufferGeometry | null = null;
+
+/** The model if it has already loaded (so a new globe shows it straight away, no stand-in flash). */
+export const vehicleReady = () => loaded;
 
 /** The model's geometry in one piece, or null when the tour has none (or it fails to load). */
 export function vehicleGeometry(): Promise<BufferGeometry | null> {
 	const cfg = TOUR.model;
 	if (!cfg) return Promise.resolve(null);
-	return (loading ??= load(cfg).catch((e) => {
-		console.warn(`Couldn't load the vehicle model ${cfg.src}:`, e);
-		return null;
-	}));
+	return (loading ??= load(cfg)
+		.then((g) => (loaded = g))
+		.catch((e) => {
+			console.warn(`Couldn't load the vehicle model ${cfg.src}:`, e);
+			return null;
+		}));
 }
 
 async function load(cfg: NonNullable<typeof TOUR.model>): Promise<BufferGeometry | null> {

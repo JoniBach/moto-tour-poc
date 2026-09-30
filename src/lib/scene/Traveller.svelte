@@ -5,6 +5,11 @@
   and lean too where leaning is a thing; it grows with camera distance so it stays findable, and
   a light beam marks it from the overview.
 -->
+<script lang="ts" module>
+	/** which way the vehicle last faced, carried to the next globe so it turns to its new heading */
+	let lastHeading: number | null = null;
+</script>
+
 <script lang="ts">
 	import { T, useTask, useThrelte } from '@threlte/core';
 	import { AdditiveBlending, Group, Mesh, Vector3 } from 'three';
@@ -13,7 +18,7 @@
 	import { TOUR } from '$lib/tourConfig';
 	import { onMount } from 'svelte';
 	import type { BufferGeometry } from 'three';
-	import { vehicleGeometry } from './vehicleModel';
+	import { vehicleGeometry, vehicleReady } from './vehicleModel';
 
 	let {
 		tour,
@@ -36,10 +41,18 @@
 	let leanGroup = $state<Group>();
 	let beam = $state<Mesh>();
 
-	useTask(() => {
+	let facing: number | null = null;
+	useTask((dt) => {
 		const b = tour.bike;
 		outer.position.set(b.x, (groundAt ? groundAt(b.x, b.n) : b.h) * tour.exaggeration, -b.n);
-		outer.rotation.y = -b.heading;
+		// turn to the heading rather than snapping to it: a new day's globe starts from where the
+		// last one faced and swings round; then it follows the track
+		const goal = -b.heading;
+		if (facing === null) facing = lastHeading ?? goal;
+		const off = Math.atan2(Math.sin(goal - facing), Math.cos(goal - facing));
+		facing = Math.abs(off) > 0.01 ? facing + off * Math.min(1, dt * 2.5) : goal;
+		lastHeading = facing;
+		outer.rotation.y = facing;
 		if (leanGroup) leanGroup.rotation.z = A.leans ? -b.lean : 0;
 		const dist = camera.current.getWorldPosition(tmp).distanceTo(outer.position);
 		const s = Math.min(60, Math.max(1, dist / 45));
@@ -48,7 +61,7 @@
 		if (beam) beam.visible = beacon && s > 6;
 	});
 
-	let model = $state.raw<BufferGeometry | null>(null);
+	let model = $state.raw<BufferGeometry | null>(vehicleReady());
 	onMount(() => {
 		let live = true;
 		vehicleGeometry().then((g) => live && (model = g));
@@ -69,7 +82,7 @@
 			<T.Mesh geometry={model} castShadow>
 				<T.MeshStandardMaterial {...paint} />
 			</T.Mesh>
-			{#if TOUR.model?.rider !== false}
+			{#if TOUR.model?.rider}
 				<!-- sitting upright, as on a scooter -->
 				<T.Mesh position={[0, 1.02, 0.22]} rotation.x={0.12}>
 					<T.CapsuleGeometry args={[0.19, 0.4, 4, 10]} />

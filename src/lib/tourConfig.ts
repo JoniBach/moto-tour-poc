@@ -34,7 +34,7 @@ export interface TourConfig {
 		forward?: '+x' | '-x' | '+z' | '-z';
 		/** its paint. Default the tour's accent */
 		color?: string;
-		/** the primitive rider on top. Default true */
+		/** a simple seated rider on top. Default false */
 		rider?: boolean;
 	};
 }

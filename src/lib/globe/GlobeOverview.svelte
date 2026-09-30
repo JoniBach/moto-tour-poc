@@ -1,11 +1,11 @@
 <!--
   The globe before a day is chosen: the same plinth with a flat meadow on top (fields, hedgerows,
-  a country road) and the motorcycle parked in the middle, a few clouds drifting over. The tour's
-  name is lettered around the base. The day list (TourIntro) sits beside it; pick a day and the
-  real landscape takes the meadow's place. You can turn it like the day globes.
+  a country road) and the vehicle parked in the middle, a few clouds drifting over. The tour's
+  name is lettered around the base. The day postcards sit around it; pick a day and the real
+  landscape grows in the meadow's place (GlobeStage). You can turn it like the day globes.
 -->
 <script lang="ts">
-	import { T } from '@threlte/core';
+	import { T, useTask } from '@threlte/core';
 	import { OrbitControls } from '@threlte/extras';
 	import { CanvasTexture, CylinderGeometry, SRGBColorSpace } from 'three';
 	import type { WeatherSample } from '$lib/data';
@@ -15,7 +15,19 @@
 	import Plinth from './Plinth.svelte';
 	import { GlobeState } from './state';
 
-	let { title, date }: { title: string; date: string } = $props();
+	/** staged: on the persistent globe (GlobeStage), which owns the camera and the plinth */
+	let {
+		title,
+		date,
+		staged = false,
+		rise
+	}: {
+		title: string;
+		date: string;
+		staged?: boolean;
+		/** how far the meadow stands up out of the plinth, 0 to 1: the stage's transitions */
+		rise?: () => number;
+	} = $props();
 
 	const V = 1800;
 	/** the meadow stands this far above the plinth, on a band of earth */
@@ -133,6 +145,14 @@
 		return t;
 	}
 
+	// the meadow's band of earth rises and falls with the stage; the bike stays on the grass
+	let meadowGroup = $state<import('three').Group>();
+	useTask(() => {
+		const r = Math.max(0.001, rise?.() ?? 1);
+		if (meadowGroup) meadowGroup.scale.y = r;
+		(parked.bike as { h: number }).h = TURF * r;
+	});
+
 	const grass = meadow();
 	const soil = earth();
 	const rim = new CylinderGeometry(V, V, TURF, 160, 1, true);
@@ -146,23 +166,27 @@
 
 <svelte:window bind:innerWidth={width} bind:innerHeight={height} />
 
-<T.PerspectiveCamera makeDefault position={[0, V * 2.1 * fit, V * 3.9 * fit]} fov={34} near={V * 0.01} far={V * 40}>
-	<OrbitControls target={[0, V * 0.02, 0]} enablePan={false} enableDamping minDistance={V * 1.3} maxDistance={V * 6 * fit} maxPolarAngle={Math.PI * 0.47} />
-</T.PerspectiveCamera>
+{#if !staged}
+	<T.PerspectiveCamera makeDefault position={[0, V * 2.1 * fit, V * 3.9 * fit]} fov={34} near={V * 0.01} far={V * 40}>
+		<OrbitControls target={[0, V * 0.02, 0]} enablePan={false} enableDamping minDistance={V * 1.3} maxDistance={V * 6 * fit} maxPolarAngle={Math.PI * 0.47} />
+	</T.PerspectiveCamera>
+{/if}
 
 <T.HemisphereLight args={['#dfeef7', '#d8cbb4', 1.4]} />
 <T.DirectionalLight position={[-V * 1.5, V * 2.2, V * 1.2]} intensity={2.2} color="#fff4e0" />
 
-<Plinth R={V} {title} {date} shadow={0.5} />
+{#if !staged}<Plinth R={V} {title} {date} shadow={0.5} />{/if}
 
 <!-- the meadow on its band of earth -->
-<T.Mesh geometry={rim} position.y={TURF / 2}>
-	<T.MeshStandardMaterial map={soil} roughness={0.95} />
-</T.Mesh>
-<T.Mesh rotation.x={-Math.PI / 2} position.y={TURF}>
-	<T.CircleGeometry args={[V, 160]} />
-	<T.MeshStandardMaterial map={grass} roughness={0.95} />
-</T.Mesh>
+<T.Group bind:ref={meadowGroup}>
+	<T.Mesh geometry={rim} position.y={TURF / 2}>
+		<T.MeshStandardMaterial map={soil} roughness={0.95} />
+	</T.Mesh>
+	<T.Mesh rotation.x={-Math.PI / 2} position.y={TURF}>
+		<T.CircleGeometry args={[V, 160]} />
+		<T.MeshStandardMaterial map={grass} roughness={0.95} />
+	</T.Mesh>
+</T.Group>
 
 <Traveller tour={parked} beacon={false} />
 

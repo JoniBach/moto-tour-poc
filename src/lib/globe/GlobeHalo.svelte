@@ -21,7 +21,8 @@
 		route,
 		lines,
 		shade,
-		marks
+		marks,
+		open
 	}: {
 		tour: Tour;
 		globe: GlobeState;
@@ -34,6 +35,8 @@
 		shade: Float32Array | null;
 		/** where the pins are (day-local metres) and their colour: shown beyond the rim as dots */
 		marks: HaloMark[];
+		/** how far the surroundings have opened out from the rim, 0 to 1, like an aperture (the stage's transitions) */
+		open?: () => number;
 	} = $props();
 
 	// svelte-ignore state_referenced_locally — a new radius remounts this component
@@ -53,11 +56,15 @@
 		uniform float uOuter;
 		uniform float uBase;
 		uniform float uDip;
+		uniform float uOpen;
 		float haloFade(vec2 xz, float h) {
 			float d = distance(xz, uBike);
 			if (d < uInner) return 0.0;
 			// out from the plinth, then away into the air
 			float f = smoothstep(uInner, uInner + (uOuter - uInner) * 0.25, d) * (1.0 - smoothstep(uOuter * 0.7, uOuter, d));
+			// the aperture: open out from the rim to the full reach, a soft edge on the way
+			float edge = mix(uInner, uOuter * 1.08, uOpen);
+			f *= 1.0 - smoothstep(edge - (uOuter - uInner) * 0.12, edge, d);
 			// ground below the globe's floor would sit in front of the plinth: let it go
 			return f * smoothstep(uBase - uDip, uBase, h);
 		}
@@ -67,7 +74,8 @@
 		uInner: { value: INNER },
 		uOuter: { value: OUTER },
 		uBase: { value: 0 },
-		uDip: { value: R * 0.08 }
+		uDip: { value: R * 0.08 },
+		uOpen: { value: 1 }
 	});
 
 	// ---- elevation lines: a see-through surface that draws only its contours ------------------
@@ -321,6 +329,7 @@
 		for (const m of [surfaceMat, routeMat, lineMat, markMat]) {
 			m.uniforms.uBike.value.set(b.x, -b.n);
 			m.uniforms.uBase.value = globe.base;
+			m.uniforms.uOpen.value = open?.() ?? 1;
 		}
 		routeMat.uniforms.uFix.value = b.i + b.f;
 	});

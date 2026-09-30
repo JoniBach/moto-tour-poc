@@ -35,7 +35,10 @@
 		onsky,
 		onphotos,
 		onpost,
-		mini = false
+		onshadow,
+		rise,
+		mini = false,
+		staged = false
 	}: {
 		tour: Tour;
 		originE: number;
@@ -51,6 +54,12 @@
 		 * controls, labels, pins, surroundings or weather, framed for a small square.
 		 */
 		mini?: boolean;
+		/** on the persistent globe (GlobeStage), which owns the camera and the plinth */
+		staged?: boolean;
+		/** how dark the plinth's shadow should be, when the stage draws it */
+		onshadow?: (s: number) => void;
+		/** how far the relief has risen out of the plinth, 0 (flat) to 1: the stage's transitions */
+		rise?: () => number;
 	} = $props();
 
 	/** the globe's size on screen (scene units): fixed; the landscape is scaled to fit it */
@@ -82,6 +91,12 @@
 	// the landscape group: moves so the bike is always at the centre, floor at y = 0
 	const land = new Group();
 	let exag = $state(2);
+	/** labels and pins stand at full height: they wait until the land has risen */
+	let settled = $state(true);
+	const risen = () => rise?.() ?? 1;
+	// the surroundings keep their full height and open out like an aperture instead; this holds
+	// them level while the land beside them rises (the land group sits at -base × exag)
+	let haloLift = $state(0);
 
 	// sun and moon: small bodies on a wide arc around the globe
 	const ORBIT = V * 1.55;
@@ -130,7 +145,10 @@
 
 	useTask((dt) => {
 		if (!mini) tour.advance(Math.min(dt, 0.1)); // the mini globe follows whoever plays the ride
-		exag = tour.exaggeration;
+		const r = risen();
+		exag = tour.exaggeration * r;
+		if (settled !== r > 0.999) settled = r > 0.999;
+		haloLift = Number.isFinite(globe.base) ? globe.base * (exag - tour.exaggeration) : 0;
 		const b = tour.bike;
 		// scale the landscape so its radius R fills the globe's fixed size V
 		const k = V / R;
@@ -181,7 +199,10 @@
 			hemi.color.copy(tmp.set(colours.top));
 		}
 		const s = Math.round((0.2 + 0.35 * globe.daylight) * 20) / 20;
-		if (s !== shadow) shadow = s;
+		if (s !== shadow) {
+			shadow = s;
+			onshadow?.(s);
+		}
 		const next = colours.top + colours.bottom;
 		if (next !== sky) {
 			sky = next;
@@ -201,41 +222,45 @@
 
 <svelte:window bind:innerWidth={width} bind:innerHeight={height} />
 
-<T.PerspectiveCamera makeDefault position={[0, V * 2.1 * fit, V * 3.9 * fit]} fov={34} near={V * 0.01} far={V * 40}>
-	<OrbitControls
-		enabled={!mini}
-		target={[0, V * 0.05, 0]}
-		enablePan={false}
-		enableDamping
-		minDistance={V * 1.3}
-		maxDistance={V * 6 * fit}
-		maxPolarAngle={Math.PI * 0.47}
-	/>
-</T.PerspectiveCamera>
+{#if !staged}
+	<T.PerspectiveCamera makeDefault position={[0, V * 2.1 * fit, V * 3.9 * fit]} fov={34} near={V * 0.01} far={V * 40}>
+		<OrbitControls
+			enabled={!mini}
+			target={[0, V * 0.05, 0]}
+			enablePan={false}
+			enableDamping
+			minDistance={V * 1.3}
+			maxDistance={V * 6 * fit}
+			maxPolarAngle={Math.PI * 0.47}
+		/>
+	</T.PerspectiveCamera>
+{/if}
 
 <T.HemisphereLight bind:ref={hemi} args={['#dfeef7', '#d8cbb4', 1.2]} />
 <T.DirectionalLight bind:ref={sunLight} position={[V, V * 2, V]} intensity={2} />
 
-<Plinth R={V} {title} {date} {shadow} />
+{#if !staged}<Plinth R={V} {title} {date} {shadow} />{/if}
 
 <T is={land}>
 	<!-- a new size rebuilds what's cut to the circle; the floor eases to its new level -->
 	{#key R}
 		<T.Group scale.y={exag}>
 			<DioramaTerrain {tour} {globe} radius={R} />
-			{#if tour.settings.globeHalo && !mini}
-				<GlobeHalo {tour} {globe} radius={R} contours={tour.layers.contours} route={tour.layers.route} {lines} {shade} {marks} />
-			{/if}
 			{#if lines.length}<GlobeLines {tour} {globe} radius={R} {lines} />{/if}
 			{#if tour.layers.route}<RouteRibbon {tour} {globe} radius={R} {shade} />{/if}
 		</T.Group>
-		{#if !mini}
+		{#if tour.settings.globeHalo && !mini}
+			<T.Group scale.y={tour.exaggeration} position.y={haloLift}>
+				<GlobeHalo {tour} {globe} radius={R} contours={tour.layers.contours} route={tour.layers.route} {lines} {shade} {marks} open={risen} />
+			</T.Group>
+		{/if}
+		{#if !mini && settled}
 			{#if tour.layers.labels && tour.data.osm}<GlobeLabels {tour} {globe} radius={R} places={tour.data.osm.places} />{/if}
 			<GlobePins {tour} {globe} radius={R} {originE} {originN} {onphotos} {onpost} />
 		{/if}
 	{/key}
 	<!-- the same size on screen whatever the landscape's scale -->
-	<Traveller {tour} beacon={false} grow={R / V} groundAt={(x, n) => globe.ground(x, n)} />
+	<Traveller {tour} beacon={false} grow={R / V} groundAt={(x, n) => globe.ground(x, n) * risen()} />
 </T>
 
 {#if !mini}<GlobeWeather {globe} show={tour.layers.weather} />{/if}

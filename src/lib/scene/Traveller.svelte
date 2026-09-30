@@ -1,6 +1,7 @@
 <!--
-  Whatever the tour moves by (tour.config.json activity: motorbike and rider, bicycle and rider,
-  car, or walker), built from primitives (swap for a glTF later). Heading comes from the track,
+  Whatever the tour moves by: the tour's own 3D model when it has one (tour.config.json `model`,
+  with a simple rider on top), else a figure built from primitives for its activity (motorbike and
+  rider, bicycle and rider, car, or walker; also the stand-in while the model loads). Heading comes from the track,
   and lean too where leaning is a thing; it grows with camera distance so it stays findable, and
   a light beam marks it from the overview.
 -->
@@ -9,6 +10,10 @@
 	import { AdditiveBlending, Group, Mesh, Vector3 } from 'three';
 	import type { Tour } from '$lib/tour.svelte';
 	import { A, ACTIVITY } from '$lib/activity';
+	import { TOUR } from '$lib/tourConfig';
+	import { onMount } from 'svelte';
+	import type { BufferGeometry } from 'three';
+	import { vehicleGeometry } from './vehicleModel';
 
 	let {
 		tour,
@@ -43,6 +48,16 @@
 		if (beam) beam.visible = beacon && s > 6;
 	});
 
+	let model = $state.raw<BufferGeometry | null>(null);
+	onMount(() => {
+		let live = true;
+		vehicleGeometry().then((g) => live && (model = g));
+		return () => {
+			live = false;
+		};
+	});
+	const paint = { color: TOUR.model?.color ?? '#c2562d', roughness: 0.45, metalness: 0.15 };
+
 	const body = { color: '#0c1a22', emissive: '#00c8ff', emissiveIntensity: 0.35, roughness: 0.4, metalness: 0.6 };
 	const person = { color: '#1b2b35', emissive: '#ffd166', emissiveIntensity: 0.25 };
 	const head = { color: '#e8f7ff', emissive: '#7cf7ff', emissiveIntensity: 0.6 };
@@ -50,7 +65,22 @@
 
 <T is={outer}>
 	<T.Group bind:ref={leanGroup}>
-		{#if ACTIVITY === 'motorcycle'}
+		{#if model}
+			<T.Mesh geometry={model} castShadow>
+				<T.MeshStandardMaterial {...paint} />
+			</T.Mesh>
+			{#if TOUR.model?.rider !== false}
+				<!-- sitting upright, as on a scooter -->
+				<T.Mesh position={[0, 1.02, 0.22]} rotation.x={0.12}>
+					<T.CapsuleGeometry args={[0.19, 0.4, 4, 10]} />
+					<T.MeshStandardMaterial color="#46535a" roughness={0.7} />
+				</T.Mesh>
+				<T.Mesh position={[0, 1.46, 0.18]}>
+					<T.SphereGeometry args={[0.17, 16, 12]} />
+					<T.MeshStandardMaterial color="#fbf6ec" roughness={0.4} />
+				</T.Mesh>
+			{/if}
+		{:else if ACTIVITY === 'motorcycle'}
 			{#each [-0.72, 0.72] as z (z)}
 				<T.Mesh position={[0, 0.33, z]} rotation.y={Math.PI / 2}>
 					<T.TorusGeometry args={[0.3, 0.07, 10, 28]} />

@@ -62,6 +62,7 @@ git-ignored.
 | `timeZone` | `Europe/London` | every clock and date, in the site and the scripts |
 | `units` | `{ "distance": "mi", "temperature": "C" }` | `mi`/`km`, `C`/`F` (data stays metric) |
 | `speed` | `1` | 0 no speed, 1 relative shade only, 2 figures |
+| `model` | `{ "src": "/models/vespa_model.glb", "length": 1.9, "forward": "-x", "color": "#9fd3c2" }` | optional: the vehicle as a GLB under `static/` (Draco allowed; the decoder is served from `static/draco/`), sized to `length` metres, turned from its `forward` axis, painted `color`, with a simple rider unless `"rider": false`; without it, a figure built from primitives |
 | `region.name` | `UK` | the whole-tour chip |
 | `region.centre` | `[-2.3179, 55.4734]` | overview origin and the projection's centre (`init-tour` sets it from the rides) |
 | `region.projection` | British National Grid | optional proj4 string; default a transverse Mercator on the centre (fine to ~1,000 km out) |

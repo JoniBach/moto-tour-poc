@@ -25,6 +25,18 @@ export interface TourConfig {
 	region: Region;
 	/** the protected areas the tour visits and what they're called */
 	protectedAreas: ProtectedAreas;
+	/** the vehicle as a 3D model (a GLB under static/); without one, a figure built from primitives */
+	model?: {
+		src: string;
+		/** metres nose to tail. Default 2 */
+		length?: number;
+		/** which way the model faces in its file. Default "+x" */
+		forward?: '+x' | '-x' | '+z' | '-z';
+		/** its paint. Default the tour's accent */
+		color?: string;
+		/** the primitive rider on top. Default true */
+		rider?: boolean;
+	};
 }
 
 export interface Region {

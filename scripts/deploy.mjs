@@ -74,7 +74,8 @@ console.log(`Dropped ${dropped} plain day files; output is ${(size('.vercel/outp
 // uploads resume, so a dropped connection just means trying again
 for (let attempt = 1; ; attempt++) {
 	try {
-		vercel(`deploy --prebuilt${prod ? ' --prod' : ''}`);
+		// one archive rather than thousands of files: the free plan allows 5,000 file uploads a day
+		vercel(`deploy --prebuilt --archive=tgz${prod ? ' --prod' : ''}`);
 		break;
 	} catch (e) {
 		if (attempt >= 8) throw e;

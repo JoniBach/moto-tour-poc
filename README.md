@@ -1,4 +1,8 @@
-# Moto Tour POC
+# GT Retrospective
+
+A grand-touring retrospective: a tour told as a little globe you can turn, a street map and a
+blog, from its rides, photos and stories. Live at https://gt-retrospective.vercel.app (the old
+moto-tour-poc.vercel.app address redirects there). It began as the proof of concept described below.
 
 Proof of concept for the UK motorcycle tour experience: a hologram-style 3D terrain with the
 ride draped on it, a solid "detail bubble" that follows the bike, pins linked by place or by

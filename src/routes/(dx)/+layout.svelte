@@ -15,6 +15,7 @@
 	import EventsDrawer from '$lib/ui/EventsDrawer.svelte';
 	import Gallery from '$lib/ui/Gallery.svelte';
 	import GlobeBanner from '$lib/globe/GlobeBanner.svelte';
+	import NowPlaying from '$lib/ui/NowPlaying.svelte';
 	import Scrubber from '$lib/ui/Scrubber.svelte';
 	import JourneyPicker from '$lib/ui/JourneyPicker.svelte';
 	import TripBar from '$lib/ui/TripBar.svelte';
@@ -131,7 +132,7 @@
 				<!-- no pop-up cards anywhere: one quiet banner names the latest moment (the globe has
 				     its own, in its play bar; here it sits above the scrubber) -->
 				{#if app.view !== 'globe'}
-					<div class="banner-dock"><GlobeBanner {tour} /></div>
+					<div class="banner-dock"><NowPlaying {tour} pill={!ui.compact} /><GlobeBanner {tour} music={ui.compact} /></div>
 				{/if}
 			{/key}
 		{:else if !app.pending}
@@ -201,6 +202,9 @@
 		bottom: var(--banner-bottom, 232px);
 		transform: translateX(-50%);
 		width: min(720px, calc(100% - 32px));
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
 	}
 	@media (max-width: 900px) {
 		.banner-dock {

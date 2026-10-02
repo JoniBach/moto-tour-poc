@@ -259,6 +259,31 @@ day plays. **◍ Globe** in the trip bar (phones: the view button steps 3D → m
   flat meadow (fields, hedgerows, a country road) and the bike parked in the middle, beside the
   day list. The globe is the default view for new visitors (`DEFAULT_VIEW` in `flags.ts`).
 
+## Music (now playing)
+
+`npm run data:music` reads the Spotify listening history in `tours/<id>/spotify/` (git-ignored:
+`StreamingHistory_music_*.json` from "Account data", or `Streaming_History_Audio_*.json` from the
+extended history, which names tracks exactly) and writes `music.json`: plays of 30 s or more that
+overlap a ride (times are UTC), none inside a privacy zone, each track matched on Spotify (ID and
+a 64 px cover) by search with the app credentials in `.env.local` (`SPOTIFY_CLIENT_ID`,
+`SPOTIFY_CLIENT_SECRET`, client-credentials only; the secret never leaves the build). Lookups are
+cached in `tours/<id>/spotify/lookup.json` (`--retry` redoes misses); fix a wrong match in
+`tours/<id>/spotify/overrides.json` (`{ "Artist|Track": "<track id>" | null }`).
+
+The app shows the track playing at the ride's moment as a pill above the event banner
+(`src/lib/ui/NowPlaying.svelte`). On phones and short screens (`COMPACT_QUERY` in `src/lib/ui.svelte.ts`)
+there's no separate pill: the event banner keeps each event for 8 minutes of ride time, then shows
+the song until the next event (`GlobeBanner`'s `music`). The Spotify parts (cover, "Spotify ↗" link, "▶ Listen" which
+opens Spotify's embed player, 30 s previews unless the viewer is signed in to Spotify) degrade to
+the plain names when (`src/lib/spotify.svelte.ts`):
+- the `spotify` flag is off: `FEATURES="spotify=off" npm run deploy -- --prod` for an outage or a terms change
+- the browser is offline
+- Spotify doesn't answer: a cover that fails to load, and every "Listen", first asks Spotify's
+  oEmbed endpoint about the track; a timeout, network error or 5xx marks Spotify down for the visit
+
+The player never starts or changes by itself: Spotify's developer terms don't allow syncing
+recordings to visual media, so the music is shown alongside the ride, not played to it.
+
 ## Privacy zones
 
 `tours/<id>/privacy.json` lists circles (town centre + radius) where nothing personal may appear:
@@ -331,6 +356,8 @@ one at a time:
 | `stories` | blog posts everywhere: pins, reader, banner, story cards and pages |
 | `weather` | recorded weather: readouts, rain, clouds, the blog's temperatures |
 | `blogFilters` | the blog's filter and group panel |
+| `music` | the now-playing card (track names, from our own data); off = not fetched |
+| `spotify` | Spotify on that card: cover, link, in-page player. Off = track names only (see Music) |
 
 - Two sets in `flags.ts`: `preview` (dev and `npm run deploy`: everything on, for testing) and
   `production` (the release plan, used by `deploy --prod`). Launching a feature = flip it in the
@@ -385,6 +412,7 @@ or position.
 | `build-weather.mjs <day>` | `weather.json` from Open-Meteo, every 10 min along the ride |
 | `build-parks.mjs` | `parks.json` + `parks.bin`: the protected areas around the tour from OpenMapTiles z9 (for the UK the 15 national parks incl. the Broads, by name), rasterised at 200 m and traced into clean outlines, which tour days pass through each, and a mask on the backdrop grid for tinting |
 | `build-tour.mjs` | `tour.json`: days, origins, extents, stats, simplified lines |
+| `build-music.mjs` (`npm run data:music`) | `music.json`: the ride's plays from the Spotify history, with track IDs and covers (see Music) |
 | `build-days.mjs [days…]` | Runs the above per day; OSM/weather failures don't stop the day building |
 
 ## What this proves
@@ -457,6 +485,6 @@ Built since the first POC: all 18 days with day-to-day flights, national parks l
 pop-ups), the events drawer and timeline day list, rider-scoped terrain, screen-density point LOD,
 privacy zones and a private deploy.
 
-Still to do: Spotify "now playing" matched by timestamp, fuel/food receipts as pins (`tours/<id>/pins.json`
+Still to do: fuel/food receipts as pins (`tours/<id>/pins.json`
 supports `"type": "fuel"` etc.), exact photo positions from Google Takeout sidecars, videos,
 blog content as Markdown files, a glTF bike model, and mobile performance tuning.

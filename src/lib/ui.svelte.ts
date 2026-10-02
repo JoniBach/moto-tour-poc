@@ -3,9 +3,13 @@
 export type Sheet = 'controls' | 'events' | 'info' | null;
 
 export const MOBILE_QUERY = '(max-width: 900px)';
+/** small or short screens: no room for a separate now-playing card above the event banner */
+export const COMPACT_QUERY = '(max-width: 900px), (max-height: 820px)';
 
 class Ui {
 	mobile = $state(false);
+	/** COMPACT_QUERY: the event banner shows the music between events */
+	compact = $state(false);
 	sheet = $state<Sheet>(null);
 
 	toggle(s: Exclude<Sheet, null>) {
@@ -19,9 +23,16 @@ class Ui {
 			this.mobile = mq.matches;
 			if (!mq.matches) this.sheet = null;
 		};
+		const cq = matchMedia(COMPACT_QUERY);
+		const setCompact = () => (this.compact = cq.matches);
 		set();
+		setCompact();
 		mq.addEventListener('change', set);
-		return () => mq.removeEventListener('change', set);
+		cq.addEventListener('change', setCompact);
+		return () => {
+			mq.removeEventListener('change', set);
+			cq.removeEventListener('change', setCompact);
+		};
 	}
 }
 

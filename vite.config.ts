@@ -61,11 +61,14 @@ export default defineConfig({
 					'script-src': ['self', 'wasm-unsafe-eval', 'https://vercel.live'],
 					// Svelte transitions and the map/3D libraries set styles at run time
 					'style-src': ['self', 'unsafe-inline'],
-					'img-src': ['self', 'data:', 'blob:', ...TILE_HOSTS, 'https://vercel.live', 'https://vercel.com'],
-					'connect-src': ['self', ...TILE_HOSTS, 'https://vercel.live', 'wss://ws-us3.pusher.com'],
+					// i.scdn.co: album covers on the now-playing card (src/lib/ui/NowPlaying.svelte)
+					'img-src': ['self', 'data:', 'blob:', ...TILE_HOSTS, 'https://i.scdn.co', 'https://vercel.live', 'https://vercel.com'],
+					// open.spotify.com: the Spotify check (src/lib/spotify.svelte.ts)
+					'connect-src': ['self', ...TILE_HOSTS, 'https://open.spotify.com', 'https://vercel.live', 'wss://ws-us3.pusher.com'],
 					'worker-src': ['self', 'blob:'],
 					'font-src': ['self', 'data:'],
-					'frame-src': ['https://vercel.live'],
+					// open.spotify.com: the in-page player, on the viewer's request
+					'frame-src': ['https://open.spotify.com', 'https://vercel.live'],
 					'object-src': ['none'],
 					'base-uri': ['self'],
 					'form-action': ['self']

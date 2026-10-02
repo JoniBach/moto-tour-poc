@@ -11,6 +11,7 @@ import {
 	loadDay,
 	loadBlog,
 	loadFeed,
+	loadMusic,
 	loadParks,
 	loadPhotos,
 	loadTourIndex,
@@ -18,6 +19,7 @@ import {
 	type DaySummary,
 	type BlogPost,
 	type Feed,
+	type Music,
 	type Parks,
 	type Photo,
 	type Terrain,
@@ -60,6 +62,8 @@ export class App {
 	parks = $state.raw<Parks | null>(null);
 	photos = $state.raw<Photo[]>([]);
 	posts = $state.raw<BlogPost[]>([]);
+	/** what was playing on the rides (scripts/build-music.mjs); null when switched off or not built */
+	music = $state.raw<Music | null>(null);
 	/** the blog post open in the reader */
 	reading = $state.raw<BlogPost | null>(null);
 	/** open photo gallery: the photos of a clicked cluster and which one is showing */
@@ -157,12 +161,14 @@ export class App {
 		if (this.index) return;
 		// photos and stories switched off in this release aren't even fetched: every view then
 		// simply has none (no pins, gallery, reader, pop-ups)
-		const [index, parks, photos, posts] = await Promise.all([
+		const [index, parks, photos, posts, music] = await Promise.all([
 			loadTourIndex(),
 			loadParks(),
 			on('photos') ? loadPhotos() : Promise.resolve([]),
-			on('stories') ? loadBlog() : Promise.resolve([])
+			on('stories') ? loadBlog() : Promise.resolve([]),
+			on('music') ? loadMusic() : Promise.resolve(null)
 		]);
+		this.music = music;
 		this.posts = posts;
 		this.parks = parks;
 		this.photos = photos;

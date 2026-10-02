@@ -16,16 +16,18 @@ export const FLAG_INFO = {
 	photos: 'Photos everywhere: pins, gallery, pop-ups, the blog’s photo pages',
 	stories: 'Blog posts everywhere: pins, reader, story pages',
 	weather: 'Recorded weather: readouts, rain, clouds, the blog’s temperatures',
-	blogFilters: 'The blog’s filter and group panel'
+	blogFilters: 'The blog’s filter and group panel',
+	music: 'Now playing: the track that was on as the ride passes, from the listening history (names only)',
+	spotify: 'Spotify on the now-playing card: album art, the link to the track and the in-page player. Off (or Spotify not answering): track names only'
 } as const;
 
 export type Flag = keyof typeof FLAG_INFO;
 type FlagSet = Record<Flag, boolean>;
 
 const SETS: Record<'preview' | 'production', FlagSet> = {
-	preview: { blog: true, map: true, dx3d: false, globe: true, photos: true, stories: true, weather: true, blogFilters: true },
+	preview: { blog: true, map: true, dx3d: false, globe: true, photos: true, stories: true, weather: true, blogFilters: true, music: true, spotify: true },
 	// the release plan: switch features on here as they launch
-	production: { blog: true, map: true, dx3d: false, globe: true, photos: true, stories: true, weather: true, blogFilters: true }
+	production: { blog: true, map: true, dx3d: false, globe: true, photos: true, stories: true, weather: true, blogFilters: true, music: true, spotify: true }
 };
 
 // injected by vite.config.ts from the build's environment

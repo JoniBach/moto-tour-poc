@@ -42,3 +42,5 @@ tours/*/privacy.json
 # generated per-tour data (routes, photos, feed): large, private, rebuilt by the pipeline
 static/data/tours/
 static/photos/
+# Spotify listening history and its lookups (scripts/build-music.mjs publishes only the ride's plays)
+tours/*/spotify/

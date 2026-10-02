@@ -286,6 +286,44 @@ export async function loadPhotos(): Promise<Photo[]> {
 	}
 }
 
+// ---------- music (scripts/build-music.mjs) ----------
+
+export interface Song {
+	name: string;
+	artist: string;
+	id?: string; // Spotify track ID, when it was found there
+	art?: string; // small album cover (Spotify's image CDN)
+}
+
+export interface Music {
+	tracks: Song[];
+	/** [start, end, track index], epoch seconds, in time order */
+	plays: [number, number, number][];
+}
+
+export async function loadMusic(): Promise<Music | null> {
+	try {
+		return await packedJson<Music>(`${DATA}/music.json`);
+	} catch {
+		return null; // optional: the tour works without build-music
+	}
+}
+
+/** The track playing at clock time t (epoch seconds); a short gap between tracks keeps the last one up. */
+export function playingAt(music: Music, t: number, gap = 60): { song: Song; start: number } | null {
+	const { plays } = music;
+	let lo = 0;
+	let hi = plays.length - 1;
+	if (hi < 0 || plays[0][0] > t) return null;
+	while (lo < hi) {
+		const mid = (lo + hi + 1) >> 1;
+		if (plays[mid][0] <= t) lo = mid;
+		else hi = mid - 1;
+	}
+	const [start, end, k] = plays[lo];
+	return t <= end + gap ? { song: music.tracks[k], start } : null;
+}
+
 // ---------- blog posts ----------
 
 export interface BlogPost {

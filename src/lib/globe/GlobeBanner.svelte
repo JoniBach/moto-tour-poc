@@ -3,16 +3,22 @@
   has passed (set off, a break, a place, photos, a story), with a small thumbnail at its right-hand
   end when there's a picture. Calm on purpose: each new event fades in where the last one was;
   nothing slides or covers the globe. Photos and stories open on click (and pause the ride).
+  With `music` (small screens, no room for a separate now-playing card): a few minutes after each
+  event, the banner gives way to the song playing until the next one.
 -->
 <script lang="ts">
 	import { photoSrc } from '$lib/tourConfig';
 	import { fade } from 'svelte/transition';
 	import { app } from '$lib/app.svelte';
-	import { clock, photoUrl } from '$lib/data';
+	import { clock, photoUrl, playingAt } from '$lib/data';
+	import SongLine from '$lib/ui/SongLine.svelte';
 	import { dayEvents, eventLabel, type TourEvent } from '$lib/events';
 	import type { Tour } from '$lib/tour.svelte';
 
-	let { tour }: { tour: Tour } = $props();
+	let { tour, music = false }: { tour: Tour; music?: boolean } = $props();
+
+	/** how long (clock time) an event keeps the banner before the music takes it back */
+	const EVENT_HOLDS = 8 * 60;
 
 	// svelte-ignore state_referenced_locally — one tour for the component's lifetime
 	const events = dayEvents(tour.data.track, tour.data.pins, tour.photos, tour.posts);
@@ -33,7 +39,13 @@
 		}
 		return last;
 	});
-	const key = $derived(current ? `${current.kind}${current.t}` : '');
+	// the song, in the gaps between events
+	const song = $derived.by(() => {
+		if (!music || !app.music) return null;
+		if (current && tour.bike.time - current.t < EVENT_HOLDS) return null;
+		return playingAt(app.music, tour.bike.time);
+	});
+	const key = $derived(song ? `song${song.start}` : current ? `${current.kind}${current.t}` : '');
 	const label = $derived(current ? eventLabel(current) : null);
 	const thumb = $derived(
 		current?.kind === 'photos'
@@ -58,7 +70,11 @@
 
 <!-- persistent live region: screen readers hear each new moment as it's reached -->
 <div class="live" aria-live="polite">
-{#if current && label}
+{#if song}
+	{#key key}
+		<div class="banner song" in:fade={{ duration: 300 }}><SongLine song={song.song} /></div>
+	{/key}
+{:else if current && label}
 	{#key key}
 		{@const opens = current.kind === 'photos' || current.kind === 'post'}
 		<!-- svelte-ignore a11y_no_static_element_interactions — it's a <button> whenever it has a click handler -->
@@ -85,6 +101,8 @@
 <style>
 	.live {
 		display: grid;
+		/* a column that can shrink: long titles are cut short (ellipsis) instead of widening the banner */
+		grid-template-columns: minmax(0, 1fr);
 	}
 	.banner {
 		display: flex;
@@ -151,5 +169,13 @@
 	}
 	.banner:not(:has(img)) {
 		padding-right: 16px;
+	}
+	.banner.song {
+		gap: 8px;
+		padding: 4px;
+		font-size: 13px;
+	}
+	.banner.song:has(:global(.go)) {
+		padding-right: 6px;
 	}
 </style>

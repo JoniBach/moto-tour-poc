@@ -18,6 +18,7 @@
 	import { speedShade } from '$lib/config';
 	import type { ColorBy } from '$lib/tour.svelte';
 	import GlobeBanner from './GlobeBanner.svelte';
+	import NowPlaying from '$lib/ui/NowPlaying.svelte';
 	import { parkAt } from './lines';
 	import type { Parks } from '$lib/data';
 	import { ui } from '$lib/ui.svelte';
@@ -176,8 +177,12 @@
 {/if}
 
 <div class="dock">
-	{#if park && tour.layers.parks}<p class="park"><span aria-hidden="true">⛰</span> {park} {TOUR.protectedAreas.one}</p>{/if}
-	<GlobeBanner {tour} />
+	<!-- the park on the left, the music on the right -->
+	<div class="row">
+		{#if park && tour.layers.parks}<p class="park"><span aria-hidden="true">⛰</span> {park} {TOUR.protectedAreas.one}</p>{/if}
+		<NowPlaying {tour} pill={!ui.compact} />
+	</div>
+	<GlobeBanner {tour} music={ui.compact} />
 	<div class="play" role="group" aria-label="Playback">
 		<button type="button" class="pp" class:playing={tour.playing} onclick={() => tour.togglePlay()} aria-label={tour.playing ? 'Pause' : 'Play'}
 			>{tour.playing ? '❚❚' : '▶'}</button
@@ -250,8 +255,18 @@
 		color: var(--muted);
 	}
 	/* the park, the latest moment and the play bar, centred along the bottom */
+	.row {
+		display: flex;
+		align-items: flex-end;
+		gap: 8px;
+		min-width: 0;
+	}
+	.row:empty {
+		display: none;
+	}
 	.park {
-		align-self: flex-start;
+		flex: none;
+		align-self: flex-end;
 		margin: 0;
 		padding: 5px 14px;
 		border-radius: 999px;

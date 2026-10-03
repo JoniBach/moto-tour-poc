@@ -9,6 +9,8 @@
 //   slug: 2026-09-16-honister     # optional: its address (default: the file name)
 //   ---
 //   Markdown body. Tour photos by id: ![Looking down Borrowdale](photo:20260916_115051)
+//   Map snapshots by moment (the tour's local time, optional zoom):
+//   ![Over the top](map:2026-09-16T11:40) or ![Over the top](map:2026-09-16T11:40@14)
 import { Marked } from 'marked';
 
 /** "key: value" lines between --- fences; the rest is the body. @param {string} text */
@@ -54,6 +56,22 @@ export function slugFor(date, title) {
 	return [date, words].filter(Boolean).join('-');
 }
 
+/** the zoom a map snapshot has unless it says otherwise */
+export const MAP_ZOOM = 12;
+
+/**
+ * "2026-09-16T11:30@13" -> { day, time, zoom } (null if it isn't a map snapshot's reference)
+ * @param {string} ref
+ * @returns {{ day: string, time: string, zoom: number } | null}
+ */
+export function parseMapRef(ref) {
+	const m = /^(\d{4}-\d{2}-\d{2})T(\d{1,2}:\d{2})(?:@(\d{1,2}(?:\.\d+)?))?$/.exec(ref);
+	return m ? { day: m[1], time: m[2].padStart(5, '0'), zoom: m[3] ? +m[3] : MAP_ZOOM } : null;
+}
+
+/** @param {{ day: string, time: string, zoom: number }} shot */
+export const mapRef = (shot) => `${shot.day}T${shot.time}${shot.zoom !== MAP_ZOOM ? `@${shot.zoom}` : ''}`;
+
 /**
  * Markdown -> the story's HTML. Photo embeds (![caption](photo:ID)) become figures with the
  * gallery-size image; ones not in `photos` (unknown, or withheld for privacy) are dropped and
@@ -67,6 +85,16 @@ export function renderStory(body, { photos, src }) {
 	const md = new Marked({
 		renderer: {
 			image({ href, text }) {
+				// map snapshots: a figure the page draws the map into (src/lib/map/mapShot.ts)
+				if (href?.startsWith('map:')) {
+					const shot = parseMapRef(href.slice(4));
+					if (!shot) {
+						withheld.push(href);
+						return '';
+					}
+					const label = `Map of the ride at ${shot.time}${text ? `: ${text}` : ''}`.replace(/"/g, '&quot;');
+					return `<figure class="map-shot" data-map="${mapRef(shot)}"><div class="map-frame" role="img" aria-label="${label}"></div>${text ? `<figcaption>${text}</figcaption>` : ''}</figure>`;
+				}
 				if (!href?.startsWith('photo:')) return false; // default rendering for normal images
 				const p = photos.get(href.slice(6));
 				if (!p) {

@@ -21,7 +21,8 @@
 	import { sketch } from '$lib/sketch';
 	import StoryArticle from '$lib/blog/StoryArticle.svelte';
 	import Photo from '$lib/blog/Photo.svelte';
-	import { createStoryEditor, insertPhoto, photoIds, softBreaks } from '$lib/editor/storyEditor';
+	import { createStoryEditor, insertFigure, insertPhoto, photoIds, softBreaks } from '$lib/editor/storyEditor';
+	import { MAP_ZOOM } from '$lib/story.js';
 	import { readShared, shareLink } from '$lib/editor/shareLink';
 
 	// ---- the tour's published data ------------------------------------------------------------
@@ -230,9 +231,11 @@
 	}
 	function titleKey(e: KeyboardEvent) {
 		// Enter: on to the story
-		if (e.key === 'Enter') {
+		if (e.key === 'Enter' && editor) {
 			e.preventDefault();
-			editor?.commands.focus('start');
+			// straight away, so the next letters typed land in the story, not the title
+			editor.view.focus();
+			editor.commands.setTextSelection(1);
 		}
 	}
 
@@ -252,8 +255,43 @@
 	});
 
 	// ---- photos: the picker, for the story or the cover ---------------------------------------------
+	// ---- the picker: any day's photos, or the 2D map at a moment ------------------------------------
 	let picking = $state<'embed' | 'cover' | null>(null);
-	const dayPhotos = $derived(photos.filter((p) => p.day === s.date).sort((a, b) => a.t - b.t));
+	/** photos or the map (the cover is always a photo) */
+	let pickKind = $state<'photos' | 'map'>('photos');
+	/** whose photos (or map) it shows: the story's day to start with */
+	let pickDay = $state('');
+	let mapTime = $state('12:00');
+	let mapZoom = $state(MAP_ZOOM);
+	const ZOOMS = [
+		{ zoom: 14, label: 'Close up' },
+		{ zoom: MAP_ZOOM, label: 'Around' },
+		{ zoom: 10, label: 'The area' }
+	];
+	function openPicker(kind: 'embed' | 'cover') {
+		picking = kind;
+		pickDay = s.date;
+		if (kind === 'cover') pickKind = 'photos';
+		mapTime = /^\d{1,2}:\d{2}$/.test(s.clock) ? s.clock.padStart(5, '0') : '12:00';
+	}
+	const dayPhotos = $derived(photos.filter((p) => p.day === pickDay).sort((a, b) => a.t - b.t));
+	const shortDay = (d: FeedDay) =>
+		`Day ${d.index + 1} · ${new Date(d.start * 1000).toLocaleDateString(TOUR.locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: TOUR.timeZone })}`;
+	/** the map tab's preview: the snapshot as it will be added (redrawn as the moment or zoom change) */
+	const mapPreview = (el: HTMLElement) => {
+		const shot = { day: pickDay, time: mapTime, zoom: mapZoom };
+		if (!shot.day || !/^\d{2}:\d{2}$/.test(shot.time)) return;
+		const stop = new AbortController();
+		el.textContent = 'Drawing the map…';
+		import('$lib/map/mapShot')
+			.then(({ drawShot }) => drawShot(el, shot, stop.signal))
+			.catch(() => !stop.signal.aborted && (el.textContent = 'The map couldn’t load'));
+		return () => stop.abort();
+	};
+	function addMap() {
+		if (editor) insertFigure(editor, 'mapShot', { day: pickDay, time: mapTime, zoom: mapZoom });
+		picking = null;
+	}
 	const clockOf = (sec: number) =>
 		new Date(sec * 1000).toLocaleTimeString(TOUR.locale, { hour: '2-digit', minute: '2-digit', timeZone: TOUR.timeZone });
 	function pick(p: TourPhoto) {
@@ -447,12 +485,12 @@
 
 {#snippet coverSlot()}
 	{#if coverPhoto}
-		<button type="button" class="cover-pick" onclick={() => (picking = 'cover')} aria-label="Change the cover photo">
+		<button type="button" class="cover-pick" onclick={() => openPicker('cover')} aria-label="Change the cover photo">
 			<Photo class="cover" id={coverPhoto.id} size={[coverPhoto.w, coverPhoto.h]} alt="" sizes="(max-width: 46rem) 100vw, 46rem" priority />
 			<span class="cover-hint">Change the cover</span>
 		</button>
 	{:else}
-		<button type="button" class="cover-add" onclick={() => (picking = 'cover')}>＋ Add a cover photo</button>
+		<button type="button" class="cover-add" onclick={() => openPicker('cover')}>＋ Add a cover photo</button>
 	{/if}
 {/snippet}
 
@@ -468,21 +506,47 @@
 		<button type="button" onmousedown={keep} onclick={() => run((c) => c.toggleOrderedList())} aria-pressed={active.numbers} aria-label="Numbered list">1.</button>
 		<button type="button" onmousedown={keep} onclick={link} aria-pressed={active.link} aria-label="Link">🔗</button>
 		<span class="sep" aria-hidden="true"></span>
-		<button type="button" class="photo" onmousedown={keep} onclick={() => (picking = 'embed')}>＋ Photo</button>
+		<button type="button" class="photo" onmousedown={keep} onclick={() => openPicker('embed')}>＋ Photo or map</button>
 	</div>
 {/if}
 
-<!-- the day's photos: for the story (at the cursor) or the cover -->
+<!-- any day's photos (for the story at the cursor, or the cover), or the 2D map at a moment -->
 {#if picking}
 	<div class="scrim" onclick={() => (picking = null)} aria-hidden="true"></div>
-	<div class="sheet picker" role="dialog" aria-modal="true" aria-label={picking === 'cover' ? 'Choose the cover' : 'Add a photo'}>
+	<div class="sheet picker" role="dialog" aria-modal="true" aria-label={picking === 'cover' ? 'Choose the cover' : 'Add a photo or a map'}>
 		<p class="sheet-head">
-			<b>{picking === 'cover' ? 'Choose the cover' : 'Add a photo where the cursor is'}</b> · {dayPhotos.length} photos on this day
+			<b>{picking === 'cover' ? 'Choose the cover' : 'Add where the cursor is'}</b>
 			<span>
 				{#if picking === 'cover' && s.cover}<button type="button" class="pill small" onclick={() => ((s.cover = ''), (picking = null))}>Remove the cover</button>{/if}
 				<button type="button" class="pill small" onclick={() => (picking = null)}>Close</button>
 			</span>
 		</p>
+		<div class="pick-row">
+			{#if picking === 'embed'}
+				<div class="seg" role="tablist" aria-label="Photo or map">
+					<button type="button" role="tab" aria-selected={pickKind === 'photos'} onclick={() => (pickKind = 'photos')}>Photos</button>
+					<button type="button" role="tab" aria-selected={pickKind === 'map'} onclick={() => (pickKind = 'map')}>Map</button>
+				</div>
+			{/if}
+			<select bind:value={pickDay} aria-label="Which day">
+				{#each days as d (d.day)}<option value={d.day}>{shortDay(d)}{d.day === s.date ? ' (this story)' : ''}</option>{/each}
+			</select>
+		</div>
+		{#if pickKind === 'map' && picking === 'embed'}
+			<div class="map-pick">
+				<div class="pick-row">
+					<label class="field inline"><span>At</span> <input type="time" bind:value={mapTime} /></label>
+					<div class="seg" role="radiogroup" aria-label="Zoom">
+						{#each ZOOMS as z (z.zoom)}
+							<button type="button" role="radio" aria-checked={mapZoom === z.zoom} onclick={() => (mapZoom = z.zoom)}>{z.label}</button>
+						{/each}
+					</div>
+				</div>
+				<div class="map-preview" {@attach mapPreview}></div>
+				<button type="button" class="pill go" onclick={addMap}>Add this map</button>
+			</div>
+		{:else}
+		<p class="count-line">{dayPhotos.length} photos on this day</p>
 		<ul>
 			{#each dayPhotos as p (p.id)}
 				<li>
@@ -495,6 +559,7 @@
 				<li class="none">No photos on this day.</li>
 			{/each}
 		</ul>
+		{/if}
 	</div>
 {/if}
 
@@ -524,7 +589,7 @@
 		<div class="field">
 			<span>Cover photo</span>
 			<div class="row">
-				<button type="button" class="pill small" onclick={() => ((settings = false), (picking = 'cover'))}>{s.cover ? 'Change' : 'Choose'}</button>
+				<button type="button" class="pill small" onclick={() => ((settings = false), openPicker('cover'))}>{s.cover ? 'Change' : 'Choose'}</button>
 				{#if s.cover}<button type="button" class="pill small" onclick={() => (s.cover = '')}>Remove</button>{/if}
 			</div>
 		</div>
@@ -821,6 +886,117 @@
 		width: min(46rem, 100%);
 		max-height: 70vh;
 		border-radius: 24px 24px 0 0;
+	}
+	.pick-row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 10px;
+	}
+	.pick-row select {
+		min-height: 36px;
+		padding: 0 10px;
+		border: 0;
+		border-radius: 999px;
+		background: var(--card);
+		box-shadow: 0 0 0 1px var(--line);
+		color: var(--text);
+		font: inherit;
+		font-size: 14px;
+	}
+	.seg {
+		display: inline-flex;
+		padding: 3px;
+		border-radius: 999px;
+		background: var(--card);
+		box-shadow: 0 0 0 1px var(--line);
+	}
+	.seg button {
+		min-height: 30px;
+		padding: 0 12px;
+		border: 0;
+		border-radius: 999px;
+		background: none;
+		color: var(--muted);
+		font: inherit;
+		font-size: 13px;
+		font-weight: 650;
+		cursor: pointer;
+	}
+	.seg button[aria-selected='true'],
+	.seg button[aria-checked='true'] {
+		background: var(--ink);
+		color: var(--paper);
+	}
+	.field.inline {
+		flex-direction: row;
+		align-items: center;
+		gap: 6px;
+	}
+	.field.inline input {
+		min-height: 36px;
+	}
+	.count-line {
+		margin: 0 0 8px;
+		font-size: 13px;
+		color: var(--muted);
+	}
+	.map-pick {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 10px;
+	}
+	.map-preview {
+		display: grid;
+		place-items: center;
+		width: 100%;
+		aspect-ratio: 3 / 2;
+		max-height: 40vh;
+		overflow: hidden;
+		border-radius: 14px;
+		background: #f6f0e3;
+		color: var(--muted);
+		font-size: 13px;
+	}
+	.map-preview :global(img) {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	/* a map snapshot in the story: its zoom and time, over its top corner */
+	.page :global(.prose figure.map-shot) {
+		position: relative;
+	}
+	.page :global(.map-tools) {
+		position: absolute;
+		top: 10px;
+		right: 10px;
+		display: flex;
+		gap: 4px;
+		padding: 4px;
+		border-radius: 999px;
+		background: rgb(255 255 255 / 0.9);
+		box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
+		font: 13px var(--font-ui);
+	}
+	.page :global(.map-tools button) {
+		width: 30px;
+		height: 30px;
+		border: 0;
+		border-radius: 50%;
+		background: none;
+		font-size: 18px;
+		cursor: pointer;
+	}
+	.page :global(.map-tools input) {
+		border: 0;
+		background: none;
+		font: inherit;
+	}
+	.page :global(.prose figure.map-shot.ProseMirror-selectednode .map-frame) {
+		outline: 4px solid var(--accent);
 	}
 	.picker ul {
 		display: grid;

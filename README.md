@@ -97,8 +97,12 @@ so the overview outlines their mountains with a line every 1,000 m instead.
 **Writing on the move: the story editor** at `/wysiwyg` (https://gt-retrospective.vercel.app/wysiwyg,
 not linked from the site and not indexed). A WYSIWYG editor: the page is the story page itself
 (`StoryArticle`), and the title and story are typed straight into it, formatted with a toolbar that
-floats above the on-screen keyboard (bold, italic, headings, quote, lists, link, ＋ Photo for the
-day's photos, each with a caption typed under it). Tap the cover to choose it; day, time, address
+floats above the on-screen keyboard (bold, italic, headings, quote, lists, link, ＋ Photo or map:
+any day's photos, or a snapshot of the 2D map at a moment, each with a caption typed under it).
+Map snapshots are saved as `![caption](map:2026-09-16T11:40@13)` (the tour's local time, optional
+zoom) and drawn in the reader's browser from the 2D map's own style (`src/lib/map/mapShot.ts`: the
+day's route, the part ridden by then, the bike there), then kept as a still image; MapLibre loads
+only on stories that have one. Tap the cover to choose it; day, time, address
 and draft are in "Story settings", with the notes on what's missing and the Markdown it saves. The
 story is a Tiptap (ProseMirror) document read from and written to the story's Markdown
 (`src/lib/editor/storyEditor.ts`, `@tiptap/markdown`, which parses with Marked like the build), and

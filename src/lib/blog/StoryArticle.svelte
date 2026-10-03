@@ -14,6 +14,7 @@
 	import type { Snippet } from 'svelte';
 	import type { Attachment } from 'svelte/attachments';
 	import RouteSketch from '$lib/ui/RouteSketch.svelte';
+	import { shots } from '$lib/blog/shots';
 
 	type Neighbour = { slug: string; day: string; index: number; title: string; cover: { id: string; w: number; h: number } | null } | null;
 	let {
@@ -73,8 +74,9 @@
 	{#if prose}
 		<div class="prose" {@attach prose}></div>
 	{:else}
-		<div class="prose">
-			<!-- the author's own Markdown, rendered at build time (scripts/build-blog.mjs) -->
+		<!-- the author's own Markdown, rendered at build time (scripts/build-blog.mjs); its map
+		     snapshots are drawn here, as they come into view -->
+		<div class="prose" {@attach (el) => (post.html, shots(el))}>
 			{@html post.html}
 		</div>
 	{/if}
@@ -207,6 +209,36 @@
 		width: 100%;
 		height: auto;
 		border-radius: 18px;
+	}
+	/* map snapshots (src/lib/map/mapShot.ts): the frame holds its shape while the map is drawn */
+	.prose :global(.map-frame) {
+		position: relative;
+		aspect-ratio: 3 / 2;
+		overflow: hidden;
+		border-radius: 18px;
+		background: #f6f0e3;
+	}
+	.prose :global(.map-frame img) {
+		display: block;
+		width: 100%;
+		height: 100%;
+	}
+	.prose :global(.map-frame::after) {
+		content: '© OpenMapTiles © OpenStreetMap';
+		position: absolute;
+		right: 0;
+		bottom: 0;
+		padding: 1px 6px;
+		border-radius: 6px 0 0 0;
+		background: rgb(255 255 255 / 0.7);
+		font-size: 10px;
+		color: #46535a;
+	}
+	.prose :global(.map-frame.failed) {
+		display: grid;
+		place-items: center;
+		font-size: 0.9rem;
+		color: var(--b-muted);
 	}
 	.prose :global(figcaption) {
 		margin-top: 0.5rem;

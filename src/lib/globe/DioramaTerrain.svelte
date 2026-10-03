@@ -136,7 +136,8 @@
 		uniform float uStrength;
 		uniform float uDay;
 		uniform float uFade;
-		vec3 lit(vec3 base, vec3 n) {
+		/** how much light falls on a surface facing n (about 0.35 in shade at night .. 0.95 in full sun) */
+		vec3 lightAt(vec3 n) {
 			float diff = max(dot(n, uLightDir), 0.0);
 			vec3 sky = mix(vec3(0.34, 0.38, 0.52), vec3(0.62, 0.66, 0.70), uDay);
 			vec3 k = sky + uLight * diff * uStrength;
@@ -144,8 +145,10 @@
 			// strength, no cloud to soften it) can't wash the pastel land out, while overcast
 			// days look as before
 			vec3 over = max(k - 0.9, 0.0);
-			k = min(k, vec3(0.9)) + over / (1.0 + over * 3.0);
-			return base * k;
+			return min(k, vec3(0.9)) + over / (1.0 + over * 3.0);
+		}
+		vec3 lit(vec3 base, vec3 n) {
+			return base * lightAt(n);
 		}
 	`;
 
@@ -170,7 +173,8 @@
 			uNear: { value: imagery.near.texture },
 			uNearU: { value: imagery.nearU },
 			uNearV: { value: imagery.nearV },
-			uMapMix: { value: 0 }
+			uMapMix: { value: 0 },
+			uPhoto: { value: 0 }
 		},
 		vertexShader: /* glsl */ `
 			uniform float uExag;
@@ -203,6 +207,8 @@
 			uniform vec3 uNearU;
 			uniform vec3 uNearV;
 			uniform float uMapMix;
+			uniform float uPhoto;
+			const float PHOTO_EXPOSURE = 4.0;
 			varying float vH;
 			varying vec2 vXZ;
 			varying vec3 vN;
@@ -228,19 +234,37 @@
 				vec2 nuv = vec2(dot(uNearU, xn1), dot(uNearV, xn1));
 				vec4 nearTex = texture2D(uNear, nuv);
 				float inNear = step(0.0, nuv.x) * step(nuv.x, 1.0) * step(0.0, nuv.y) * step(nuv.y, 1.0) * nearTex.a;
-				vec3 img = mix(texture2D(uFar, vUvFar).rgb, nearTex.rgb, inNear);
-				// imagery is darker than the pastel land: lift it to sit in the airy palette
-				col = mix(col, img * 1.2 + 0.06, uMapMix);
+				vec4 farTex = texture2D(uFar, vUvFar);
+				vec3 img = mix(farTex.rgb, nearTex.rgb, inNear);
+				// tiles still loading (or missing): the pastel land, not black
+				float have = max(farTex.a, inNear);
+				// photographs (satellite, Sentinel-2) are far darker than the pastel land (British hills
+				// photograph at 10-15% brightness): an exposure curve lifts the shadows and mid-tones to sit
+				// in the airy palette and rolls the highlights off towards white, so nothing clips. Done on
+				// the brightness (colours keep their hue), with a little saturation back that the lift
+				// takes out. A printed map (topo) is already light: as it is.
+				float l = dot(img, vec3(0.2126, 0.7152, 0.0722));
+				float lifted = (1.0 - exp(-PHOTO_EXPOSURE * l)) / (1.0 - exp(-PHOTO_EXPOSURE));
+				vec3 photo = img * (lifted / max(l, 1e-3));
+				photo = mix(vec3(lifted), photo, 1.08);
+				img = mix(img, clamp(photo, 0.0, 1.0), uPhoto);
 
 				// water: pale, with a slow soft shimmer (broad waves, no glints: they read as a dot grid)
 				float w = smoothstep(0.42, 0.58, vWater) * uWater * (1.0 - 0.6 * uMapMix);
 				float sea = step(vH, 0.5);
 				float shimmer = sin(dot(vXZ, vec2(0.009, 0.004)) + uTime * 0.5) * sin(dot(vXZ, vec2(-0.003, 0.007)) - uTime * 0.3);
 				vec3 water = vec3(0.62, 0.80, 0.90) + vec3(0.05) * shimmer;
-				col = mix(col, water, max(w, sea));
-				n = normalize(mix(n, vec3(0.0, 1.0, 0.0), max(w, sea)));
-
-				col = lit(col, n);
+				float wet = max(w, sea);
+				n = normalize(mix(n, vec3(0.0, 1.0, 0.0), wet));
+				vec3 sun = lightAt(n);
+				// the pastel land takes the full hillshade; imagery already has the real sun and shade in
+				// it, so it only takes a gentle share of the relief (and the dusk-to-night dimming),
+				// at full brightness on ground facing the sun: lit like that it reads clearly without
+				// going dark in the hollows or washing out on the tops
+				vec3 relief = clamp(sun / 0.9, 0.45, 1.05);
+				vec3 kImg = mix(0.55, 1.0, uDay) * mix(vec3(1.0), relief, 0.4);
+				vec3 land = mix(col * sun, img * kImg, uMapMix * have);
+				col = mix(land, water * sun, wet);
 
 				// elevation lines: fine every 20 m, stronger every 100 m, drawn like an engraving
 				float k = vH / 20.0;
@@ -356,6 +380,7 @@
 		m.uWater.value = tour.layers.water ? 1 : 0;
 		m.uContours.value = tour.layers.contours ? 1 : 0;
 		m.uMapMix.value = imagery.mix;
+		m.uPhoto.value = imagery.style === 'satellite' || imagery.style === 'sentinel' ? 1 : 0;
 	});
 
 	$effect(() => () => {

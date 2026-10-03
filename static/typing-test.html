@@ -62,8 +62,8 @@
 				resize: vertical;
 				min-height: 22rem;
 			}
-			body.tall,
-			html:has(body.tall) {
+			html.tall,
+			html.tall body {
 				height: 100%;
 			}
 			body.tall .wrap {
@@ -149,6 +149,7 @@
 			document.getElementById('reset').addEventListener('click', reset);
 			const look = () => {
 				for (const c of document.querySelectorAll('.look')) document.body.classList.toggle(c.value, c.checked);
+				document.documentElement.classList.toggle('tall', document.body.classList.contains('tall'));
 				document.getElementById('has-rules').media = document.getElementById('has').checked ? 'all' : 'not all';
 				reset();
 			};

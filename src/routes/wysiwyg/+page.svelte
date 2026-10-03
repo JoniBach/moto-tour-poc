@@ -41,19 +41,16 @@
 			/* private mode or storage off: start blank */
 		}
 	});
-	// kept a moment after typing pauses (and when the page is hidden or left), not on every key
-	let unsaved = '';
+	// kept a moment after a change settles (and when the page is hidden or left), with the latest text
 	function persist() {
-		if (!unsaved) return;
 		try {
-			localStorage.setItem(KEY, unsaved);
+			localStorage.setItem(KEY, JSON.stringify({ ...s, body: latest() }));
 		} catch {
 			/* storage full or off: the draft just won't survive a reload */
 		}
-		unsaved = '';
 	}
 	$effect(() => {
-		unsaved = JSON.stringify(s);
+		JSON.stringify(s); // every field, so any settled change is kept
 		const id = setTimeout(persist, 500);
 		return () => clearTimeout(id);
 	});
@@ -104,19 +101,23 @@
 	});
 
 	// ---- the preview -----------------------------------------------------------------------------
-	// The preview follows the text once typing pauses: re-rendering the Markdown and rebuilding the
-	// article (photos and all) on every key made typing lag.
-	let body = $state('');
-	$effect(() => {
-		const next = s.body;
-		const id = setTimeout(() => (body = next), 250);
-		return () => clearTimeout(id);
+	// It follows s.body, which only changes once typing settles (see "the text box" below), and
+	// only while it's on screen: beside the text on wide screens, or its own tab on phones.
+	let tab = $state<'write' | 'preview'>('write');
+	let wide = $state(true);
+	onMount(() => {
+		const mq = matchMedia('(min-width: 901px)');
+		const set = () => (wide = mq.matches);
+		set();
+		mq.addEventListener('change', set);
+		return () => mq.removeEventListener('change', set);
 	});
-	const rendered = $derived(renderStory(body, { photos: byId, src: (id) => photoSrc('large', id) }));
-	const text = $derived(plainText(body));
+	const previewing = $derived(wide || tab === 'preview');
+	const rendered = $derived(renderStory(s.body, { photos: byId, src: (id) => photoSrc('large', id) }));
+	const text = $derived(plainText(s.body));
 	const coverPhoto = $derived(s.cover ? byId.get(s.cover) : undefined);
 	const fileOf = (text: string) => storyFile({ title: s.title, time: `${s.date} ${s.clock}`, cover: s.cover, slug: s.slug }, text);
-	const file = $derived(fileOf(body));
+	const file = $derived(fileOf(s.body));
 
 	const problems = $derived.by(() => {
 		const out: string[] = [];
@@ -130,13 +131,38 @@
 		return out;
 	});
 
-	// ---- editing helpers -------------------------------------------------------------------------
+	// ---- the text box ----------------------------------------------------------------------------
+	// Not bound to the draft: the browser owns what's typed, and a key press only restarts a timer.
+	// The draft (and with it the preview, the file and the saved copy) catches up once typing
+	// settles, when the box loses focus, and before anything reads it (save, copy, new, preview tab).
+	// Re-rendering on every key, or at every short pause, made typing lag on iPads.
+	const SETTLE_MS = 700;
 	let area = $state<HTMLTextAreaElement>();
+	let settling: ReturnType<typeof setTimeout> | undefined;
+	/** the text as it is in the box right now */
+	const latest = () => area?.value ?? s.body;
+	function typed() {
+		clearTimeout(settling);
+		settling = setTimeout(settle, SETTLE_MS);
+	}
+	function settle() {
+		clearTimeout(settling);
+		if (area && area.value !== s.body) s.body = area.value;
+	}
+	onMount(() => () => clearTimeout(settling));
+	// text from elsewhere (the saved draft, an opened file, "New", the toolbar) into the box
+	$effect(() => {
+		const text = s.body;
+		if (area && area.value !== text) area.value = text;
+	});
+
+	// ---- editing helpers -------------------------------------------------------------------------
 	function edit(fn: (sel: string) => { text: string; select?: [number, number] }) {
 		if (!area) return;
-		const { selectionStart: a, selectionEnd: b } = area;
-		const out = fn(s.body.slice(a, b));
-		s.body = s.body.slice(0, a) + out.text + s.body.slice(b);
+		const { selectionStart: a, selectionEnd: b, value } = area;
+		const out = fn(value.slice(a, b));
+		s.body = value.slice(0, a) + out.text + value.slice(b);
+		clearTimeout(settling);
 		queueMicrotask(() => {
 			area?.focus();
 			const [x, y] = out.select ?? [out.text.length, out.text.length];
@@ -199,6 +225,7 @@
 		const pad = (n: number) => String(n).padStart(2, '0');
 		const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}.${pad(now.getMinutes())}`;
 		const name = `${s.draft ? '_' : ''}${s.slug || 'story'} (saved ${stamp}).md`;
+		settle();
 		const url = URL.createObjectURL(new Blob([fileOf(s.body)], { type: 'text/markdown' }));
 		const a = Object.assign(document.createElement('a'), { href: url, download: name });
 		a.click();
@@ -207,6 +234,7 @@
 	}
 	async function copy() {
 		try {
+			settle();
 			await navigator.clipboard.writeText(fileOf(s.body));
 			status = 'Copied the Markdown';
 		} catch {
@@ -214,12 +242,13 @@
 		}
 	}
 	function fresh() {
+		settle();
 		if (s.body.trim() && !confirm('Start a new story? The current one is only kept if you’ve saved a copy.')) return;
 		s = { ...blank(), date: days[0]?.day ?? '' };
 		status = 'New story';
 	}
 
-	let tab = $state<'write' | 'preview'>('write');
+	let showFile = $state(false);
 	let dragging = $state(false);
 	const dayLabel = (d: FeedDay) =>
 		`Day ${d.index + 1} · ${new Date(d.start * 1000).toLocaleDateString(TOUR.locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: TOUR.timeZone })} · ${d.title}`;
@@ -231,7 +260,7 @@
 </svelte:head>
 
 <svelte:window
-	onpagehide={persist}
+	onpagehide={() => (settle(), persist())}
 	ondragover={(e) => {
 		e.preventDefault();
 		dragging = true;
@@ -244,7 +273,7 @@
 	}}
 />
 
-<svelte:document onvisibilitychange={() => document.visibilityState === 'hidden' && persist()} />
+<svelte:document onvisibilitychange={() => document.visibilityState === 'hidden' && (settle(), persist())} />
 
 <div class="editor" class:dragging>
 	<header class="bar">
@@ -269,7 +298,7 @@
 
 	<div class="tabs" role="tablist" aria-label="Write or preview">
 		<button type="button" role="tab" aria-selected={tab === 'write'} onclick={() => (tab = 'write')}>Write</button>
-		<button type="button" role="tab" aria-selected={tab === 'preview'} onclick={() => (tab = 'preview')}>Preview</button>
+		<button type="button" role="tab" aria-selected={tab === 'preview'} onclick={() => (settle(), (tab = 'preview'))}>Preview</button>
 	</div>
 
 	{#if loadError}<p class="problem">Couldn’t load the tour’s data: {loadError}</p>{/if}
@@ -342,22 +371,24 @@
 				</div>
 			{/if}
 
-			<textarea bind:this={area} bind:value={s.body} placeholder="Write the story in Markdown…" aria-label="The story, in Markdown" spellcheck="true"></textarea>
+			<textarea bind:this={area} oninput={typed} onblur={settle} placeholder="Write the story in Markdown…" aria-label="The story, in Markdown" spellcheck="true"></textarea>
 
 			{#if problems.length}
 				<ul class="notes" aria-label="Before it’s ready">
 					{#each problems as p (p)}<li>{p}</li>{/each}
 				</ul>
 			{/if}
-			<details class="source">
+			<details class="source" bind:open={showFile}>
 				<summary>The file it saves</summary>
-				<pre>{file}</pre>
+				{#if showFile}<pre>{file}</pre>{/if}
 			</details>
 		</section>
 
 		<section class="preview" class:shown={tab === 'preview'} aria-label="Preview, as it will read in the blog">
 			<div class="page blog-palette">
-				{#if day && Number.isFinite(t)}
+				{#if !previewing}
+					<!-- not on screen (the Write tab on a phone): not rendered -->
+				{:else if day && Number.isFinite(t)}
 					<StoryArticle
 						preview
 						post={{ slug: s.slug, title: s.title || 'Untitled story', t, html: rendered.html, minutes: minutesOf(text) }}
@@ -481,6 +512,8 @@
 		align-items: start;
 	}
 	.write {
+		/* typing changes nothing outside the panel: the browser needn't re-lay out the page */
+		contain: layout style;
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
@@ -667,6 +700,7 @@
 		word-break: break-word;
 	}
 	.preview {
+		contain: layout style;
 		position: sticky;
 		top: 16px;
 		max-height: calc(100vh - 32px);

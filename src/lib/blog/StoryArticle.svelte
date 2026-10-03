@@ -11,6 +11,7 @@
 	import { dayColor } from '$lib/colors';
 	import type { Sketch } from '$lib/sketch';
 	import Photo from '$lib/blog/Photo.svelte';
+	import { html } from '$lib/blog/morph';
 	import RouteSketch from '$lib/ui/RouteSketch.svelte';
 
 	type Neighbour = { slug: string; day: string; index: number; title: string; cover: { id: string; w: number; h: number } | null } | null;
@@ -58,14 +59,19 @@
 		<!-- the page's main image: fetched first, never lazy -->
 		<Photo class="cover" id={cover.id} size={[cover.w, cover.h]} alt="" sizes="(max-width: 46rem) 100vw, 46rem" priority />
 	{/if}
-	<div class="prose">
-		<!-- the author's own Markdown, rendered at build time (scripts/build-blog.mjs) -->
-		{@html post.html}
-	</div>
+	{#if preview}
+		<!-- the editor re-renders as it's written: only the paragraphs that changed are replaced -->
+		<div class="prose" use:html={post.html}></div>
+	{:else}
+		<div class="prose">
+			<!-- the author's own Markdown, rendered at build time (scripts/build-blog.mjs) -->
+			{@html post.html}
+		</div>
+	{/if}
 
 	{#if where}<aside class="where" aria-labelledby="where-h">
 		<span class="route">
-			<RouteSketch s={where} color={c} label="Day {day.index + 1}'s route, with this story's moment marked" />
+			<RouteSketch s={where} color={c} pulse={!preview} label="Day {day.index + 1}'s route, with this story's moment marked" />
 		</span>
 		<div>
 			<h2 id="where-h">Where this happened</h2>

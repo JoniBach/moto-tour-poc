@@ -5,7 +5,8 @@
   add the day's photos with their captions, tap the cover to choose it. Day, time, address and
   draft are in the settings drawer, with the Markdown it saves. Nothing leaves the device: open
   an existing .md, edit, and "Save a copy" downloads a new timestamped file; the draft also stays
-  in this browser between visits. Not linked from anywhere, and not indexed.
+  in this browser between visits. "Share link" puts the whole story in a link (#story=…) that
+  opens it in the editor on another device. Not linked from anywhere, and not indexed.
 
   The story is a Tiptap (ProseMirror) document, read from and written to the story's Markdown
   (src/lib/editor/storyEditor.ts), and only offers what the blog publishes.
@@ -21,6 +22,7 @@
 	import StoryArticle from '$lib/blog/StoryArticle.svelte';
 	import Photo from '$lib/blog/Photo.svelte';
 	import { createStoryEditor, insertPhoto, photoIds, softBreaks } from '$lib/editor/storyEditor';
+	import { readShared, shareLink } from '$lib/editor/shareLink';
 
 	// ---- the tour's published data ------------------------------------------------------------
 	let days = $state.raw<FeedDay[]>([]);
@@ -48,6 +50,7 @@
 			/* private mode or storage off: start blank */
 		}
 		restored = true;
+		arrive(); // a shared story in the link replaces it (after asking)
 	});
 	let saved = $state(false);
 	function persist() {
@@ -300,6 +303,49 @@
 			status = 'Couldn’t copy: your browser blocked it';
 		}
 	}
+	// ---- share: the whole story in a link (src/lib/editor/shareLink.ts) -----------------------------
+	async function share() {
+		settle();
+		const url = await shareLink({ file: fileOf(), draft: s.draft }, location.href);
+		if (navigator.share) {
+			try {
+				await navigator.share({ title: s.title || 'A story', url });
+				status = 'Shared a link to this story';
+				return;
+			} catch (e) {
+				if ((e as Error).name === 'AbortError') return; // closed the share sheet
+			}
+		}
+		try {
+			await navigator.clipboard.writeText(url);
+			status = `Copied a link to this story (${(url.length / 1024).toFixed(1)} KB)`;
+		} catch {
+			status = 'Couldn’t copy the link: your browser blocked it';
+		}
+	}
+	/** a story arriving in the link (on load, or a link pasted into this tab) */
+	async function arrive() {
+		let shared;
+		try {
+			shared = await readShared(location.hash);
+		} catch (e) {
+			status = `Couldn’t open the shared story: ${(e as Error).message}`;
+		}
+		if (shared === undefined) return;
+		// the story is in the editor now (or declined): out of the address bar either way
+		history.replaceState(history.state, '', location.pathname + location.search);
+		if (!shared) return;
+		const mine = plainText(latest()).trim() && fileOf() !== shared.file;
+		if (mine && !confirm('Open the shared story? It replaces the one you’re writing, which is only kept if you’ve saved a copy.')) return;
+		const { data } = frontmatter(shared.file);
+		open(shared.file, `${shared.draft ? '_' : ''}${data.slug || 'story'}.md`);
+		status = 'Opened a shared story';
+	}
+	onMount(() => {
+		addEventListener('hashchange', arrive);
+		return () => removeEventListener('hashchange', arrive);
+	});
+
 	function fresh() {
 		if (plainText(latest()).trim() && !confirm('Start a new story? The current one is only kept if you’ve saved a copy.')) return;
 		s = { ...blank(), date: days[0]?.day ?? '' };
@@ -356,6 +402,7 @@
 				<input type="file" accept=".md,.markdown,text/markdown,text/plain" onchange={(e) => openFile((e.currentTarget as HTMLInputElement).files?.[0])} />
 			</label>
 			<button type="button" class="pill" onclick={fresh}>New</button>
+			<button type="button" class="pill" onclick={share}>Share link</button>
 			<button type="button" class="pill" onclick={copy}>Copy Markdown</button>
 			<button type="button" class="pill go" onclick={save}>Save a copy</button>
 		</div>

@@ -105,7 +105,10 @@ story is a Tiptap (ProseMirror) document read from and written to the story's Ma
 offers only what the blog publishes; stories come back from a load and save rendering exactly as
 they did. Nothing leaves the device: "Open .md" loads a file, "Save a copy" downloads a new
 timestamped copy (`<slug> (saved 2026-10-01 14.30).md`; its `slug:` header keeps the address, so
-the file name doesn't matter), and the draft stays in the browser between visits.
+the file name doesn't matter), and the draft stays in the browser between visits. "Share link" puts the
+whole story (header, text, photos by id, draft flag) in a link, compressed into its fragment
+(`/wysiwyg#story=…`, never sent to the server; `src/lib/editor/shareLink.ts`): opening it on another
+device loads the story into the editor, asking first if a different one is in progress.
 Drop the saved file into `tours/<id>/blog/` and build as below.
 
 

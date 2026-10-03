@@ -1,0 +1,112 @@
+<!doctype html>
+<!--
+  A control for the story editor's typing lag on iPad: a plain page, no framework, no app code, no
+  fonts. A multi-line box and a one-line box, each timed the same way as /wysiwyg?probe (input
+  event to the next painted frame), with Safari's typing aids switchable. Not linked anywhere.
+-->
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex, nofollow" />
+		<title>Typing test</title>
+		<style>
+			body {
+				margin: 0;
+				padding: 16px;
+				font: 15px/1.4 -apple-system, system-ui, sans-serif;
+				background: #fff;
+				color: #222;
+			}
+			.stats {
+				position: sticky;
+				top: 0;
+				padding: 8px 10px;
+				border-radius: 10px;
+				background: #263238;
+				color: #fff;
+				font-size: 13px;
+			}
+			.stats p {
+				margin: 0 0 4px;
+			}
+			label {
+				display: inline-block;
+				margin: 6px 14px 0 0;
+			}
+			textarea,
+			input[type='text'] {
+				display: block;
+				width: 100%;
+				box-sizing: border-box;
+				margin: 12px 0 4px;
+				padding: 10px;
+				border: 1px solid #bbb;
+				border-radius: 8px;
+				font: inherit;
+			}
+			textarea {
+				height: 240px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="stats">
+			<p id="out-area">Multi-line box: type to measure</p>
+			<p id="out-line">One-line box: type to measure</p>
+			<label><input type="checkbox" id="suggest" checked /> Writing suggestions</label>
+			<label><input type="checkbox" id="spell" checked /> Autocorrect + spell-check</label>
+			<button type="button" id="reset">Reset</button>
+		</div>
+		<textarea id="area" placeholder="Multi-line box: type a sentence here"></textarea>
+		<input type="text" id="line" placeholder="One-line box: type a sentence here" />
+		<script>
+			const fields = { area: [], line: [] };
+			const pct = (l, p) => {
+				const s = [...l].sort((a, b) => a - b);
+				return s.length ? Math.round(s[Math.min(s.length - 1, Math.floor(p * s.length))]) : 0;
+			};
+			const show = (id) => {
+				const l = fields[id];
+				document.getElementById('out-' + id).textContent =
+					(id === 'area' ? 'Multi-line box' : 'One-line box') +
+					': ' + l.length + ' keys · median ' + pct(l, 0.5) + ' ms · slowest 10% ' + pct(l, 0.9) + ' ms';
+			};
+			for (const id of Object.keys(fields)) {
+				document.getElementById(id).addEventListener('input', (e) => {
+					const t0 = e.timeStamp;
+					requestAnimationFrame(() =>
+						setTimeout(() => {
+							fields[id].push(performance.now() - t0);
+							if (fields[id].length > 60) fields[id].shift();
+							show(id);
+						})
+					);
+				});
+			}
+			const apply = () => {
+				const suggest = document.getElementById('suggest').checked;
+				const spell = document.getElementById('spell').checked;
+				for (const id of Object.keys(fields)) {
+					const el = document.getElementById(id);
+					el.setAttribute('writingsuggestions', suggest ? 'true' : 'false');
+					el.setAttribute('autocomplete', suggest ? 'on' : 'off');
+					el.spellcheck = spell;
+					el.setAttribute('autocorrect', spell ? 'on' : 'off');
+					el.setAttribute('autocapitalize', spell ? 'sentences' : 'off');
+				}
+				reset();
+			};
+			const reset = () => {
+				fields.area = [];
+				fields.line = [];
+				show('area');
+				show('line');
+			};
+			document.getElementById('suggest').addEventListener('change', apply);
+			document.getElementById('spell').addEventListener('change', apply);
+			document.getElementById('reset').addEventListener('click', reset);
+			apply();
+		</script>
+	</body>
+</html>

@@ -102,7 +102,9 @@ any day's photos, or a snapshot of the 2D map at a moment, each with a caption t
 Map snapshots are saved as `![caption](map:2026-09-16T11:40@13)` (the tour's local time, optional
 zoom) and drawn in the reader's browser from the 2D map's own style (`src/lib/map/mapShot.ts`: the
 day's route, the part ridden by then, the bike there), then kept as a still image; MapLibre loads
-only on stories that have one. Places on the route that a story mentions ("the Lakes", "Keswick",
+only on stories that have one. The whole journey, every day in its colour and numbered where it set
+off, is `![caption](map:tour)`, or `map:tour~2026-09-16` with that day picked out (the Map tab's "The
+whole journey"). Places on the route that a story mentions ("the Lakes", "Keswick",
 "Honister Pass", "the Brecon Beacons") get a dotted underline once typing pauses (never the word
 being typed: iPad Safari loses the cursor if it's redrawn); tap one to link it to the moment the
 ride was there, on the story's own day if it was there that day, else the first visit, or "Link

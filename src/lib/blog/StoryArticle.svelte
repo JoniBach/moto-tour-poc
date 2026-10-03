@@ -218,6 +218,15 @@
 		border-radius: 18px;
 		background: #f6f0e3;
 	}
+	/* the whole journey: portrait, so narrower than the column (it'd be very tall at full width) */
+	.prose :global(.map-shot.whole .map-frame) {
+		aspect-ratio: 4 / 5;
+		max-width: 32rem;
+		margin-inline: auto;
+	}
+	.prose :global(.map-shot.whole figcaption) {
+		text-align: center;
+	}
 	.prose :global(.map-frame img) {
 		display: block;
 		width: 100%;

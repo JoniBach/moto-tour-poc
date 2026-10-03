@@ -6,8 +6,8 @@
 //    blocks, rules, strikethrough)
 //  - tour photos, ![caption](photo:ID) on a line of their own: a figure with the photo and an
 //    editable caption
-//  - map snapshots, ![caption](map:2026-09-16T11:30@13) on a line of their own: the 2D map at that
-//    moment (drawn as you write, src/lib/map/mapShot.ts), with zoom and time controls and a caption
+//  - map snapshots, ![caption](map:2026-09-16T11:30@13) or the whole journey ![caption](map:tour)
+//    on a line of their own: the 2D map at that moment, or all of it (drawn as you write, src/lib/map/mapShot.ts), with zoom and time controls and a caption
 import { Editor, Node, mergeAttributes } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from '@tiptap/markdown';
@@ -36,7 +36,7 @@ export const MapFigure = Node.create({
 	draggable: true,
 
 	addAttributes() {
-		return { day: { default: '' }, time: { default: '12:00' }, zoom: { default: MAP_ZOOM } };
+		return { day: { default: '' }, time: { default: '12:00' }, zoom: { default: MAP_ZOOM }, whole: { default: false } };
 	},
 
 	parseHTML() {
@@ -50,8 +50,8 @@ export const MapFigure = Node.create({
 	},
 
 	renderHTML({ node, HTMLAttributes }) {
-		const ref = mapRef(node.attrs as { day: string; time: string; zoom: number });
-		return ['figure', mergeAttributes(HTMLAttributes, { class: 'map-shot', 'data-map': ref }), ['div', { class: 'map-frame', contenteditable: 'false' }], ['figcaption', 0]];
+		const ref = mapRef(node.attrs as { day: string; time: string; zoom: number; whole: boolean });
+		return ['figure', mergeAttributes(HTMLAttributes, { class: node.attrs.whole ? 'map-shot whole' : 'map-shot', 'data-map': ref }), ['div', { class: 'map-frame', contenteditable: 'false' }], ['figcaption', 0]];
 	},
 
 	addNodeView() {
@@ -96,8 +96,11 @@ export const MapFigure = Node.create({
 			let drawing: AbortController | null = null;
 			let drawn = '';
 			const draw = () => {
-				const ref = mapRef(current.attrs as { day: string; time: string; zoom: number });
+				const ref = mapRef(current.attrs as { day: string; time: string; zoom: number; whole: boolean });
 				dom.dataset.map = ref;
+				dom.classList.toggle('whole', !!current.attrs.whole);
+				// the whole journey is framed to fit: no zoom or time to change
+				tools.hidden = !!current.attrs.whole;
 				time.value = current.attrs.time as string;
 				if (ref === drawn) return;
 				drawn = ref;
@@ -137,13 +140,13 @@ export const MapFigure = Node.create({
 	},
 
 	parseMarkdown: (token) => {
-		const { caption, day, time, zoom } = token as unknown as { caption?: string; day: string; time: string; zoom: number };
-		return { type: 'mapShot', attrs: { day, time, zoom }, content: caption ? [{ type: 'text', text: caption }] : [] };
+		const { caption, day, time, zoom, whole } = token as unknown as { caption?: string; day: string; time: string; zoom: number; whole?: boolean };
+		return { type: 'mapShot', attrs: { day, time, zoom, whole: !!whole }, content: caption ? [{ type: 'text', text: caption }] : [] };
 	},
 
 	renderMarkdown: (node) => {
 		const caption = (node.content ?? []).map((c) => c.text ?? '').join('').replace(/[[\]]/g, '');
-		return `![${caption}](map:${mapRef(node.attrs as { day: string; time: string; zoom: number })})`;
+		return `![${caption}](map:${mapRef(node.attrs as { day: string; time: string; zoom: number; whole: boolean })})`;
 	}
 });
 

@@ -312,6 +312,11 @@
 	let pickDay = $state('');
 	let mapTime = $state('12:00');
 	let mapZoom = $state(MAP_ZOOM);
+	/** a moment of a day, or the whole journey (with the chosen day picked out, if asked) */
+	let mapWhole = $state(false);
+	let mapPick = $state(true);
+	const pickedShot = () =>
+		mapWhole ? { whole: true, day: mapPick ? pickDay : '', time: '', zoom: MAP_ZOOM } : { day: pickDay, time: mapTime, zoom: mapZoom };
 	const ZOOMS = [
 		{ zoom: 14, label: 'Close up' },
 		{ zoom: MAP_ZOOM, label: 'Around' },
@@ -328,8 +333,8 @@
 		`Day ${d.index + 1} · ${new Date(d.start * 1000).toLocaleDateString(TOUR.locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: TOUR.timeZone })}`;
 	/** the map tab's preview: the snapshot as it will be added (redrawn as the moment or zoom change) */
 	const mapPreview = (el: HTMLElement) => {
-		const shot = { day: pickDay, time: mapTime, zoom: mapZoom };
-		if (!shot.day || !/^\d{2}:\d{2}$/.test(shot.time)) return;
+		const shot = pickedShot();
+		if (!shot.whole && (!shot.day || !/^\d{2}:\d{2}$/.test(shot.time))) return;
 		const stop = new AbortController();
 		el.textContent = 'Drawing the map…';
 		import('$lib/map/mapShot')
@@ -338,7 +343,7 @@
 		return () => stop.abort();
 	};
 	function addMap() {
-		if (editor) insertFigure(editor, 'mapShot', { day: pickDay, time: mapTime, zoom: mapZoom });
+		if (editor) insertFigure(editor, 'mapShot', pickedShot());
 		picking = null;
 	}
 	const clockOf = (sec: number) =>
@@ -593,15 +598,23 @@
 		</div>
 		{#if pickKind === 'map' && picking === 'embed'}
 			<div class="map-pick">
-				<div class="pick-row">
-					<label class="field inline"><span>At</span> <input type="time" bind:value={mapTime} /></label>
-					<div class="seg" role="radiogroup" aria-label="Zoom">
-						{#each ZOOMS as z (z.zoom)}
-							<button type="button" role="radio" aria-checked={mapZoom === z.zoom} onclick={() => (mapZoom = z.zoom)}>{z.label}</button>
-						{/each}
-					</div>
+				<div class="seg" role="radiogroup" aria-label="Which map">
+					<button type="button" role="radio" aria-checked={!mapWhole} onclick={() => (mapWhole = false)}>A moment</button>
+					<button type="button" role="radio" aria-checked={mapWhole} onclick={() => (mapWhole = true)}>The whole journey</button>
 				</div>
-				<div class="map-preview" {@attach mapPreview}></div>
+				<div class="pick-row">
+					{#if mapWhole}
+						<label class="field check"><input type="checkbox" bind:checked={mapPick} /> <span>Pick out the day chosen above</span></label>
+					{:else}
+						<label class="field inline"><span>At</span> <input type="time" bind:value={mapTime} /></label>
+						<div class="seg" role="radiogroup" aria-label="Zoom">
+							{#each ZOOMS as z (z.zoom)}
+								<button type="button" role="radio" aria-checked={mapZoom === z.zoom} onclick={() => (mapZoom = z.zoom)}>{z.label}</button>
+							{/each}
+						</div>
+					{/if}
+				</div>
+				<div class="map-preview" class:whole={mapWhole} {@attach mapPreview}></div>
 				<button type="button" class="pill go" onclick={addMap}>Add this map</button>
 			</div>
 		{:else}
@@ -1080,6 +1093,11 @@
 		color: var(--muted);
 		font-size: 13px;
 	}
+	.map-preview.whole {
+		width: auto;
+		height: 40vh;
+		aspect-ratio: 4 / 5;
+	}
 	.map-preview :global(img) {
 		width: 100%;
 		height: 100%;
@@ -1100,6 +1118,9 @@
 		background: rgb(255 255 255 / 0.9);
 		box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
 		font: 13px var(--font-ui);
+	}
+	.page :global(.map-tools[hidden]) {
+		display: none;
 	}
 	.page :global(.map-tools button) {
 		width: 30px;

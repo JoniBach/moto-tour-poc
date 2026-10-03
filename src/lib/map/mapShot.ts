@@ -2,11 +2,13 @@
 // a moment of a day's ride: the day's route, the part ridden by then, and the bike there. Drawn once
 // in the reader's browser, then kept as a still image (no live map left running, so a story can
 // hold several); the attribution sits on it. Stories embed one as ![caption](map:2026-09-16T11:30)
-// or ![caption](map:2026-09-16T11:30@13) with a zoom (src/lib/story.js). Its own chunk, with
+// or ![caption](map:2026-09-16T11:30@13) with a zoom; or the whole journey, every day in its colour:
+// ![caption](map:tour), or ![caption](map:tour~2026-09-16) with that day picked out (src/lib/story.js). Its own chunk, with
 // MapLibre: loaded only by pages that show one.
-import { Map as MlMap, setWorkerUrl } from 'maplibre-gl';
+import { Map as MlMap, setWorkerUrl, type LngLatBoundsLike } from 'maplibre-gl';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
-import { bisect, loadDay, type TourData } from '$lib/data';
+import { bisect, loadDay, loadTourIndex, type TourData, type TourIndex } from '$lib/data';
+import { dayColor } from '$lib/colors';
 import { ukToEpoch } from '$lib/moment';
 import * as F from './features';
 import { pastel } from './pastel';
@@ -31,16 +33,20 @@ const dayData = (day: string) => {
 	return p;
 };
 
-/** a snapshot's moment: the day, the tour's local time (hh:mm) and the zoom (story.js parseMapRef) */
-export type Shot = { day: string; time: string; zoom: number };
+/** what a snapshot shows (story.js parseMapRef): a moment of a day, or the whole journey (day: the one picked out) */
+export type Shot = { day: string; time: string; zoom: number; whole?: boolean };
 
-/**
- * Draw the snapshot into `el` (sized by its width): a live map until it has finished drawing, then
- * an image in its place. Resolves when done; rejects if the day or the map can't load.
- */
-export async function drawShot(el: HTMLElement, shot: Shot, signal?: AbortSignal): Promise<void> {
+/** width : height: a moment is landscape; the whole journey (Britain is tall) a little portrait */
+export const shotRatio = (shot: Pick<Shot, 'whole'>) => (shot.whole ? 4 / 5 : SHOT_RATIO);
+
+let index: Promise<TourIndex> | null = null;
+const tourIndex = () => (index ??= loadTourIndex().catch((e) => ((index = null), Promise.reject(e))));
+
+const round = { 'line-cap': 'round', 'line-join': 'round' } as const;
+
+/** a moment: the day's route, the part ridden by then, and the bike there */
+async function moment(shot: Shot) {
 	const data = await dayData(shot.day);
-	if (signal?.aborted) return;
 	const tr = data.track;
 	const { originE, originN } = data.terrain.meta;
 	const pts = F.trackPoints(tr, originE, originN);
@@ -48,17 +54,77 @@ export async function drawShot(el: HTMLElement, shot: Shot, signal?: AbortSignal
 	const rel = ukToEpoch(shot.day, shot.time) - tr.t0;
 	const i = rel <= 0 ? 0 : Math.min(bisect(tr.t, rel), tr.count - 1);
 	const here = F.at(tr.x[i] + originE, tr.n[i] + originN);
+	return {
+		view: { center: here, zoom: shot.zoom },
+		layers(map: MlMap) {
+			map.addSource('track', { type: 'geojson', data: F.ridden(pts) });
+			map.addSource('ridden', { type: 'geojson', data: F.ridden(pts, i, here) });
+			map.addSource('here', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: here } } });
+			map.addLayer({ id: 'track-casing', type: 'line', source: 'track', layout: round, paint: { 'line-color': '#ffffff', 'line-width': 8, 'line-opacity': 0.9 } });
+			map.addLayer({ id: 'track', type: 'line', source: 'track', layout: round, paint: { 'line-color': '#8a969c', 'line-width': 4, 'line-dasharray': [1, 1.6] } });
+			map.addLayer({ id: 'ridden', type: 'line', source: 'ridden', layout: round, paint: { 'line-color': '#c2562d', 'line-width': 5 } });
+			map.addLayer({ id: 'here-halo', type: 'circle', source: 'here', paint: { 'circle-radius': 14, 'circle-color': '#c2562d', 'circle-opacity': 0.22 } });
+			map.addLayer({ id: 'here', type: 'circle', source: 'here', paint: { 'circle-radius': 7, 'circle-color': '#c2562d', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5 } });
+		}
+	};
+}
 
+/** the whole journey: every day's route in its own colour, numbered where each day set off; one day picked out (the rest faded) if asked */
+async function whole(shot: Shot) {
+	const days = (await tourIndex()).days;
+	const pick = days.some((d) => d.day === shot.day) ? shot.day : '';
+	const starts: GeoJSON.FeatureCollection<GeoJSON.Point> = {
+		type: 'FeatureCollection',
+		features: days.flatMap((d) => {
+			const at = F.dayStart(d);
+			return at
+				? [{ type: 'Feature' as const, properties: { n: String(d.index + 1), day: d.day, color: dayColor(d.index, days.length) }, geometry: { type: 'Point' as const, coordinates: at } }]
+				: [];
+		})
+	};
+	// the picked-out day as it is, the rest faded
+	const faded = (on: number, off: number) => (pick ? ['case', ['==', ['get', 'day'], pick], on, off] : on) as never;
+	return {
+		view: { bounds: F.bounds(days) as LngLatBoundsLike },
+		layers(map: MlMap) {
+			map.addSource('routes', { type: 'geojson', data: F.routes(days) });
+			map.addSource('starts', { type: 'geojson', data: starts });
+			map.addLayer({ id: 'routes-casing', type: 'line', source: 'routes', layout: round, paint: { 'line-color': '#ffffff', 'line-width': 6, 'line-opacity': faded(0.95, 0.5) } });
+			map.addLayer({ id: 'routes', type: 'line', source: 'routes', layout: round, paint: { 'line-color': ['get', 'color'], 'line-width': faded(5, 3), 'line-opacity': faded(1, 0.35) } });
+			map.addLayer({
+				id: 'starts',
+				type: 'circle',
+				source: 'starts',
+				paint: { 'circle-radius': 9, 'circle-color': ['get', 'color'], 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2, 'circle-opacity': faded(1, 0.45), 'circle-stroke-opacity': faded(1, 0.45) }
+			});
+			map.addLayer({
+				id: 'start-numbers',
+				type: 'symbol',
+				source: 'starts',
+				layout: { 'text-field': ['get', 'n'], 'text-font': ['Noto Sans Bold'], 'text-size': 11, 'text-allow-overlap': true },
+				paint: { 'text-color': '#ffffff', 'text-opacity': faded(1, 0.6) }
+			});
+		}
+	};
+}
+
+/**
+ * Draw the snapshot into `el` (sized by its width): a live map until it has finished drawing, then
+ * an image in its place. Resolves when done; rejects if the data or the map can't load.
+ */
+export async function drawShot(el: HTMLElement, shot: Shot, signal?: AbortSignal): Promise<void> {
+	const plan = shot.whole ? await whole(shot) : await moment(shot);
+	if (signal?.aborted) return;
 	const width = Math.max(200, el.clientWidth);
-	const height = Math.round(width / SHOT_RATIO);
+	const height = Math.round(width / shotRatio(shot));
 	const box = document.createElement('div');
 	box.style.cssText = `width:${width}px;height:${height}px`;
 	el.replaceChildren(box);
 	const map = new MlMap({
 		container: box,
 		style: STYLE,
-		center: here,
-		zoom: shot.zoom,
+		...plan.view,
+		fitBoundsOptions: { padding: Math.round(width * 0.06) },
 		interactive: false,
 		attributionControl: false,
 		fadeDuration: 0,
@@ -69,15 +135,7 @@ export async function drawShot(el: HTMLElement, shot: Shot, signal?: AbortSignal
 			map.once('error', (e) => fail(e.error ?? new Error('The map couldn’t load')));
 			map.once('load', () => {
 				pastel(map);
-				map.addSource('track', { type: 'geojson', data: F.ridden(pts) });
-				map.addSource('ridden', { type: 'geojson', data: F.ridden(pts, i, here) });
-				map.addSource('here', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: here } } });
-				const round = { 'line-cap': 'round', 'line-join': 'round' } as const;
-				map.addLayer({ id: 'track-casing', type: 'line', source: 'track', layout: round, paint: { 'line-color': '#ffffff', 'line-width': 8, 'line-opacity': 0.9 } });
-				map.addLayer({ id: 'track', type: 'line', source: 'track', layout: round, paint: { 'line-color': '#8a969c', 'line-width': 4, 'line-dasharray': [1, 1.6] } });
-				map.addLayer({ id: 'ridden', type: 'line', source: 'ridden', layout: round, paint: { 'line-color': '#c2562d', 'line-width': 5 } });
-				map.addLayer({ id: 'here-halo', type: 'circle', source: 'here', paint: { 'circle-radius': 14, 'circle-color': '#c2562d', 'circle-opacity': 0.22 } });
-				map.addLayer({ id: 'here', type: 'circle', source: 'here', paint: { 'circle-radius': 7, 'circle-color': '#c2562d', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5 } });
+				plan.layers(map);
 				// everything drawn, tiles and all
 				map.once('idle', () => done());
 			});

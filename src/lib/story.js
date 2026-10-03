@@ -10,7 +10,8 @@
 //   ---
 //   Markdown body. Tour photos by id: ![Looking down Borrowdale](photo:20260916_115051)
 //   Map snapshots by moment (the tour's local time, optional zoom):
-//   ![Over the top](map:2026-09-16T11:40) or ![Over the top](map:2026-09-16T11:40@14)
+//   ![Over the top](map:2026-09-16T11:40) or ![Over the top](map:2026-09-16T11:40@14);
+//   the whole journey: ![The loop](map:tour), or with a day picked out ![Day 8](map:tour~2026-09-16)
 //   Places linked to the moment the ride was there (the story editor suggests them):
 //   [the Lakes](tour:2026-09-16T10:29)
 import { Marked } from 'marked';
@@ -62,17 +63,23 @@ export function slugFor(date, title) {
 export const MAP_ZOOM = 12;
 
 /**
- * "2026-09-16T11:30@13" -> { day, time, zoom } (null if it isn't a map snapshot's reference)
+ * A map snapshot's reference -> what it shows (null if it isn't one):
+ *   "2026-09-16T11:30@13"  a moment of a day's ride: { day, time, zoom }
+ *   "tour", "tour~2026-09-16"  the whole journey, optionally with one day picked out: { whole, day }
+ * @typedef {{ day: string, time: string, zoom: number, whole?: boolean }} MapShot
  * @param {string} ref
- * @returns {{ day: string, time: string, zoom: number } | null}
+ * @returns {MapShot | null}
  */
 export function parseMapRef(ref) {
+	const t = /^tour(?:~(\d{4}-\d{2}-\d{2}))?$/.exec(ref);
+	if (t) return { whole: true, day: t[1] ?? '', time: '', zoom: MAP_ZOOM };
 	const m = /^(\d{4}-\d{2}-\d{2})T(\d{1,2}:\d{2})(?:@(\d{1,2}(?:\.\d+)?))?$/.exec(ref);
 	return m ? { day: m[1], time: m[2].padStart(5, '0'), zoom: m[3] ? +m[3] : MAP_ZOOM } : null;
 }
 
-/** @param {{ day: string, time: string, zoom: number }} shot */
-export const mapRef = (shot) => `${shot.day}T${shot.time}${shot.zoom !== MAP_ZOOM ? `@${shot.zoom}` : ''}`;
+/** @param {MapShot} shot */
+export const mapRef = (shot) =>
+	shot.whole ? `tour${shot.day ? `~${shot.day}` : ''}` : `${shot.day}T${shot.time}${shot.zoom !== MAP_ZOOM ? `@${shot.zoom}` : ''}`;
 
 /**
  * Markdown -> the story's HTML. Photo embeds (![caption](photo:ID)) become figures with the
@@ -101,8 +108,8 @@ export function renderStory(body, { photos, src, moment }) {
 						withheld.push(href);
 						return '';
 					}
-					const label = `Map of the ride at ${shot.time}${text ? `: ${text}` : ''}`.replace(/"/g, '&quot;');
-					return `<figure class="map-shot" data-map="${mapRef(shot)}"><div class="map-frame" role="img" aria-label="${label}"></div>${text ? `<figcaption>${text}</figcaption>` : ''}</figure>`;
+					const label = `${shot.whole ? 'Map of the whole journey' : `Map of the ride at ${shot.time}`}${text ? `: ${text}` : ''}`.replace(/"/g, '&quot;');
+					return `<figure class="map-shot${shot.whole ? ' whole' : ''}" data-map="${mapRef(shot)}"><div class="map-frame" role="img" aria-label="${label}"></div>${text ? `<figcaption>${text}</figcaption>` : ''}</figure>`;
 				}
 				if (!href?.startsWith('photo:')) return false; // default rendering for normal images
 				const p = photos.get(href.slice(6));

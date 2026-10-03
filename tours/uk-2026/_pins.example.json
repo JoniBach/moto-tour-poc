@@ -25,5 +25,11 @@
 		"title": "Long stop (130 min)",
 		"body": "Sample pin placed by timestamp during the longest stop detected in the GPX. Swap in the real receipt.",
 		"time": "2026-09-16T11:40:00Z"
+	},
+	{
+		"title": "The Honister Pass Experience",
+		"body": "Sample named stretch: a pin with an end time. Up from Seatoller and down to Buttermere; shows in the events, opens as a stretch with its GPX.",
+		"time": "2026-09-16 11:10",
+		"end": "11:45"
 	}
 ]

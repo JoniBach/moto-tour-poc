@@ -306,6 +306,26 @@ the plain names when (`src/lib/spotify.svelte.ts`):
 The player never starts or changes by itself: Spotify's developer terms don't allow syncing
 recordings to visual media, so the music is shown alongside the ride, not played to it.
 
+## Stretches: sharing a bit of a ride
+
+A stretch is part of one day's ride between two clock times (`src/lib/stretch.ts`): to send a
+friend the road you'd recommend, or to write about a route.
+
+- **Shared as a link**: `/day/2026-09-16?t=11:10&to=11:45&name=The+Honister+Pass` opens the tour
+  with the stretch banded on the map (and on the globe's corner map), framed, and a card: its name,
+  distance, climb, highest point and roads (no ride time: the tour shows no speeds), with ▶ Play it
+  (plays from its start and stops at its end), ⬇ GPX (positions and heights, no times: for a satnav,
+  Beeline, a Garmin…) and Share.
+- **Chosen in the tour**: "✂ Share a stretch" (by "Share moment" in the 3D view and the map; ✂ in the
+  globe's play bar): move to the start, "Start here", move on, "End here".
+- **Named in pins.json**: a pin with an `end` is a named stretch (type `route`), e.g.
+  `{ "title": "The Honister Pass Experience", "time": "2026-09-16 11:10", "end": "11:45" }`
+  (`time` can be the tour's local time). It's in the day's events (tapping it opens the stretch) and
+  the blog's day page links to it. Rebuild the day (`node scripts/build-track.mjs <day>`, then the feed).
+- **In stories**: `![The Honister Pass Experience](map:2026-09-16T11:10-11:45)` is a map snapshot framed
+  to the stretch, with its facts and a GPX button under it; `[Honister](tour:2026-09-16T11:10-11:45)`
+  links to it in the tour. The editor's Map tab has "A stretch" (from, to, with a preview).
+
 ## Privacy zones
 
 `tours/<id>/privacy.json` lists circles (town centre + radius) where nothing personal may appear:

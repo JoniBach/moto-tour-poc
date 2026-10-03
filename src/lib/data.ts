@@ -34,7 +34,7 @@ export interface Track {
 	stops: { start: number; end: number; duration: number }[];
 }
 
-export type PinType = 'photo' | 'blog' | 'poi' | 'fuel' | 'food' | 'pub';
+export type PinType = 'photo' | 'blog' | 'poi' | 'fuel' | 'food' | 'pub' | 'route';
 
 export interface Pin {
 	id: number;
@@ -47,6 +47,9 @@ export interface Pin {
 	n: number;
 	h: number;
 	placedBy: 'gps' | 'time';
+	/** a named stretch (pins.json "end"): to fix j, at riding time rtEnd */
+	j?: number;
+	rtEnd?: number;
 }
 
 export class Terrain {
@@ -366,7 +369,7 @@ export type FeedEvent = { t: number; place: string | null } & (
 	| { kind: 'start' | 'finish'; ride: number; rides: number }
 	| { kind: 'break'; minutes: number }
 	| { kind: 'photos'; photos: string[] }
-	| { kind: 'pin'; pin: { type: PinType; title: string; body: string } }
+	| { kind: 'pin'; pin: { type: PinType; title: string; body: string; from?: string; to?: string } }
 	| { kind: 'post'; post: string }
 );
 
@@ -569,7 +572,8 @@ export const PIN_META: Record<PinType, { icon: string; label: string; color: str
 	poi: { icon: '▲', label: 'Point of interest', color: '#b8f28c' },
 	fuel: { icon: '⛽', label: 'Fuel', color: '#ff6b6b' },
 	food: { icon: '🍴', label: 'Food', color: '#ffa94d' },
-	pub: { icon: '🍺', label: 'Pub', color: '#e599f7' }
+	pub: { icon: '🍺', label: 'Pub', color: '#e599f7' },
+	route: { icon: '⤳', label: 'Route', color: '#f2b134' }
 };
 
 export const mph = (ms: number) => ms * 2.23694;

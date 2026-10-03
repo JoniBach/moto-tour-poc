@@ -9,7 +9,7 @@
 // Outputs (per day): track.json, corridor.bin, pins.json
 import fs from 'node:fs';
 import path from 'node:path';
-import { TerrariumSampler, dayContext, inPrivacyZone, loadTerrainGrid, makeProjection, outsidePrivacy, parseGpx, privacyZones } from './lib/geo.mjs';
+import { TerrariumSampler, dayContext, inPrivacyZone, loadTerrainGrid, makeProjection, outsidePrivacy, parseGpx, parseTourTime, privacyZones, tourDate } from './lib/geo.mjs';
 import { PATHS } from './lib/tour.mjs';
 
 const STOP_RADIUS = 40; // metres
@@ -232,6 +232,9 @@ fs.writeFileSync(ctx.file('corridor.bin'), Buffer.from(corridor.buffer));
 
 // ---------- pins ----------
 // Source pins may carry lat/lon (geotagged photo, POI) or only a time (receipt, untagged photo).
+// A time can be ISO ("2026-09-16T10:10:00Z") or the tour's local time ("2026-09-16 11:10"). A pin
+// with an "end" too ("11:45", or a full time) is a named stretch of the ride (type "route" unless
+// given): "The Honister Pass Experience", from time to end.
 const src = fs.existsSync(PATHS.pins) ? JSON.parse(fs.readFileSync(PATHS.pins, 'utf8')) : [];
 const lastLE = (arr, v) => {
 	let lo = 0;
@@ -258,9 +261,19 @@ const pins = src
 			if (Math.hypot(sx[i] - px, sn[i] - pn) > 1000) return null;
 			return { id, ...p, i, rt: r1(rt[i]), x: r1(px), n: r1(pn), h: r1(groundAt(px, pn)), placedBy: 'gps' };
 		}
-		const pt = Date.parse(p.time) / 1000;
-		if (pt < t[0] - 3600 || pt > t[N - 1] + 3600) return null;
+		const pt = parseTourTime(p.time);
+		if (!Number.isFinite(pt) || pt < t[0] - 3600 || pt > t[N - 1] + 3600) return null;
 		i = lastLE(t, pt);
+		// a named stretch: to its end (a clock time on the same day, or a full time)
+		if (p.end) {
+			const et = /^\d{1,2}:\d{2}(:\d{2})?$/.test(p.end) ? parseTourTime(`${tourDate(pt)} ${p.end}`) : parseTourTime(p.end);
+			const j = Number.isFinite(et) ? lastLE(t, Math.min(et, t[N - 1])) : -1;
+			if (j <= i) {
+				console.log(`  pin "${p.title}": its end isn't after its time; left as a single moment`);
+			} else {
+				return { id, ...p, type: p.type ?? 'route', i, j, rt: r1(rt[i]), rtEnd: r1(rt[j]), x: r1(sx[i]), n: r1(sn[i]), h: r1(ground[i]), placedBy: 'time' };
+			}
+		}
 		return { id, ...p, i, rt: r1(rt[i]), x: r1(sx[i]), n: r1(sn[i]), h: r1(ground[i]), placedBy: 'time' };
 	})
 	.filter(Boolean);

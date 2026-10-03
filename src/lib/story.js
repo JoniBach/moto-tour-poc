@@ -13,7 +13,8 @@
 //   ![Over the top](map:2026-09-16T11:40) or ![Over the top](map:2026-09-16T11:40@14);
 //   the whole journey: ![The loop](map:tour), or with a day picked out ![Day 8](map:tour~2026-09-16)
 //   Places linked to the moment the ride was there (the story editor suggests them):
-//   [the Lakes](tour:2026-09-16T10:29)
+//   [the Lakes](tour:2026-09-16T10:29), or a stretch of the ride: [Honister](tour:2026-09-16T11:10-11:45)
+//   A stretch as a map snapshot (framed to fit, with its facts): ![The Honister Pass](map:2026-09-16T11:10-11:45)
 import { Marked } from 'marked';
 
 /** "key: value" lines between --- fences; the rest is the body. @param {string} text */
@@ -65,29 +66,37 @@ export const MAP_ZOOM = 12;
 /**
  * A map snapshot's reference -> what it shows (null if it isn't one):
  *   "2026-09-16T11:30@13"  a moment of a day's ride: { day, time, zoom }
+ *   "2026-09-16T11:10-11:45"  a stretch of a day's ride, framed to fit: { day, time, end }
  *   "tour", "tour~2026-09-16"  the whole journey, optionally with one day picked out: { whole, day }
- * @typedef {{ day: string, time: string, zoom: number, whole?: boolean }} MapShot
+ * @typedef {{ day: string, time: string, zoom: number, whole?: boolean, end?: string }} MapShot
  * @param {string} ref
  * @returns {MapShot | null}
  */
 export function parseMapRef(ref) {
 	const t = /^tour(?:~(\d{4}-\d{2}-\d{2}))?$/.exec(ref);
 	if (t) return { whole: true, day: t[1] ?? '', time: '', zoom: MAP_ZOOM };
+	const s = /^(\d{4}-\d{2}-\d{2})T(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/.exec(ref);
+	if (s) return { day: s[1], time: s[2].padStart(5, '0'), end: s[3].padStart(5, '0'), zoom: MAP_ZOOM };
 	const m = /^(\d{4}-\d{2}-\d{2})T(\d{1,2}:\d{2})(?:@(\d{1,2}(?:\.\d+)?))?$/.exec(ref);
 	return m ? { day: m[1], time: m[2].padStart(5, '0'), zoom: m[3] ? +m[3] : MAP_ZOOM } : null;
 }
 
 /** @param {MapShot} shot */
 export const mapRef = (shot) =>
-	shot.whole ? `tour${shot.day ? `~${shot.day}` : ''}` : `${shot.day}T${shot.time}${shot.zoom !== MAP_ZOOM ? `@${shot.zoom}` : ''}`;
+	shot.whole
+		? `tour${shot.day ? `~${shot.day}` : ''}`
+		: shot.end
+			? `${shot.day}T${shot.time}-${shot.end}`
+			: `${shot.day}T${shot.time}${shot.zoom !== MAP_ZOOM ? `@${shot.zoom}` : ''}`;
 
 /**
  * Markdown -> the story's HTML. Photo embeds (![caption](photo:ID)) become figures with the
  * gallery-size image; ones not in `photos` (unknown, or withheld for privacy) are dropped and
- * listed in `withheld`. Links to a moment of the ride ([the Lakes](tour:2026-09-16T10:29)) go to
- * `moment(day, time)`, or are plain words without it.
+ * listed in `withheld`. Links to a moment of the ride ([the Lakes](tour:2026-09-16T10:29)), or a
+ * stretch of it ([Honister](tour:2026-09-16T11:10-11:45)), go to `moment(day, time, end?)`, or are
+ * plain words without it.
  * @param {string} body
- * @param {{ photos: Map<string, { id: string, w: number, h: number }>, src: (id: string) => string, moment?: (day: string, time: string) => string }} opts
+ * @param {{ photos: Map<string, { id: string, w: number, h: number }>, src: (id: string) => string, moment?: (day: string, time: string, end?: string) => string }} opts
  */
 export function renderStory(body, { photos, src, moment }) {
 	/** @type {string[]} */
@@ -97,8 +106,8 @@ export function renderStory(body, { photos, src, moment }) {
 			link({ href, tokens }) {
 				if (!href?.startsWith('tour:')) return false; // default rendering for other links
 				const inner = this.parser.parseInline(tokens);
-				const m = /^(\d{4}-\d{2}-\d{2})T(\d{1,2}:\d{2})$/.exec(href.slice(5));
-				return m && moment ? `<a class="moment" href="${moment(m[1], m[2].padStart(5, '0'))}">${inner}</a>` : inner;
+				const m = /^(\d{4}-\d{2}-\d{2})T(\d{1,2}:\d{2})(?:-(\d{1,2}:\d{2}))?$/.exec(href.slice(5));
+				return m && moment ? `<a class="moment" href="${moment(m[1], m[2].padStart(5, '0'), m[3]?.padStart(5, '0')).replace(/&/g, '&amp;')}">${inner}</a>` : inner;
 			},
 			image({ href, text }) {
 				// map snapshots: a figure the page draws the map into (src/lib/map/mapShot.ts)
@@ -108,8 +117,9 @@ export function renderStory(body, { photos, src, moment }) {
 						withheld.push(href);
 						return '';
 					}
-					const label = `${shot.whole ? 'Map of the whole journey' : `Map of the ride at ${shot.time}`}${text ? `: ${text}` : ''}`.replace(/"/g, '&quot;');
-					return `<figure class="map-shot${shot.whole ? ' whole' : ''}" data-map="${mapRef(shot)}"><div class="map-frame" role="img" aria-label="${label}"></div>${text ? `<figcaption>${text}</figcaption>` : ''}</figure>`;
+					const what = shot.whole ? 'Map of the whole journey' : shot.end ? `Map of the stretch from ${shot.time}` : `Map of the ride at ${shot.time}`;
+					const label = `${what}${text ? `: ${text}` : ''}`.replace(/"/g, '&quot;');
+					return `<figure class="map-shot${shot.whole ? ' whole' : shot.end ? ' stretch' : ''}" data-map="${mapRef(shot)}"><div class="map-frame" role="img" aria-label="${label}"></div>${text ? `<figcaption>${text}</figcaption>` : ''}</figure>`;
 				}
 				if (!href?.startsWith('photo:')) return false; // default rendering for normal images
 				const p = photos.get(href.slice(6));

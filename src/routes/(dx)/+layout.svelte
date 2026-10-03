@@ -16,6 +16,7 @@
 	import Gallery from '$lib/ui/Gallery.svelte';
 	import GlobeBanner from '$lib/globe/GlobeBanner.svelte';
 	import NowPlaying from '$lib/ui/NowPlaying.svelte';
+	import StretchCard from '$lib/ui/StretchCard.svelte';
 	import Scrubber from '$lib/ui/Scrubber.svelte';
 	import JourneyPicker from '$lib/ui/JourneyPicker.svelte';
 	import TripBar from '$lib/ui/TripBar.svelte';
@@ -125,6 +126,8 @@
 					<ControlPanel {tour} flat={app.view === '2d'} />
 					<Scrubber {tour} />
 				{/if}
+				<!-- a stretch of the day: choosing one, or the one open (a link, a named stretch) -->
+				<StretchCard {tour} />
 				<!-- the day's moments in every view -->
 				<div class="events-wrap">
 					<EventsDrawer {tour} />

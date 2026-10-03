@@ -7,7 +7,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { dayEventsCore } from '../src/lib/events-core.js';
 import { makeProjection, nearPrivacyZone, PRIVACY_MARGIN } from './lib/geo.mjs';
-import { PATHS } from './lib/tour.mjs';
+import { PATHS, TOUR } from './lib/tour.mjs';
+
+/** epoch seconds -> "hh:mm", the tour's time */
+const hhmm = (sec) => new Date(sec * 1000).toLocaleTimeString('en-GB', { timeZone: TOUR.timeZone, hour: '2-digit', minute: '2-digit', hour12: false });
 
 const DAYS = PATHS.days;
 const PLACE_WITHIN = 6000; // metres: nearest town/village used as "near …"
@@ -61,7 +64,12 @@ const days = tour.days.map((d) => {
 				};
 			}
 			case 'pin':
-				return { kind: 'pin', t: e.t, pin: { type: e.pin.type, title: e.pin.title, body: e.pin.body }, place: placeAtFix(e.pin.i) };
+				return {
+					kind: 'pin',
+					t: e.t,
+					pin: { type: e.pin.type, title: e.pin.title, body: e.pin.body, ...(e.pin.j != null ? { from: hhmm(e.t), to: hhmm(tr.t0 + tr.t[e.pin.j]) } : {}) },
+					place: placeAtFix(e.pin.i)
+				};
 			case 'post':
 				return { kind: 'post', t: e.t, post: e.post.slug, place: placeAtFix(e.post.i) };
 		}

@@ -40,8 +40,7 @@
 			tour.playing = false;
 			app.reading = e.post;
 		} else if (e.kind === 'pin') {
-			tour.playing = false;
-			tour.selectedPin = e.pin.id;
+			tour.openPin(e.pin);
 		}
 	}
 

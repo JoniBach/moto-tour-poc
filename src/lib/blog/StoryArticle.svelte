@@ -227,6 +227,28 @@
 	.prose :global(.map-shot.whole figcaption) {
 		text-align: center;
 	}
+	.prose :global(.stretch-facts) {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 6px 12px;
+		margin: 0.5rem 0 0;
+		font-size: 0.9rem;
+		color: var(--b-muted);
+	}
+	.prose :global(.stretch-facts button) {
+		padding: 4px 12px;
+		border: 0;
+		border-radius: 999px;
+		background: var(--b-card, #fff);
+		box-shadow: 0 0 0 1px rgb(38 50 56 / 0.15);
+		color: var(--b-text);
+		font: inherit;
+		font-size: 0.85rem;
+		font-weight: 650;
+		cursor: pointer;
+	}
 	.prose :global(.map-frame img) {
 		display: block;
 		width: 100%;

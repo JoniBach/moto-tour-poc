@@ -187,6 +187,7 @@
 		<button type="button" class="pp" class:playing={tour.playing} onclick={() => tour.togglePlay()} aria-label={tour.playing ? 'Pause' : 'Play'}
 			>{tour.playing ? '❚❚' : '▶'}</button
 		>
+		<button type="button" class="cut" onclick={() => tour.pickStretch()} aria-label="Share a stretch" title="Choose a stretch to share, with a GPX to ride it">✂</button>
 		<select bind:value={tour.rate} aria-label="Playback speed">
 			{#each [5, 20, 60, 200] as r (r)}<option value={r}>{r}×</option>{/each}
 		</select>
@@ -220,6 +221,17 @@
 		flex: 1;
 		height: 8px;
 		border-radius: 4px;
+	}
+	.cut {
+		flex: none;
+		width: 36px;
+		height: 36px;
+		border: 1px dashed var(--line);
+		border-radius: 50%;
+		background: transparent;
+		color: var(--text);
+		font-size: 15px;
+		cursor: pointer;
 	}
 	.reset-row {
 		margin-top: 14px;

@@ -189,6 +189,9 @@ time: ${stamp}${cover}
 		<button class="share" onclick={shareMoment} title="Copy a link to this moment of the {A.leg}">
 			{linked ? '✓ Copied' : '🔗 Share moment'}
 		</button>
+		<button class="stretch-btn" onclick={() => tour.pickStretch()} title="Choose a stretch of the {A.leg} to share, with a GPX to ride it" aria-label="Share a stretch">
+			<span aria-hidden="true">✂</span><span class="label"> Share a stretch</span>
+		</button>
 		{#if import.meta.env.DEV}
 			<button class="post-here" onclick={copyPostHeader} title="Copy a blog post header for this moment">
 				{copied ? '✓ Copied' : '✎ Post here'}
@@ -526,6 +529,22 @@ time: ${stamp}${cover}
 		font-weight: 650;
 		white-space: nowrap;
 	}
+	.stretch-btn {
+		flex: none;
+		min-height: 34px;
+		padding: 0 12px;
+		border: 1px dashed var(--line);
+		border-radius: 999px;
+		background: transparent;
+		color: var(--text);
+		font: inherit;
+		font-size: 12px;
+		font-weight: 650;
+		cursor: pointer;
+	}
+	.stretch-btn:hover {
+		background: var(--card);
+	}
 	.share:hover {
 		color: var(--text);
 		background: var(--accent-soft);
@@ -646,6 +665,9 @@ time: ${stamp}${cover}
 			gap: 10px;
 			flex-wrap: nowrap;
 			min-width: 0;
+		}
+		.stretch-btn .label {
+			display: none;
 		}
 		.legend,
 		.readouts,

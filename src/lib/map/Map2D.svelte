@@ -156,6 +156,15 @@
 		m.on('mouseleave', 'routes-hit', () => (m.getCanvas().style.cursor = ''));
 
 		const empty = { type: 'FeatureCollection', features: [] } as GeoJSON.FeatureCollection;
+		// a stretch of the day (src/lib/stretch.ts): a broad butter band under the track
+		m.addSource('stretch', { type: 'geojson', data: empty });
+		m.addLayer({
+			id: 'stretch',
+			type: 'line',
+			source: 'stretch',
+			layout: { 'line-cap': 'round', 'line-join': 'round' },
+			paint: { 'line-color': '#f2b134', 'line-width': 16, 'line-opacity': 0.55 }
+		});
 		m.addSource('track', { type: 'geojson', data: empty });
 		m.addSource('ridden', { type: 'geojson', data: empty });
 		m.addLayer({
@@ -279,10 +288,7 @@
 			for (const pin of t.data.pins) {
 				const meta = PIN_META[pin.type];
 				// no pop-up card: jump the ride there, and the event banner tells the rest
-				const el = button('pin', `${meta.label}: ${pin.title}`, meta.icon, () => {
-					t.seek(pin.rt);
-					t.selectedPin = pin.id;
-				});
+				const el = button('pin', `${meta.label}: ${pin.title}`, meta.icon, () => t.openPin(pin));
 				el.style.setProperty('--c', meta.color);
 				pinMarkers.push(new Marker({ element: el }).setLngLat(F.at(pin.x + s.originE, pin.n + s.originN)).addTo(m));
 			}
@@ -327,6 +333,36 @@
 		});
 	});
 
+	// the stretch open (framed when it opens), or the one being chosen (start to the bike, live)
+	let framed: object | null = null;
+	$effect(() => {
+		const t = tour;
+		const s = t?.stretch;
+		const from = t?.picking?.i;
+		const to = from != null ? t!.bike.i : null;
+		if (!loaded || !map) return;
+		untrack(() => {
+			const src = map!.getSource('stretch') as GeoJSONSource;
+			const ij = s ? [s.i, s.j] : from != null && to != null ? [Math.min(from, to), Math.max(from, to)] : null;
+			if (!t || !ij || !pts.length) {
+				src.setData({ type: 'FeatureCollection', features: [] });
+				framed = null;
+				return;
+			}
+			const line = F.segment(pts, ij[0], ij[1]);
+			src.setData(line);
+			// a stretch just opened: frame it, and hold the view there until play
+			if (s && framed !== s) {
+				framed = s;
+				const box = F.lineBounds(line);
+				if (box) {
+					follow = false;
+					map!.fitBounds(box as LngLatBoundsLike, { padding: padding(), duration: 900, maxZoom: 15 });
+				}
+			}
+		});
+	});
+
 	// fade the other days' routes while one is open; highlight its day marker
 	$effect(() => {
 		const day = activeDay;
@@ -345,7 +381,7 @@
 		if (!loaded || !map) return;
 		const vis = (on: boolean) => (on ? 'visible' : 'none');
 		const set = (ids: string[], on: boolean) => ids.forEach((id) => map!.getLayer(id) && map!.setLayoutProperty(id, 'visibility', vis(on)));
-		set(['routes', 'routes-hit', 'track-casing', 'track', 'ridden'], layers.route);
+		set(['routes', 'routes-hit', 'stretch', 'track-casing', 'track', 'ridden'], layers.route);
 		set(['parks-fill', 'parks-line', 'parks-label'], layers.parks);
 		set(['photo-clusters', 'photo-count', 'photo-one'], layers.photos);
 		for (const mk of postMarkers) mk.getElement().hidden = !layers.blog;

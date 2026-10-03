@@ -312,11 +312,16 @@
 	let pickDay = $state('');
 	let mapTime = $state('12:00');
 	let mapZoom = $state(MAP_ZOOM);
-	/** a moment of a day, or the whole journey (with the chosen day picked out, if asked) */
-	let mapWhole = $state(false);
+	/** a moment of a day, a stretch of it, or the whole journey (with the chosen day picked out, if asked) */
+	let mapKind = $state<'moment' | 'stretch' | 'whole'>('moment');
 	let mapPick = $state(true);
+	let mapEnd = $state('12:30');
 	const pickedShot = () =>
-		mapWhole ? { whole: true, day: mapPick ? pickDay : '', time: '', zoom: MAP_ZOOM } : { day: pickDay, time: mapTime, zoom: mapZoom };
+		mapKind === 'whole'
+			? { whole: true, day: mapPick ? pickDay : '', time: '', zoom: MAP_ZOOM, end: '' }
+			: mapKind === 'stretch'
+				? { day: pickDay, time: mapTime, zoom: MAP_ZOOM, whole: false, end: mapEnd }
+				: { day: pickDay, time: mapTime, zoom: mapZoom, whole: false, end: '' };
 	const ZOOMS = [
 		{ zoom: 14, label: 'Close up' },
 		{ zoom: MAP_ZOOM, label: 'Around' },
@@ -327,6 +332,9 @@
 		pickDay = s.date;
 		if (kind === 'cover') pickKind = 'photos';
 		mapTime = /^\d{1,2}:\d{2}$/.test(s.clock) ? s.clock.padStart(5, '0') : '12:00';
+		// a stretch: half an hour on, to start with
+		const [h, m] = mapTime.split(':').map(Number);
+		mapEnd = `${String(Math.min(23, h + (m >= 30 ? 1 : 0))).padStart(2, '0')}:${String((m + 30) % 60).padStart(2, '0')}`;
 	}
 	const dayPhotos = $derived(photos.filter((p) => p.day === pickDay).sort((a, b) => a.t - b.t));
 	const shortDay = (d: FeedDay) =>
@@ -334,7 +342,7 @@
 	/** the map tab's preview: the snapshot as it will be added (redrawn as the moment or zoom change) */
 	const mapPreview = (el: HTMLElement) => {
 		const shot = pickedShot();
-		if (!shot.whole && (!shot.day || !/^\d{2}:\d{2}$/.test(shot.time))) return;
+		if (!shot.whole && (!shot.day || !/^\d{2}:\d{2}$/.test(shot.time) || (shot.end !== '' && !/^\d{2}:\d{2}$/.test(shot.end)))) return;
 		const stop = new AbortController();
 		el.textContent = 'Drawing the map…';
 		import('$lib/map/mapShot')
@@ -599,12 +607,16 @@
 		{#if pickKind === 'map' && picking === 'embed'}
 			<div class="map-pick">
 				<div class="seg" role="radiogroup" aria-label="Which map">
-					<button type="button" role="radio" aria-checked={!mapWhole} onclick={() => (mapWhole = false)}>A moment</button>
-					<button type="button" role="radio" aria-checked={mapWhole} onclick={() => (mapWhole = true)}>The whole journey</button>
+					<button type="button" role="radio" aria-checked={mapKind === 'moment'} onclick={() => (mapKind = 'moment')}>A moment</button>
+					<button type="button" role="radio" aria-checked={mapKind === 'stretch'} onclick={() => (mapKind = 'stretch')}>A stretch</button>
+					<button type="button" role="radio" aria-checked={mapKind === 'whole'} onclick={() => (mapKind = 'whole')}>The whole journey</button>
 				</div>
 				<div class="pick-row">
-					{#if mapWhole}
+					{#if mapKind === 'whole'}
 						<label class="field check"><input type="checkbox" bind:checked={mapPick} /> <span>Pick out the day chosen above</span></label>
+					{:else if mapKind === 'stretch'}
+						<label class="field inline"><span>From</span> <input type="time" bind:value={mapTime} /></label>
+						<label class="field inline"><span>to</span> <input type="time" bind:value={mapEnd} /></label>
 					{:else}
 						<label class="field inline"><span>At</span> <input type="time" bind:value={mapTime} /></label>
 						<div class="seg" role="radiogroup" aria-label="Zoom">
@@ -614,7 +626,7 @@
 						</div>
 					{/if}
 				</div>
-				<div class="map-preview" class:whole={mapWhole} {@attach mapPreview}></div>
+				<div class="map-preview" class:whole={mapKind === 'whole'} {@attach mapPreview}></div>
 				<button type="button" class="pill go" onclick={addMap}>Add this map</button>
 			</div>
 		{:else}

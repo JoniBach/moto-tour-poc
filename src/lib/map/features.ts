@@ -77,6 +77,34 @@ export function ridden(pts: ReturnType<typeof trackPoints>, upTo = Infinity, tip
 	return { type: 'Feature', properties: {}, geometry: { type: 'MultiLineString', coordinates: lines.filter((l) => l.length > 1) } };
 }
 
+/** Fixes i..j of the rides (a stretch), as a MultiLineString. */
+export function segment(pts: ReturnType<typeof trackPoints>, i: number, j: number): GeoJSON.Feature<GeoJSON.MultiLineString> {
+	const lines: Pos[][] = [];
+	let ride = -1;
+	for (const pt of pts) {
+		if (pt.i < i) continue;
+		if (pt.i > j) break;
+		if (pt.ride !== ride) {
+			lines.push([]);
+			ride = pt.ride;
+		}
+		lines[lines.length - 1].push(pt.p);
+	}
+	return { type: 'Feature', properties: {}, geometry: { type: 'MultiLineString', coordinates: lines.filter((l) => l.length > 1) } };
+}
+
+/** The lon/lat box around some lines. */
+export function lineBounds(f: GeoJSON.Feature<GeoJSON.MultiLineString>): [Pos, Pos] | null {
+	const all = f.geometry.coordinates.flat();
+	if (!all.length) return null;
+	const xs = all.map((p) => p[0]);
+	const ys = all.map((p) => p[1]);
+	return [
+		[Math.min(...xs), Math.min(...ys)],
+		[Math.max(...xs), Math.max(...ys)]
+	];
+}
+
 export function parks(p: Parks): { shapes: GeoJSON.FeatureCollection; labels: GeoJSON.FeatureCollection } {
 	return {
 		shapes: {

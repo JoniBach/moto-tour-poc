@@ -35,15 +35,22 @@
 
 	// rides as separate paths (never joined across a gap), thinned to ~600 points
 	const breaks = new Set(tr.breaks ?? []);
-	function path(upTo: number) {
+	function path(upTo: number, from = 0) {
 		let d = '';
-		for (let i = 0; i < Math.min(upTo, tr.count); i++) {
-			if (i % step && !breaks.has(i) && i !== upTo - 1 && i !== tr.count - 1) continue;
-			d += `${i === 0 || breaks.has(i) ? 'M' : 'L'}${X(tr.x[i]).toFixed(1)},${Y(tr.n[i]).toFixed(1)}`;
+		for (let i = from; i < Math.min(upTo, tr.count); i++) {
+			if (i % step && !breaks.has(i) && i !== from && i !== upTo - 1 && i !== tr.count - 1) continue;
+			d += `${i === from || breaks.has(i) ? 'M' : 'L'}${X(tr.x[i]).toFixed(1)},${Y(tr.n[i]).toFixed(1)}`;
 		}
 		return d;
 	}
 	const whole = path(tr.count);
+	// a stretch open, or being chosen (from its start to the bike)
+	const stretch = $derived.by(() => {
+		const st = tour.stretch;
+		const p = tour.picking?.i;
+		const [a, b] = st ? [st.i, st.j] : p != null ? [Math.min(p, tour.bike.i), Math.max(p, tour.bike.i)] : [0, 0];
+		return b > a ? path(b + 1, a) : '';
+	});
 	// only re-drawn as the bike passes each thinned point
 	const riddenTo = $derived(Math.min(tr.count, Math.floor(tour.bike.i / step) * step + 1));
 	const ridden = $derived(path(riddenTo));
@@ -56,6 +63,7 @@
 
 <button type="button" class="inset" onclick={() => app.setView('2d')} aria-label="Switch to the map" title="Switch to the map">
 	<svg viewBox="0 0 {SIZE} {SIZE}" aria-hidden="true">
+		{#if stretch}<path d={stretch} class="stretch" />{/if}
 		<path d={whole} class="route" />
 		<path d={ridden} class="ridden" />
 		<circle cx={bx} cy={by} r={reach} class="reach" />
@@ -104,6 +112,14 @@
 		fill: none;
 		stroke: color-mix(in srgb, var(--ink) 35%, transparent);
 		stroke-width: 1.2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+	.stretch {
+		fill: none;
+		stroke: #f2b134;
+		stroke-width: 5;
+		stroke-opacity: 0.6;
 		stroke-linecap: round;
 		stroke-linejoin: round;
 	}

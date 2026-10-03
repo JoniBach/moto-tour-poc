@@ -2,6 +2,7 @@
 //   /day/2026-09-16?t=10:40:12                      the ride at 10:40:12 (the tour's time)
 //   /day/2026-09-16?t=10:40&post=2026-09-16-whinlatter   …with a blog post open
 //   /day/2026-09-16?photo=20260916_104035           …with a photo open (t defaults to its time)
+//   /day/2026-09-16?t=11:10&to=11:45&name=Honister  a stretch of the ride (src/lib/stretch.ts), optionally named
 //   /?post=… or /?photo=…                           from the tour overview
 //   …&view=2d / &view=globe                         on the flat map or the globe instead of the 3D scene
 //   …&surface=satellite&size=3000&off=roads …       the globe as customised (Settings.writeParams)
@@ -9,6 +10,7 @@
 import type { App } from './app.svelte';
 import { base } from '$app/paths';
 import { bisect } from './data';
+import { stretchFixes } from './stretch';
 import type { Tour } from './tour.svelte';
 
 export { tourClock } from './time';
@@ -40,6 +42,16 @@ export function applyMoment(app: App, tour: Tour | null, params: URLSearchParams
 	let seeked = false;
 	if (tour) {
 		const t = params.get('t');
+		// a stretch: from t to `to`, framed and ready to play
+		const to = params.get('to');
+		const fixes = t && to ? stretchFixes(tour.data.track, { day: tour.data.track.day, from: t, to }) : null;
+		if (fixes) {
+			// the times as given (the nearest fixes can be a little earlier: a stop, a gap in the GPS)
+			tour.stretch = { ...fixes, title: params.get('name'), from: t!.slice(0, 5), to: to!.slice(0, 5) };
+			tour.seek(tour.data.track.rt[fixes.i]);
+			tour.playing = false;
+			return true;
+		}
 		const sec = t ? ukToEpoch(tour.data.track.day, t) : (post?.t ?? photo?.t ?? NaN);
 		if (Number.isFinite(sec)) {
 			tour.seek(rtAtEpoch(tour, sec));
@@ -63,7 +75,14 @@ export function momentUrl(
 	const tour = app.tour;
 	const url = new URL(tour ? `${base}/day/${tour.data.track.day}` : `${base}/`, location.origin);
 	const t = extra.t ?? tour?.bike.time;
-	if (tour && t != null) url.searchParams.set('t', tourClock(t));
+	const s = tour?.stretch;
+	if (tour && s) {
+		// a stretch open: the link is the stretch
+		const tr = tour.data.track;
+		url.searchParams.set('t', s.from ?? tourClock(tr.t0 + tr.t[s.i]).slice(0, 5));
+		url.searchParams.set('to', s.to ?? tourClock(tr.t0 + tr.t[s.j] + 59).slice(0, 5));
+		if (s.title) url.searchParams.set('name', s.title);
+	} else if (tour && t != null) url.searchParams.set('t', tourClock(t));
 	const post = extra.post ?? app.reading?.slug;
 	const photo = extra.photo ?? (app.gallery ? app.gallery.photos[app.gallery.index]?.id : undefined);
 	if (post) url.searchParams.set('post', post);

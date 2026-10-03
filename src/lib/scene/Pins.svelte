@@ -27,10 +27,8 @@
 				title={pin.title}
 				{@attach clickThroughControls}
 				onclick={() => {
-					// no pop-up card: jump the ride there, and the event banner tells the rest
-					tour.seek(pin.rt);
-					tour.selectedPin = pin.id;
-					tour.playing = false;
+					// no pop-up card: jump the ride there, and the event banner tells the rest (a route opens its stretch)
+					tour.openPin(pin);
 				}}
 			>
 				<span class="head">{meta.icon}</span>

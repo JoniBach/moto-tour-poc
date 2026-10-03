@@ -36,7 +36,7 @@ export const MapFigure = Node.create({
 	draggable: true,
 
 	addAttributes() {
-		return { day: { default: '' }, time: { default: '12:00' }, zoom: { default: MAP_ZOOM }, whole: { default: false } };
+		return { day: { default: '' }, time: { default: '12:00' }, zoom: { default: MAP_ZOOM }, whole: { default: false }, end: { default: '' } };
 	},
 
 	parseHTML() {
@@ -50,8 +50,8 @@ export const MapFigure = Node.create({
 	},
 
 	renderHTML({ node, HTMLAttributes }) {
-		const ref = mapRef(node.attrs as { day: string; time: string; zoom: number; whole: boolean });
-		return ['figure', mergeAttributes(HTMLAttributes, { class: node.attrs.whole ? 'map-shot whole' : 'map-shot', 'data-map': ref }), ['div', { class: 'map-frame', contenteditable: 'false' }], ['figcaption', 0]];
+		const ref = mapRef(node.attrs as { day: string; time: string; zoom: number; whole: boolean; end: string });
+		return ['figure', mergeAttributes(HTMLAttributes, { class: node.attrs.whole ? 'map-shot whole' : node.attrs.end ? 'map-shot stretch' : 'map-shot', 'data-map': ref }), ['div', { class: 'map-frame', contenteditable: 'false' }], ['figcaption', 0]];
 	},
 
 	addNodeView() {
@@ -87,21 +87,32 @@ export const MapFigure = Node.create({
 			time.type = 'time';
 			time.setAttribute('aria-label', 'The moment (the tour’s local time)');
 			time.addEventListener('change', () => /^\d{2}:\d{2}$/.test(time.value) && set({ time: time.value }));
-			tools.append(
-				button('−', 'Zoom out', () => set({ zoom: Math.max(5, (current.attrs.zoom as number) - 1) })),
-				button('+', 'Zoom in', () => set({ zoom: Math.min(17, (current.attrs.zoom as number) + 1) })),
-				time
-			);
+			// a stretch: to when
+			const until = document.createElement('input');
+			until.type = 'time';
+			until.setAttribute('aria-label', 'The end of the stretch (the tour’s local time)');
+			until.addEventListener('change', () => /^\d{2}:\d{2}$/.test(until.value) && set({ end: until.value }));
+			const dash = document.createElement('span');
+			dash.textContent = '→';
+			const zoomOut = button('−', 'Zoom out', () => set({ zoom: Math.max(5, (current.attrs.zoom as number) - 1) }));
+			const zoomIn = button('+', 'Zoom in', () => set({ zoom: Math.min(17, (current.attrs.zoom as number) + 1) }));
+			tools.append(zoomOut, zoomIn, time, dash, until);
 
 			let drawing: AbortController | null = null;
 			let drawn = '';
 			const draw = () => {
-				const ref = mapRef(current.attrs as { day: string; time: string; zoom: number; whole: boolean });
+				const ref = mapRef(current.attrs as { day: string; time: string; zoom: number; whole: boolean; end: string });
 				dom.dataset.map = ref;
+				const end = current.attrs.end as string;
 				dom.classList.toggle('whole', !!current.attrs.whole);
-				// the whole journey is framed to fit: no zoom or time to change
+				dom.classList.toggle('stretch', !!end);
+				// the whole journey is framed to fit: no zoom or time to change; a stretch is framed too,
+				// with its two times
 				tools.hidden = !!current.attrs.whole;
+				zoomOut.hidden = zoomIn.hidden = !!end;
+				dash.hidden = until.hidden = !end;
 				time.value = current.attrs.time as string;
+				until.value = end;
 				if (ref === drawn) return;
 				drawn = ref;
 				drawing?.abort();
@@ -121,7 +132,7 @@ export const MapFigure = Node.create({
 					return true;
 				},
 				// the map and its controls are the node view's own, not the editor's
-				stopEvent: (e) => tools.contains(e.target as globalThis.Node) || frame.contains(e.target as globalThis.Node),
+				stopEvent: (e) => !caption.contains(e.target as globalThis.Node),
 				ignoreMutation: (m) => !caption.contains(m.target),
 				destroy: () => drawing?.abort()
 			};
@@ -140,13 +151,13 @@ export const MapFigure = Node.create({
 	},
 
 	parseMarkdown: (token) => {
-		const { caption, day, time, zoom, whole } = token as unknown as { caption?: string; day: string; time: string; zoom: number; whole?: boolean };
-		return { type: 'mapShot', attrs: { day, time, zoom, whole: !!whole }, content: caption ? [{ type: 'text', text: caption }] : [] };
+		const { caption, day, time, zoom, whole, end } = token as unknown as { caption?: string; day: string; time: string; zoom: number; whole?: boolean; end?: string };
+		return { type: 'mapShot', attrs: { day, time, zoom, whole: !!whole, end: end ?? '' }, content: caption ? [{ type: 'text', text: caption }] : [] };
 	},
 
 	renderMarkdown: (node) => {
 		const caption = (node.content ?? []).map((c) => c.text ?? '').join('').replace(/[[\]]/g, '');
-		return `![${caption}](map:${mapRef(node.attrs as { day: string; time: string; zoom: number; whole: boolean })})`;
+		return `![${caption}](map:${mapRef(node.attrs as { day: string; time: string; zoom: number; whole: boolean; end: string })})`;
 	}
 });
 

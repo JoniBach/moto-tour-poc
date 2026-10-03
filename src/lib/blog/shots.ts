@@ -22,6 +22,28 @@ export function shots(el: HTMLElement) {
 	};
 }
 
+/** Under a stretch's snapshot: its facts, and its GPX to ride it. */
+async function stretchCard(frame: HTMLElement, shot: import('$lib/map/mapShot').Shot) {
+	const { stretchOf } = await import('$lib/map/mapShot');
+	const { factsLine, gpxName, download } = await import('$lib/stretch');
+	const s = await stretchOf(shot);
+	const figure = frame.parentElement as HTMLElement;
+	figure.querySelector('.stretch-facts')?.remove();
+	if (!s) return;
+	const p = document.createElement('p');
+	p.className = 'stretch-facts';
+	p.contentEditable = 'false';
+	const text = document.createElement('span');
+	text.textContent = factsLine(s.facts) + (s.facts.roads.length ? ` · on the ${s.facts.roads.join(', ')}` : '');
+	const name = figure.querySelector('figcaption')?.textContent?.trim() || `A stretch of ${shot.day}`;
+	const gpx = document.createElement('button');
+	gpx.type = 'button';
+	gpx.textContent = '⬇ GPX to ride it';
+	gpx.addEventListener('click', () => download(gpxName(name), s.gpx(name)));
+	p.append(text, ' ', gpx);
+	frame.after(p);
+}
+
 /** Draw one snapshot into its frame (the figure's data-map says which moment). */
 export async function drawFrame(frame: HTMLElement, signal?: AbortSignal) {
 	const ref = (frame.parentElement as HTMLElement).dataset.map ?? '';
@@ -31,6 +53,7 @@ export async function drawFrame(frame: HTMLElement, signal?: AbortSignal) {
 		const shot = parseMapRef(ref);
 		if (!shot) throw new Error('not a map moment');
 		await drawShot(frame, shot, signal);
+		if (shot.end && !signal?.aborted) await stretchCard(frame, shot);
 	} catch {
 		if (signal?.aborted) return;
 		frame.classList.add('failed');

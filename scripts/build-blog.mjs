@@ -55,7 +55,7 @@ function track(day) {
 
 // photo embeds: ![caption](photo:ID) -> the gallery-size image (src/lib/story.js)
 // places linked to a moment: [the Lakes](tour:2026-09-16T10:29) -> the tour at that moment (src/lib/blog.ts mapLink)
-const moment = (day, time) => `/${TOUR.slug ?? TOUR.id}/day/${day}?t=${time}`;
+const moment = (day, time, end) => `/${TOUR.slug ?? TOUR.id}/day/${day}?t=${time}${end ? `&to=${end}` : ""}`;
 const photoSrc = (id) => `/${TOUR.slug ?? TOUR.id}/photos/${TOUR.id}/large/${id}.webp`;
 
 fs.mkdirSync(SRC, { recursive: true });

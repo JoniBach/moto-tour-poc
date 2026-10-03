@@ -7,8 +7,12 @@ import { TOUR } from '$lib/tourConfig';
 import { A } from './activity';
 
 /** The 3D view at this moment (and with this post / photo open). */
-export function mapLink(day: string, t: number, open: { post?: string; photo?: string } = {}): string {
-	const q = new URLSearchParams({ t: tourClock(t) });
+export function mapLink(day: string, t: number, open: { post?: string; photo?: string; stretch?: { from: string; to: string; name?: string } } = {}): string {
+	const q = new URLSearchParams({ t: open.stretch?.from ?? tourClock(t) });
+	if (open.stretch) {
+		q.set('to', open.stretch.to);
+		if (open.stretch.name) q.set('name', open.stretch.name);
+	}
 	if (open.post) q.set('post', open.post);
 	if (open.photo) q.set('photo', open.photo);
 	return `${base}/day/${day}?${q}`;

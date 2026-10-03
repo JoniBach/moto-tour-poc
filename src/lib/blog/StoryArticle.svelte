@@ -240,6 +240,12 @@
 		font-size: 0.9rem;
 		color: var(--b-muted);
 	}
+	/* a place linked to the moment the ride was there */
+	.prose :global(a.moment) {
+		text-decoration-style: dotted;
+		text-decoration-thickness: 2px;
+		text-underline-offset: 0.22em;
+	}
 	.prose :global(figcaption) {
 		margin-top: 0.5rem;
 		font-size: 0.95rem;

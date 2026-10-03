@@ -13,7 +13,7 @@
 		"data:sample": "node scripts/make-sample-gpx.mjs",
 		"data": "node scripts/build-days.mjs",
 		"data:region": "node scripts/build-region.mjs",
-		"data:tour": "node scripts/build-tour.mjs && node scripts/build-parks.mjs",
+		"data:tour": "node scripts/build-tour.mjs && node scripts/build-parks.mjs && node scripts/build-places.mjs",
 		"data:parks": "node scripts/build-parks.mjs",
 		"deploy": "node scripts/deploy.mjs",
 		"audit:privacy": "node scripts/audit-privacy.mjs",
@@ -21,7 +21,8 @@
 		"data:photos": "node scripts/build-photos.mjs && node scripts/build-feed.mjs",
 		"data:blog": "node scripts/build-blog.mjs && node scripts/build-feed.mjs",
 		"data:feed": "node scripts/build-feed.mjs",
-		"data:music": "node --env-file-if-exists=.env.local scripts/build-music.mjs"
+		"data:music": "node --env-file-if-exists=.env.local scripts/build-music.mjs",
+		"data:places": "node scripts/build-places.mjs"
 	},
 	"devDependencies": {
 		"@fontsource-variable/figtree": "^5.3.0",

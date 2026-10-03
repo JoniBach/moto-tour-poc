@@ -32,6 +32,8 @@ export const PATHS = {
 	photosJson: path.join(OUT, 'photos.json'),
 	blogJson: path.join(OUT, 'blog.json'),
 	feedJson: path.join(OUT, 'feed.json'),
+	/** the gazetteer the story editor links place mentions with (build-places) */
+	placesJson: path.join(OUT, 'places.json'),
 	parksJson: path.join(OUT, 'parks.json'),
 	parksBin: path.join(OUT, 'parks.bin'),
 	photos: path.join('static/photos', TOUR_ID),

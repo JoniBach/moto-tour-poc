@@ -14,6 +14,8 @@ import { Markdown } from '@tiptap/markdown';
 import { Placeholder } from '@tiptap/extensions';
 import { TextSelection } from '@tiptap/pm/state';
 import { MAP_ZOOM, mapRef, parseMapRef } from '$lib/story.js';
+import { PlaceMentions, type Mention } from './places';
+import type { EditorView } from '@tiptap/pm/view';
 
 const PHOTO_LINE = /^!\[([^\]\n]*)\]\(photo:([\w-]+)\)[ \t]*(?:\n+|$)/;
 
@@ -217,6 +219,10 @@ export interface StoryEditorOptions {
 	onChange: () => void;
 	/** selection or formatting moved (for the toolbar's state) */
 	onSelection: () => void;
+	/** finds place mentions in a block's text (./places.ts placeFinder) */
+	findPlaces: (text: string) => { index: number; text: string; place: import('./places').Place }[];
+	/** a tap on an underlined place mention */
+	onPlace: (m: Mention, view: EditorView) => void;
 }
 
 export function createStoryEditor(o: StoryEditorOptions) {
@@ -229,11 +235,13 @@ export function createStoryEditor(o: StoryEditorOptions) {
 				// no Markdown for underline; code, code blocks, rules and strikethrough have no buttons but
 				// are kept, so a story that has them comes back as it was
 				underline: false,
-				link: { openOnClick: false, autolink: true, linkOnPaste: true }
+				// tour: links are places linked to a moment of the ride (./places.ts)
+				link: { openOnClick: false, autolink: true, linkOnPaste: true, isAllowedUri: (url, ctx) => url.startsWith('tour:') || ctx.defaultValidate(url) }
 			}),
 			Markdown,
 			PhotoFigure.configure({ src: o.photoSrc, known: o.photoKnown }),
 			MapFigure,
+			PlaceMentions.configure({ find: o.findPlaces, onPick: o.onPlace }),
 			Placeholder.configure({
 				placeholder: ({ node, editor }) =>
 					node.type.name === 'photo' || node.type.name === 'mapShot' ? 'Add a caption…' : editor.isEmpty ? 'Write the story…' : '',

@@ -286,6 +286,16 @@ export async function loadPhotos(): Promise<Photo[]> {
 	}
 }
 
+// ---------- places (scripts/build-places.mjs): the story editor's gazetteer ----------
+
+export async function loadPlaces(): Promise<import('./editor/places').Place[]> {
+	try {
+		return (await packedJson<{ places: import('./editor/places').Place[] }>(`${DATA}/places.json`))?.places ?? [];
+	} catch {
+		return []; // optional: the editor just doesn't suggest places
+	}
+}
+
 // ---------- music (scripts/build-music.mjs) ----------
 
 export interface Song {

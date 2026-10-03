@@ -54,6 +54,8 @@ function track(day) {
 }
 
 // photo embeds: ![caption](photo:ID) -> the gallery-size image (src/lib/story.js)
+// places linked to a moment: [the Lakes](tour:2026-09-16T10:29) -> the tour at that moment (src/lib/blog.ts mapLink)
+const moment = (day, time) => `/${TOUR.slug ?? TOUR.id}/day/${day}?t=${time}`;
 const photoSrc = (id) => `/${TOUR.slug ?? TOUR.id}/photos/${TOUR.id}/large/${id}.webp`;
 
 fs.mkdirSync(SRC, { recursive: true });
@@ -80,7 +82,7 @@ for (const file of fs.readdirSync(SRC).filter((f) => f.endsWith('.md') && !f.sta
 	const { tr, meta } = d;
 	const rel = t - tr.t0;
 	const i = rel <= 0 ? 0 : lastLE(tr.t, rel);
-	const { html, withheld } = renderStory(body, { photos, src: photoSrc });
+	const { html, withheld } = renderStory(body, { photos, src: photoSrc, moment });
 	if (withheld.length) console.log(`  ${file}: removed photo(s) ${withheld.join(', ')} (unknown or withheld)`);
 	const text = plainText(body);
 	const cover = data.cover && photos.has(data.cover) ? data.cover : null;

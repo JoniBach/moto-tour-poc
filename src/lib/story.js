@@ -11,6 +11,8 @@
 //   Markdown body. Tour photos by id: ![Looking down Borrowdale](photo:20260916_115051)
 //   Map snapshots by moment (the tour's local time, optional zoom):
 //   ![Over the top](map:2026-09-16T11:40) or ![Over the top](map:2026-09-16T11:40@14)
+//   Places linked to the moment the ride was there (the story editor suggests them):
+//   [the Lakes](tour:2026-09-16T10:29)
 import { Marked } from 'marked';
 
 /** "key: value" lines between --- fences; the rest is the body. @param {string} text */
@@ -75,15 +77,22 @@ export const mapRef = (shot) => `${shot.day}T${shot.time}${shot.zoom !== MAP_ZOO
 /**
  * Markdown -> the story's HTML. Photo embeds (![caption](photo:ID)) become figures with the
  * gallery-size image; ones not in `photos` (unknown, or withheld for privacy) are dropped and
- * listed in `withheld`.
+ * listed in `withheld`. Links to a moment of the ride ([the Lakes](tour:2026-09-16T10:29)) go to
+ * `moment(day, time)`, or are plain words without it.
  * @param {string} body
- * @param {{ photos: Map<string, { id: string, w: number, h: number }>, src: (id: string) => string }} opts
+ * @param {{ photos: Map<string, { id: string, w: number, h: number }>, src: (id: string) => string, moment?: (day: string, time: string) => string }} opts
  */
-export function renderStory(body, { photos, src }) {
+export function renderStory(body, { photos, src, moment }) {
 	/** @type {string[]} */
 	const withheld = [];
 	const md = new Marked({
 		renderer: {
+			link({ href, tokens }) {
+				if (!href?.startsWith('tour:')) return false; // default rendering for other links
+				const inner = this.parser.parseInline(tokens);
+				const m = /^(\d{4}-\d{2}-\d{2})T(\d{1,2}:\d{2})$/.exec(href.slice(5));
+				return m && moment ? `<a class="moment" href="${moment(m[1], m[2].padStart(5, '0'))}">${inner}</a>` : inner;
+			},
 			image({ href, text }) {
 				// map snapshots: a figure the page draws the map into (src/lib/map/mapShot.ts)
 				if (href?.startsWith('map:')) {
@@ -113,6 +122,8 @@ export function renderStory(body, { photos, src }) {
 export function plainText(body) {
 	return body
 		.replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+		// links: just their words
+		.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
 		.replace(/[#*_>`[\]()-]/g, '')
 		.replace(/\s+/g, ' ')
 		.trim();

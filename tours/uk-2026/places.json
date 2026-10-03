@@ -1,0 +1,20 @@
+{
+	"$comment": "Nicknames for places on the route, for linking mentions in stories to the moment the ride was there (scripts/build-places.mjs). Keys are the places' own names (national parks by their short names); a leading \"the\" is always allowed, so \"Lakes\" also matches \"the Lakes\". Mentions match only when capitalised as written here.",
+	"aliases": {
+		"Brecon Beacons": ["Beacons", "Brecon"],
+		"Lake District": ["Lakes", "Lakeland", "Lake district"],
+		"Peak District": ["Peaks", "Peak district"],
+		"Yorkshire Dales": ["Dales"],
+		"North York Moors": ["Moors", "North Yorkshire Moors"],
+		"Snowdonia": ["Eryri"],
+		"Loch Lomond & The Trossachs": ["Loch Lomond", "Trossachs", "Loch Lomond and the Trossachs"],
+		"Pembrokeshire Coast": ["Pembrokeshire"],
+		"The Broads": ["Broads", "Norfolk Broads"],
+		"South Downs": ["Downs"],
+		"New Forest": [],
+		"Cairngorms": ["Cairngorm"],
+		"Northumberland": [],
+		"Exmoor": [],
+		"Dartmoor": []
+	}
+}

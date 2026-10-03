@@ -15,7 +15,7 @@
 	import { onMount, untrack } from 'svelte';
 	import type { Editor } from '@tiptap/core';
 	import { TOUR, photoSrc } from '$lib/tourConfig';
-	import { loadDay, loadFeed, loadPhotos, loadTourIndex, bisect, type FeedDay, type Photo as TourPhoto, type TourData, type TourIndex } from '$lib/data';
+	import { clock, loadDay, loadFeed, loadPhotos, loadPlaces, loadTourIndex, bisect, type FeedDay, type Photo as TourPhoto, type TourData, type TourIndex } from '$lib/data';
 	import { ukToEpoch } from '$lib/moment';
 	import { excerptOf, frontmatter, minutesOf, plainText, slugFor, storyFile } from '$lib/story.js';
 	import { sketch } from '$lib/sketch';
@@ -24,6 +24,7 @@
 	import { createStoryEditor, insertFigure, insertPhoto, photoIds, softBreaks } from '$lib/editor/storyEditor';
 	import { MAP_ZOOM } from '$lib/story.js';
 	import { readShared, shareLink } from '$lib/editor/shareLink';
+	import { findMentions, linkMention, placeFinder, rescan, visitFor, type Mention } from '$lib/editor/places';
 
 	// ---- the tour's published data ------------------------------------------------------------
 	let days = $state.raw<FeedDay[]>([]);
@@ -36,6 +37,17 @@
 			.catch((e) => (loadError = String(e)));
 	});
 	const byId = $derived(new Map(photos.map((p) => [p.id, p])));
+
+	// ---- places: mentions of places on the route, linked to the moment the ride was there ----------
+	let finder = placeFinder([]);
+	let placesReady = $state(false);
+	onMount(() => {
+		loadPlaces().then((list) => {
+			finder = placeFinder(list);
+			placesReady = true;
+			if (editor) rescan(editor.view);
+		});
+	});
 
 	// ---- the story being written (kept in this browser between visits) ---------------------------
 	const KEY = `gt-story-editor:${TOUR.id}`;
@@ -162,11 +174,22 @@
 			photoSrc: (id) => photoSrc('large', id),
 			photoKnown: (id) => byId.has(id),
 			onChange: () => {
+				chip = null;
 				clearTimeout(settling);
 				settling = setTimeout(settle, SETTLE_MS);
 				selectionMoved();
 			},
-			onSelection: selectionMoved
+			// the cursor moved off the mention: the offer goes (moves within it, as a tap makes, keep it)
+			onSelection: () => {
+				const at = e.state.selection.from;
+				if (chip && (at < chip.m.from || at > chip.m.to)) chip = null;
+				selectionMoved();
+			},
+			findPlaces: (text) => finder(text),
+			onPlace: (m, view) => {
+				const at = view.coordsAtPos(m.from);
+				chip = { m, x: at.left, y: at.bottom };
+			}
 		});
 		editor = e;
 		embedded = photoIds(e);
@@ -238,6 +261,32 @@
 			editor.commands.setTextSelection(1);
 		}
 	}
+
+	/** the offer to link a tapped mention, under it */
+	let chip = $state<{ m: Mention; x: number; y: number } | null>(null);
+	const moment = (v: [string, number]) => {
+		const d = days.find((x) => x.day === v[0]);
+		return `${d ? `Day ${d.index + 1}` : v[0]} · ${clock(v[1])}`;
+	};
+	function linkChip() {
+		if (!editor || !chip) return;
+		linkMention(editor, chip.m, visitFor(chip.m.place, s.date), clock);
+		chip = null;
+	}
+	/** every mention not linked yet (for the settings drawer), as of when it opened */
+	let mentions = $state<Mention[]>([]);
+	function linkAll() {
+		if (!editor) return;
+		// the last first, so nothing moves under the ones still to do
+		for (const m of [...mentions].reverse()) linkMention(editor, m, visitFor(m.place, s.date), clock);
+		mentions = [];
+		status = 'Linked the places to the ride';
+	}
+	// the story moved to another day: which visits are offered changes
+	$effect(() => {
+		void s.date;
+		if (editor) untrack(() => rescan(editor!.view));
+	});
 
 	// ---- the notes: what's missing before it's ready -----------------------------------------------
 	const coverPhoto = $derived(s.cover ? byId.get(s.cover) : undefined);
@@ -432,7 +481,7 @@
 			</div>
 		</div>
 		<div class="actions">
-			<button type="button" class="pill" onclick={() => (settings = true)} aria-haspopup="dialog">
+			<button type="button" class="pill" onclick={() => ((mentions = editor ? findMentions(editor.state.doc, finder) : []), (settings = true))} aria-haspopup="dialog">
 				Story settings{#if problems.length}<span class="count" aria-label="{problems.length} notes">{problems.length}</span>{/if}
 			</button>
 			<label class="pill">
@@ -493,6 +542,16 @@
 		<button type="button" class="cover-add" onclick={() => openPicker('cover')}>＋ Add a cover photo</button>
 	{/if}
 {/snippet}
+
+<!-- a tapped place mention: link it to the moment the ride was there -->
+{#if chip}
+	<div class="place-chip" style:left="{Math.min(chip.x, innerWidth - 300)}px" style:top="{chip.y + 6}px" role="dialog" aria-label="Link this place">
+		<button type="button" class="pill small go" onmousedown={keep} onclick={linkChip}>
+			Link to {moment(visitFor(chip.m.place, s.date))}{chip.m.place.kind === 'park' ? ` in the ${chip.m.place.name}` : ''}
+		</button>
+		<button type="button" class="pill small" onmousedown={keep} onclick={() => (chip = null)} aria-label="Not this">×</button>
+	</div>
+{/if}
 
 <!-- formatting: floats above the on-screen keyboard -->
 {#if editor}
@@ -597,6 +656,19 @@
 			<ul class="notes" aria-label="Before it’s ready">
 				{#each problems as p (p)}<li>{p}</li>{/each}
 			</ul>
+		{/if}
+		{#if mentions.length}
+			<div class="places">
+				<p><b>Places mentioned</b>: link each to the moment the ride was there</p>
+				<ul>
+					{#each mentions as m (m.from)}
+						<li><span class="m">{m.text}</span> → {moment(visitFor(m.place, s.date))}</li>
+					{/each}
+				</ul>
+				<button type="button" class="pill small go" onclick={linkAll}>Link all {mentions.length}</button>
+			</div>
+		{:else if placesReady && editor}
+			<p class="hint">Places on the route you mention (the Lakes, Keswick, Honister…) get a dotted underline: tap one to link it to the moment you were there.</p>
 		{/if}
 		{#if text}<p class="excerpt"><b>In the day’s timeline:</b> {excerptOf(text)}</p>{/if}
 		<details class="source" ontoggle={(e) => (markdown = (e.currentTarget as HTMLDetailsElement).open ? fileOf() : null)}>
@@ -789,6 +861,54 @@
 		color: var(--muted);
 		font: 600 15px var(--font-ui);
 		cursor: pointer;
+	}
+
+	/* ---- places: mentions waiting to be linked, and ones linked to a moment ---- */
+	.page :global(.place-mention) {
+		text-decoration: underline dotted var(--accent);
+		text-decoration-thickness: 2px;
+		text-underline-offset: 0.25em;
+		cursor: pointer;
+	}
+	.page :global(.prose a[href^='tour:']) {
+		text-decoration-style: dotted;
+		text-decoration-thickness: 2px;
+		text-underline-offset: 0.22em;
+	}
+	.place-chip {
+		position: fixed;
+		z-index: 35;
+		display: flex;
+		gap: 6px;
+		padding: 6px;
+		border-radius: 999px;
+		background: var(--paper);
+		box-shadow:
+			var(--shadow),
+			0 0 0 1px var(--line);
+	}
+	.places {
+		padding: 10px 12px;
+		border-radius: 14px;
+		background: var(--card);
+		box-shadow: 0 0 0 1px var(--line);
+		font-size: 13px;
+	}
+	.places p {
+		margin: 0 0 6px;
+	}
+	.places ul {
+		margin: 0 0 10px;
+		padding-left: 18px;
+		line-height: 1.6;
+	}
+	.places .m {
+		font-weight: 650;
+	}
+	.hint {
+		margin: 0;
+		font-size: 12px;
+		color: var(--muted);
 	}
 
 	/* ---- the formatting toolbar: a pill above the keyboard ---- */

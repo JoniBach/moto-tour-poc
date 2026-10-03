@@ -71,7 +71,7 @@ for (const size of ['thumb', 'medium', 'large'])
 // ---- words: the zones' names, and place labels near them ----
 // A title like "Risca → …" says where family live as plainly as a route would. Checked in every
 // text people read: day titles, the feed (titles, "near …" places, pins), stories, pins and place
-// labels. Road names are left out: "Bristol Road" in another town says nothing about Bristol.
+// labels, and the story editor's places. Road names are left out: "Bristol Road" in another town says nothing about Bristol.
 const names = privacyZoneNames();
 // exact: map labels, where "Bristol Channel" or "Stockland Bristol" are other places (anything
 // near a zone is caught by position below); otherwise the name anywhere as a word
@@ -89,6 +89,9 @@ if (fs.existsSync(PATHS.feedJson))
 		named(`feed title ${d.day}`, d.title);
 		for (const e of d.events) named(`feed ${d.day}`, [e.place, e.pin?.title, e.pin?.body].filter(Boolean).join(' · '));
 	}
+// the story editor's gazetteer (build-places): names and nicknames, like map labels
+if (fs.existsSync(PATHS.placesJson))
+	for (const p of JSON.parse(fs.readFileSync(PATHS.placesJson, 'utf8')).places) for (const n of [p.name, ...(p.aliases ?? [])]) named(`place ${p.name}`, n, true);
 if (fs.existsSync(PATHS.blogJson))
 	for (const p of JSON.parse(fs.readFileSync(PATHS.blogJson, 'utf8')).posts) named(`post ${p.slug}`, `${p.title} ${p.excerpt} ${p.html}`);
 for (const day of fs.readdirSync(DAYS)) {

@@ -150,6 +150,48 @@
 		if (area && area.value !== s.body) s.body = area.value;
 	}
 	onMount(() => () => clearTimeout(settling));
+
+	// ---- ?probe: on-device diagnosis of typing lag in the story box ------------------------------
+	// Times every keystroke (input event to the next painted frame, on the device itself), counts
+	// page scrolls while typing, and switches off one suspect at a time: Safari's writing
+	// suggestions, autocorrect/spell-check, the preview, or everything but a bare box (if that still
+	// lags, it's the browser or an extension, not this page). Not shown without ?probe.
+	let probe = $state(false);
+	const pr = $state({ suggestions: true, spelling: true, preview: true, bare: false });
+	let lat = $state<number[]>([]);
+	let scrolls = $state(0);
+	let length = $state(0);
+	onMount(() => {
+		probe = new URLSearchParams(location.search).has('probe');
+		if (!probe) return;
+		const onScroll = () => scrolls++;
+		addEventListener('scroll', onScroll, { passive: true });
+		return () => removeEventListener('scroll', onScroll);
+	});
+	function timeKey(e: Event) {
+		if (!probe) return;
+		const t0 = e.timeStamp;
+		requestAnimationFrame(() =>
+			setTimeout(() => {
+				lat = [...lat.slice(-59), performance.now() - t0];
+				length = area?.value.length ?? 0;
+			})
+		);
+	}
+	const pct = (p: number) => {
+		const l = [...lat].sort((a, b) => a - b);
+		return l.length ? Math.round(l[Math.min(l.length - 1, Math.floor(p * l.length))]) : 0;
+	};
+	/** Safari's own typing aids, as attributes (not in Svelte's types) */
+	const safariTyping = $derived({
+		autocorrect: !probe || pr.spelling ? 'on' : 'off',
+		autocapitalize: !probe || pr.spelling ? 'sentences' : 'off',
+		writingsuggestions: !probe || pr.suggestions ? 'true' : 'false'
+	} as Record<string, string>);
+	function resetProbe() {
+		lat = [];
+		scrolls = 0;
+	}
 	// text from elsewhere (the saved draft, an opened file, "New", the toolbar) into the box
 	$effect(() => {
 		const text = s.body;
@@ -275,7 +317,7 @@
 
 <svelte:document onvisibilitychange={() => document.visibilityState === 'hidden' && (settle(), persist())} />
 
-<div class="editor" class:dragging>
+<div class="editor" class:dragging class:bare={probe && pr.bare} class:nopreview={probe && !pr.preview}>
 	<header class="bar">
 		<div class="brand">
 			<span class="mark" aria-hidden="true">✎</span>
@@ -371,7 +413,15 @@
 				</div>
 			{/if}
 
-			<textarea bind:this={area} oninput={typed} onblur={settle} placeholder="Write the story in Markdown…" aria-label="The story, in Markdown" spellcheck="true"></textarea>
+			<textarea
+				bind:this={area}
+				oninput={(e) => (typed(), timeKey(e))}
+				onblur={settle}
+				placeholder="Write the story in Markdown…"
+				aria-label="The story, in Markdown"
+				spellcheck={!probe || pr.spelling}
+				{...safariTyping}
+			></textarea>
 
 			{#if problems.length}
 				<ul class="notes" aria-label="Before it’s ready">
@@ -407,7 +457,76 @@
 	</div>
 </div>
 
+{#if probe}
+	<aside class="probe" aria-label="Typing diagnosis">
+		<p>
+			<b>Typing lag</b> · {lat.length} keys · median <b>{pct(0.5)} ms</b> · slowest 10% <b>{pct(0.9)} ms</b> · page scrolled
+			{scrolls}× · {length} characters
+		</p>
+		<label><input type="checkbox" bind:checked={pr.suggestions} onchange={resetProbe} /> Writing suggestions</label>
+		<label><input type="checkbox" bind:checked={pr.spelling} onchange={resetProbe} /> Autocorrect + spell-check</label>
+		<label><input type="checkbox" bind:checked={pr.preview} onchange={resetProbe} /> Preview</label>
+		<label><input type="checkbox" bind:checked={pr.bare} onchange={resetProbe} /> Bare box only</label>
+		<button type="button" onclick={resetProbe}>Reset</button>
+		<small>Untick one, tap back into the story box (changes apply from there), type a few lines, compare.</small>
+	</aside>
+{/if}
+
 <style>
+	.probe {
+		position: fixed;
+		z-index: 50;
+		left: 8px;
+		right: 8px;
+		top: 8px;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px 14px;
+		align-items: center;
+		padding: 8px 12px;
+		border-radius: 12px;
+		background: #263238;
+		color: #fff;
+		font: 13px/1.4 var(--font-ui);
+		box-shadow: var(--shadow);
+	}
+	.probe p {
+		flex-basis: 100%;
+		margin: 0;
+	}
+	.probe button {
+		font: inherit;
+	}
+	.probe small {
+		flex-basis: 100%;
+		opacity: 0.75;
+	}
+	/* the control: nothing on the page but the box */
+	.editor.bare .bar,
+	.editor.bare .tabs,
+	.editor.bare .preview,
+	.editor.bare .write > :not(textarea) {
+		display: none !important;
+	}
+	.editor.bare .panes {
+		display: block;
+	}
+	.editor.bare,
+	.editor.bare .write {
+		background: #fff;
+		box-shadow: none;
+	}
+	.editor.bare textarea {
+		width: 100%;
+		box-sizing: border-box;
+	}
+	.editor.nopreview .preview {
+		display: none !important;
+	}
+
+	.editor:has(~ .probe) {
+		padding-top: 110px;
+	}
 	.editor {
 		min-height: 100vh;
 		box-sizing: border-box;

@@ -41,14 +41,23 @@
 			/* private mode or storage off: start blank */
 		}
 	});
-	$effect(() => {
-		const json = JSON.stringify(s);
+	// kept a moment after typing pauses (and when the page is hidden or left), not on every key
+	let unsaved = '';
+	function persist() {
+		if (!unsaved) return;
 		try {
-			localStorage.setItem(KEY, json);
+			localStorage.setItem(KEY, unsaved);
 		} catch {
 			/* storage full or off: the draft just won't survive a reload */
 		}
+		unsaved = '';
+	}
+	$effect(() => {
+		unsaved = JSON.stringify(s);
+		const id = setTimeout(persist, 500);
+		return () => clearTimeout(id);
 	});
+	onMount(() => persist);
 	// the first day by default, once the days are in
 	$effect(() => {
 		if (!s.date && days.length) s.date = days[0].day;
@@ -95,10 +104,19 @@
 	});
 
 	// ---- the preview -----------------------------------------------------------------------------
-	const rendered = $derived(renderStory(s.body, { photos: byId, src: (id) => photoSrc('large', id) }));
-	const text = $derived(plainText(s.body));
+	// The preview follows the text once typing pauses: re-rendering the Markdown and rebuilding the
+	// article (photos and all) on every key made typing lag.
+	let body = $state('');
+	$effect(() => {
+		const next = s.body;
+		const id = setTimeout(() => (body = next), 250);
+		return () => clearTimeout(id);
+	});
+	const rendered = $derived(renderStory(body, { photos: byId, src: (id) => photoSrc('large', id) }));
+	const text = $derived(plainText(body));
 	const coverPhoto = $derived(s.cover ? byId.get(s.cover) : undefined);
-	const file = $derived(storyFile({ title: s.title, time: `${s.date} ${s.clock}`, cover: s.cover, slug: s.slug }, s.body));
+	const fileOf = (text: string) => storyFile({ title: s.title, time: `${s.date} ${s.clock}`, cover: s.cover, slug: s.slug }, text);
+	const file = $derived(fileOf(body));
 
 	const problems = $derived.by(() => {
 		const out: string[] = [];
@@ -181,7 +199,7 @@
 		const pad = (n: number) => String(n).padStart(2, '0');
 		const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}.${pad(now.getMinutes())}`;
 		const name = `${s.draft ? '_' : ''}${s.slug || 'story'} (saved ${stamp}).md`;
-		const url = URL.createObjectURL(new Blob([file], { type: 'text/markdown' }));
+		const url = URL.createObjectURL(new Blob([fileOf(s.body)], { type: 'text/markdown' }));
 		const a = Object.assign(document.createElement('a'), { href: url, download: name });
 		a.click();
 		setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -189,7 +207,7 @@
 	}
 	async function copy() {
 		try {
-			await navigator.clipboard.writeText(file);
+			await navigator.clipboard.writeText(fileOf(s.body));
 			status = 'Copied the Markdown';
 		} catch {
 			status = 'Couldn’t copy: your browser blocked it';
@@ -213,6 +231,7 @@
 </svelte:head>
 
 <svelte:window
+	onpagehide={persist}
 	ondragover={(e) => {
 		e.preventDefault();
 		dragging = true;
@@ -224,6 +243,8 @@
 		openFile(e.dataTransfer?.files[0]);
 	}}
 />
+
+<svelte:document onvisibilitychange={() => document.visibilityState === 'hidden' && persist()} />
 
 <div class="editor" class:dragging>
 	<header class="bar">

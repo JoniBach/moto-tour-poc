@@ -48,6 +48,35 @@
 			textarea {
 				height: 240px;
 			}
+			/* the editor's own look for the story box, switch by switch */
+			body.mono #area {
+				font: 15px/1.6 ui-monospace, 'Cascadia Code', Consolas, monospace;
+			}
+			body.ring #area {
+				border: 0;
+				border-radius: 16px;
+				background: #fffdf8;
+				box-shadow: 0 0 0 1px rgb(38 50 56 / 0.14);
+			}
+			body.grip #area {
+				resize: vertical;
+				min-height: 22rem;
+			}
+			body.tall,
+			html:has(body.tall) {
+				height: 100%;
+			}
+			body.tall .wrap {
+				min-height: 100vh;
+				background: linear-gradient(to bottom, #cfe6f5 0, #e6f1f6 14rem, #fbf6ec 30rem) no-repeat, #fbf6ec;
+			}
+		</style>
+		<!-- the site's :has() rules on form controls (switched on and off as a whole sheet) -->
+		<style id="has-rules" media="not all">
+			.chip:has(input:focus-visible) { outline: 2px solid orange; }
+			.chip:has(input:checked) { background: #eee; }
+			.chip:has(input:checked) .tick { color: green; }
+			.prose > p:first-child:not(:has(> em:first-child))::first-letter { font-size: 2em; }
 		</style>
 	</head>
 	<body>
@@ -56,10 +85,22 @@
 			<p id="out-line">One-line box: type to measure</p>
 			<label><input type="checkbox" id="suggest" checked /> Writing suggestions</label>
 			<label><input type="checkbox" id="spell" checked /> Autocorrect + spell-check</label>
+			<br />
+			<b>Editor's look:</b>
+			<label><input type="checkbox" class="look" value="mono" /> Monospace font</label>
+			<label><input type="checkbox" class="look" value="ring" /> Rounded outline</label>
+			<label><input type="checkbox" class="look" value="grip" /> Resize handle</label>
+			<label><input type="checkbox" class="look" value="tall" /> Full-height page</label>
+			<label><input type="checkbox" id="has" /> :has() rules</label>
+			<button type="button" id="all">All on</button>
 			<button type="button" id="reset">Reset</button>
 		</div>
+		<div class="wrap">
+		<label class="chip"><input type="checkbox" /> <span class="tick">✓</span> a chip, like the site's</label>
+		<div class="prose"><p>A paragraph, like a story's first one.</p></div>
 		<textarea id="area" placeholder="Multi-line box: type a sentence here"></textarea>
 		<input type="text" id="line" placeholder="One-line box: type a sentence here" />
+		</div>
 		<script>
 			const fields = { area: [], line: [] };
 			const pct = (l, p) => {
@@ -106,6 +147,16 @@
 			document.getElementById('suggest').addEventListener('change', apply);
 			document.getElementById('spell').addEventListener('change', apply);
 			document.getElementById('reset').addEventListener('click', reset);
+			const look = () => {
+				for (const c of document.querySelectorAll('.look')) document.body.classList.toggle(c.value, c.checked);
+				document.getElementById('has-rules').media = document.getElementById('has').checked ? 'all' : 'not all';
+				reset();
+			};
+			for (const c of document.querySelectorAll('.look, #has')) c.addEventListener('change', look);
+			document.getElementById('all').addEventListener('click', () => {
+				for (const c of document.querySelectorAll('.look, #has')) c.checked = true;
+				look();
+			});
 			apply();
 		</script>
 	</body>

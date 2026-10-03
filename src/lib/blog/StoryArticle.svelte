@@ -184,10 +184,10 @@
 	.prose :global(p) {
 		margin: 0 0 1.5em;
 	}
-	/* a drop cap to open, unless the story opens on an italic aside; in the editor, not while the
-	   story is being typed (iOS Safari loses the cursor in a ::first-letter as you type: each new
-	   character replaced the last) */
-	.prose:not(:global(.ProseMirror-focused)) > :global(p:first-child:not(:has(> em:first-child))::first-letter) {
+	/* a drop cap to open, unless the story opens on an italic aside; on the published page only, not
+	   in the editor (iOS Safari loses the cursor in a ::first-letter as you type, and switching it
+	   on and off with focus made the letter jump) */
+	.prose:not(:global(.ProseMirror)) > :global(p:first-child:not(:has(> em:first-child))::first-letter) {
 		float: left;
 		margin: 0.1em 0.12em 0 0;
 		font-family: var(--font-display);

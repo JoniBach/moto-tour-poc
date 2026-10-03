@@ -58,15 +58,57 @@ function track(day) {
 const moment = (day, time, end) => `/${TOUR.slug ?? TOUR.id}/day/${day}?t=${time}${end ? `&to=${end}` : ""}`;
 const photoSrc = (id) => `/${TOUR.slug ?? TOUR.id}/photos/${TOUR.id}/large/${id}.webp`;
 
+/** the tour's days, in order (for stories before and after the trip) */
+const tourDays = fs.existsSync(PATHS.tourJson) ? JSON.parse(fs.readFileSync(PATHS.tourJson, 'utf8')).days : [];
+
 fs.mkdirSync(SRC, { recursive: true });
 const posts = [];
 for (const file of fs.readdirSync(SRC).filter((f) => f.endsWith('.md') && !f.startsWith('_')).sort()) {
 	const { data, body } = frontmatter(fs.readFileSync(path.join(SRC, file), 'utf8'));
 	// the header's slug if it has one (the story editor saves timestamped copies), else the file name
 	const slug = data.slug || file.replace(/\.md$/, '');
+	// before / after the trip: pinned to where it set off / ended (the first day's start, the last
+	// day's end); its own date, if it has one, is just shown
+	const when = data.when === 'before' || data.when === 'after' ? data.when : null;
+	if (when) {
+		if (!data.title) {
+			console.log(`  skipped ${file}: needs a "title"`);
+			continue;
+		}
+		const day = (when === 'before' ? tourDays[0] : tourDays.at(-1))?.day;
+		const d = day && track(day);
+		if (!d) {
+			console.log(`  skipped ${file}: the tour has no days yet`);
+			continue;
+		}
+		const { tr, meta } = d;
+		const i = when === 'before' ? 0 : tr.count - 1;
+		const own = data.time ? parseTourTime(/^\d{4}-\d{2}-\d{2}$/.test(data.time) ? `${data.time} 12:00` : data.time) : NaN;
+		const { html, withheld } = renderStory(body, { photos, src: photoSrc, moment });
+		if (withheld.length) console.log(`  ${file}: removed photo(s) ${withheld.join(', ')} (unknown or withheld)`);
+		const text = plainText(body);
+		posts.push({
+			slug,
+			title: data.title,
+			// a second before setting off / after arriving, so they bookend the trip in the day's events
+			t: tr.t0 + tr.t[i] + (when === 'before' ? -1 : 1),
+			day,
+			i,
+			rt: tr.rt[i],
+			e: Math.round(tr.x[i] + meta.originE),
+			n: Math.round(tr.n[i] + meta.originN),
+			cover: data.cover && photos.has(data.cover) ? data.cover : null,
+			excerpt: excerptOf(text),
+			minutes: minutesOf(text),
+			html,
+			when,
+			...(Number.isFinite(own) ? { date: own } : {})
+		});
+		continue;
+	}
 	const t = parseTourTime(data.time ?? '');
 	if (!data.title || !Number.isFinite(t)) {
-		console.log(`  skipped ${file}: needs "title" and "time" (e.g. time: 2026-09-16 11:30)`);
+		console.log(`  skipped ${file}: needs "title" and "time" (e.g. time: 2026-09-16 11:30), or "when: before" / "when: after"`);
 		continue;
 	}
 	if (inPrivacyZoneAt(t)) {
@@ -104,4 +146,4 @@ for (const file of fs.readdirSync(SRC).filter((f) => f.endsWith('.md') && !f.sta
 posts.sort((a, b) => a.t - b.t);
 fs.writeFileSync(PATHS.blogJson, JSON.stringify({ posts }));
 console.log(`Wrote ${PATHS.blogJson}: ${posts.length} post(s)`);
-for (const p of posts) console.log(`  ${p.day} ${new Date(p.t * 1000).toLocaleTimeString(TOUR.locale, { timeZone: TOUR.timeZone, hour: '2-digit', minute: '2-digit' })}  ${p.title}`);
+for (const p of posts) console.log(`  ${p.when ? `${p.when.padEnd(10)}` : p.day} ${new Date(p.t * 1000).toLocaleTimeString(TOUR.locale, { timeZone: TOUR.timeZone, hour: '2-digit', minute: '2-digit' })}  ${p.title}`);

@@ -31,7 +31,7 @@
 		coverSlot,
 		prose
 	}: {
-		post: { slug: string; title: string; t: number; html: string; minutes: number };
+		post: { slug: string; title: string; t: number; html: string; minutes: number; when?: 'before' | 'after'; date?: number };
 		cover: { id: string; w: number; h: number } | null;
 		day: { day: string; index: number; title: string };
 		dayCount: number;
@@ -59,10 +59,17 @@
 		</ol>
 	</nav>{/if}
 	<header>
-		<p class="kicker"><span class="chip">Day {day.index + 1}</span> {day.title}</p>
+		<p class="kicker">
+			{#if post.when}<span class="chip">{post.when === 'before' ? 'Before the trip' : 'After the trip'}</span>
+			{:else}<span class="chip">Day {day.index + 1}</span> {day.title}{/if}
+		</p>
 		<h1>{#if titleSlot}{@render titleSlot()}{:else}{post.title}{/if}</h1>
 		<p class="meta">
-			<time datetime={iso(post.t)}>{longDate(post.t)}, {time(post.t)}</time>{#if place}{' · '}near {place}{/if}{' · '}{post.minutes} minute read
+			{#if post.when}
+				{#if post.date}<time datetime={iso(post.date)}>{longDate(post.date)}</time>{' · '}{/if}{post.minutes} minute read
+			{:else}
+				<time datetime={iso(post.t)}>{longDate(post.t)}, {time(post.t)}</time>{#if place}{' · '}near {place}{/if}{' · '}{post.minutes} minute read
+			{/if}
 		</p>
 	</header>
 	{#if coverSlot}
@@ -86,10 +93,18 @@
 			<RouteSketch s={where} color={c} pulse={!preview} label="Day {day.index + 1}'s route, with this story's moment marked" />
 		</span>
 		<div>
-			<h2 id="where-h">Where this happened</h2>
-			<p>
-				Day {day.index + 1}, {day.title}, at {time(post.t)}{#if place}{' '}near {place}{/if}.
-			</p>
+			{#if post.when === 'before'}
+				<h2 id="where-h">Before the trip</h2>
+				<p>Written before the journey, which set off from here on Day {day.index + 1}, {day.title}.</p>
+			{:else if post.when === 'after'}
+				<h2 id="where-h">After the trip</h2>
+				<p>Written after the journey, which ended here on Day {day.index + 1}, {day.title}.</p>
+			{:else}
+				<h2 id="where-h">Where this happened</h2>
+				<p>
+					Day {day.index + 1}, {day.title}, at {time(post.t)}{#if place}{' '}near {place}{/if}.
+				</p>
+			{/if}
 			{#if tourOn && !preview}
 				<a class="go" href={mapLink(day.day, post.t, { post: post.slug })}>See this moment in the {TOUR_NAME}<span aria-hidden="true"> →</span></a>
 			{/if}

@@ -6,6 +6,8 @@
 //   title: Up and over Honister
 //   time: 2026-09-16 11:30        # the tour's local time; the story goes where the bike was
 //   cover: 20260916_113010        # optional: a photo id for the header image
+//   when: before                  # optional: before / after the trip (pinned to its start / end);
+//                                 # then time is optional too, a date: 2026-08-20
 //   slug: 2026-09-16-honister     # optional: its address (default: the file name)
 //   ---
 //   Markdown body. Tour photos by id: ![Looking down Borrowdale](photo:20260916_115051)
@@ -32,11 +34,14 @@ export function frontmatter(text) {
 
 /**
  * The file for a story: its header (only the fields that are set) and body.
- * @param {{ title?: string, time?: string, cover?: string, slug?: string }} head
+ * @param {{ title?: string, time?: string, cover?: string, slug?: string, when?: string }} head
  * @param {string} body
  */
-export function storyFile({ title = '', time = '', cover = '', slug = '' }, body) {
-	const lines = ['---', `title: ${title}`, `time: ${time}`];
+export function storyFile({ title = '', time = '', cover = '', slug = '', when = '' }, body) {
+	const lines = ['---', `title: ${title}`];
+	if (when === 'before' || when === 'after') lines.push(`when: ${when}`);
+	// a story during the trip always has its moment; one before or after, only if it was given a date
+	if (time || !(when === 'before' || when === 'after')) lines.push(`time: ${time}`);
 	if (cover) lines.push(`cover: ${cover}`);
 	if (slug) lines.push(`slug: ${slug}`);
 	lines.push('---', '');

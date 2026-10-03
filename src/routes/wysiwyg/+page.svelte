@@ -54,8 +54,10 @@
 
 	// ---- the story being written (kept in this browser between visits) ---------------------------
 	const KEY = `gt-story-editor:${TOUR.id}`;
-	type Draft = { title: string; date: string; clock: string; cover: string; slug: string; slugEdited: boolean; draft: boolean; body: string };
-	const blank = (): Draft => ({ title: '', date: '', clock: '12:00', cover: '', slug: '', slugEdited: false, draft: false, body: '' });
+	/** when: during the trip (at a moment of a day's ride), or before / after it (pinned to its start / end, with an optional date: on) */
+	type When = 'before' | 'during' | 'after';
+	type Draft = { title: string; when: When; date: string; clock: string; on: string; cover: string; slug: string; slugEdited: boolean; draft: boolean; body: string };
+	const blank = (): Draft => ({ title: '', when: 'during', date: '', clock: '12:00', on: '', cover: '', slug: '', slugEdited: false, draft: false, body: '' });
 	let s = $state<Draft>(blank());
 	let restored = $state(false);
 	onMount(() => {
@@ -97,7 +99,30 @@
 
 	// ---- where the story sits -------------------------------------------------------------------
 	const day = $derived(days.find((d) => d.day === s.date));
-	const t = $derived(s.date && /^\d{1,2}:\d{2}$/.test(s.clock) ? ukToEpoch(s.date, s.clock) : NaN);
+	// before the trip: where it set off (the first day's start); after: where it ended (the last day's end)
+	const t = $derived(
+		s.when === 'before'
+			? (days[0]?.start ?? NaN)
+			: s.when === 'after'
+				? (days.at(-1)?.end ?? NaN)
+				: s.date && /^\d{1,2}:\d{2}$/.test(s.clock)
+					? ukToEpoch(s.date, s.clock)
+					: NaN
+	);
+	/** switching between before, during and after: before and after belong to the first and last day */
+	function setWhen(w: When) {
+		s.when = w;
+		if (w === 'before' && days.length) s.date = days[0].day;
+		if (w === 'after' && days.length) s.date = days.at(-1)!.day;
+	}
+	// before / after opened before the days were in (a shared link, a saved draft): their day, once known
+	$effect(() => {
+		if (!days.length) return;
+		if (s.when === 'before' && s.date !== days[0].day) s.date = days[0].day;
+		if (s.when === 'after' && s.date !== days.at(-1)!.day) s.date = days.at(-1)!.day;
+	});
+	/** a before / after story's own date, shown on its page (epoch seconds), if it has one */
+	const onDate = $derived(s.when !== 'during' && /^\d{4}-\d{2}-\d{2}$/.test(s.on) ? ukToEpoch(s.on, '12:00') : undefined);
 	let dayData = $state.raw<TourData | null>(null);
 	let loadedDay = '';
 	$effect(() => {
@@ -305,7 +330,7 @@
 		const out: string[] = [];
 		if (!s.title.trim()) out.push('Give it a title.');
 		if (!day) out.push('Pick a day of the tour.');
-		else if (!Number.isFinite(t)) out.push('Set the time (hh:mm, the tour’s local time).');
+		else if (s.when === 'during' && !Number.isFinite(t)) out.push('Set the time (hh:mm, the tour’s local time).');
 		else if (spot && !spot.inRide) out.push('That time is outside the day’s riding: it’ll be pinned to the nearest end of the ride.');
 		if (s.cover && !coverPhoto) out.push(`The cover photo ${s.cover} isn’t in the tour.`);
 		for (const id of embedded) if (!byId.has(id)) out.push(`Photo ${id} isn’t in the tour (or is kept private): it won’t show.`);
@@ -374,14 +399,22 @@
 
 	// ---- files: open one from the device, save a new timestamped copy, copy the Markdown -------------
 	let status = $state('');
-	const fileOf = () => storyFile({ title: s.title, time: `${s.date} ${s.clock}`, cover: s.cover, slug: s.slug }, latest());
+	const fileOf = () =>
+		storyFile(
+			{ title: s.title, when: s.when === 'during' ? '' : s.when, time: s.when === 'during' ? `${s.date} ${s.clock}` : s.on, cover: s.cover, slug: s.slug },
+			latest()
+		);
 	function open(file: string, name: string) {
 		const { data, body } = frontmatter(file);
 		const [date = '', clock = '12:00'] = (data.time ?? '').split(/[ T]/);
+		const when: When = data.when === 'before' || data.when === 'after' ? data.when : 'during';
 		s = {
 			title: data.title ?? '',
-			date,
-			clock: clock.slice(0, 5),
+			when,
+			// before / after: the first / last day; the time line is the story's own date, if any
+			date: when === 'before' ? (days[0]?.day ?? date) : when === 'after' ? (days.at(-1)?.day ?? date) : date,
+			clock: when === 'during' ? clock.slice(0, 5) : '12:00',
+			on: when === 'during' ? '' : date,
 			cover: data.cover ?? '',
 			slug: data.slug ?? name.replace(/^_/, '').replace(/\.md$/i, '').replace(/\s*\(saved [^)]*\)$/, ''),
 			slugEdited: true,
@@ -524,7 +557,15 @@
 		{#if ready && day}
 			<StoryArticle
 				preview
-				post={{ slug: s.slug, title: s.title || 'Untitled story', t: Number.isFinite(t) ? t : day.start, html: '', minutes: minutesOf(text) }}
+				post={{
+					slug: s.slug,
+					title: s.title || 'Untitled story',
+					t: Number.isFinite(t) ? t : day.start,
+					html: '',
+					minutes: minutesOf(text),
+					when: s.when === 'during' ? undefined : s.when,
+					date: onDate
+				}}
 				cover={null}
 				day={{ day: day.day, index: day.index, title: day.title }}
 				dayCount={days.length}
@@ -672,16 +713,34 @@
 	<div class="scrim" onclick={() => (settings = false)} aria-hidden="true"></div>
 	<div class="sheet drawer" role="dialog" aria-modal="true" aria-label="Story settings">
 		<p class="sheet-head"><b>Story settings</b> <button type="button" class="pill small" onclick={() => (settings = false)}>Done</button></p>
-		<label class="field">
-			<span>Day</span>
-			<select bind:value={s.date}>
-				{#each days as d (d.day)}<option value={d.day}>{dayLabel(d)}</option>{/each}
-			</select>
-		</label>
-		<label class="field">
-			<span>Time <small>(the tour’s local time: the story goes where the bike was)</small></span>
-			<input type="time" bind:value={s.clock} />
-		</label>
+		<div class="field">
+			<span>When</span>
+			<div class="seg when" role="radiogroup" aria-label="When it's about">
+				<button type="button" role="radio" aria-checked={s.when === 'before'} onclick={() => setWhen('before')}>Before the trip</button>
+				<button type="button" role="radio" aria-checked={s.when === 'during'} onclick={() => setWhen('during')}>During</button>
+				<button type="button" role="radio" aria-checked={s.when === 'after'} onclick={() => setWhen('after')}>After the trip</button>
+			</div>
+		</div>
+		{#if s.when === 'during'}
+			<label class="field">
+				<span>Day</span>
+				<select bind:value={s.date}>
+					{#each days as d (d.day)}<option value={d.day}>{dayLabel(d)}</option>{/each}
+				</select>
+			</label>
+			<label class="field">
+				<span>Time <small>(the tour’s local time: the story goes where the bike was)</small></span>
+				<input type="time" bind:value={s.clock} />
+			</label>
+		{:else}
+			<p class="hint">
+				{s.when === 'before' ? 'Pinned to where the journey set off, at the start of Day 1.' : `Pinned to where the journey ended, at the end of Day ${days.length}.`}
+			</p>
+			<label class="field">
+				<span>Date <small>(optional: shown on the story)</small></span>
+				<input type="date" bind:value={s.on} />
+			</label>
+		{/if}
 		<label class="field">
 			<span>Address <small>(/blog/{s.date}/{s.slug || '…'})</small></span>
 			<input bind:value={s.slug} oninput={() => (s.slugEdited = true)} spellcheck="false" />
@@ -931,6 +990,10 @@
 		box-shadow:
 			var(--shadow),
 			0 0 0 1px var(--line);
+	}
+	.seg.when {
+		flex-wrap: wrap;
+		align-self: flex-start;
 	}
 	.places {
 		padding: 10px 12px;

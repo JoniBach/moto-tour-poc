@@ -127,6 +127,11 @@ device loads the story into the editor, asking first if a different one is in pr
 Drop the saved file into `tours/<id>/blog/` and build as below.
 
 
+Stories can also be from before or after the trip: `when: before` pins one to where the journey set
+off (first on Day 1, before "Set off"), `when: after` to where it ended (last on the final day, after
+"Arrived"); their `time` is then optional, a date shown on the story (`time: 2026-09-07`). The
+editor's Story settings switch between Before the trip, During and After the trip.
+
 Write Markdown in `tours/<id>/blog/` (committed), one file per post, tied to a moment of the ride:
 
 ```md

@@ -352,6 +352,10 @@ export interface BlogPost {
 	excerpt: string;
 	minutes: number; // reading time
 	html: string; // rendered at build time from the author's own Markdown
+	/** before / after the trip (pinned to its first day's start / last day's end) */
+	when?: 'before' | 'after';
+	/** a before / after story's own date (epoch seconds), if it has one */
+	date?: number;
 }
 
 export async function loadBlog(): Promise<BlogPost[]> {

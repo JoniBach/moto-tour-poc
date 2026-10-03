@@ -107,8 +107,9 @@ off, is `![caption](map:tour)`, or `map:tour~2026-09-16` with that day picked ou
 whole journey"). Places on the route that a story mentions ("the Lakes", "Keswick",
 "Honister Pass", "the Brecon Beacons") get a dotted underline once typing pauses (never the word
 being typed: iPad Safari loses the cursor if it's redrawn); tap one to link it to the moment the
-ride was there, on the story's own day if it was there that day, else the first visit, or "Link
-all" in Story settings. Saved as `[the Lakes](tour:2026-09-16T10:29)`, published as a link to the
+ride was there, on the story's own day if it was there that day, else the first visit, or link
+them all at once with the toolbar's "📍 Link places" (it counts the ones waiting) or "Link all" in
+Story settings. Saved as `[the Lakes](tour:2026-09-16T10:29)`, published as a link to the
 tour at that moment. The gazetteer is `npm run data:places` (`scripts/build-places.mjs`, also run by
 `data:tour`): national parks (the moment the route enters them) and towns, villages, peaks and
 lakes by the route (the nearest moment), none near a privacy zone; nicknames ("Beacons", "Lakes",

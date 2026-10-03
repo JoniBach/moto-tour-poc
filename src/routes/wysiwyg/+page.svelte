@@ -45,7 +45,10 @@
 		loadPlaces().then((list) => {
 			finder = placeFinder(list);
 			placesReady = true;
-			if (editor) rescan(editor.view);
+			if (editor) {
+				rescan(editor.view);
+				unlinked = findMentions(editor.state.doc, finder).length;
+			}
 		});
 	});
 
@@ -144,7 +147,10 @@
 		const md = editor.getMarkdown();
 		if (md !== s.body) s.body = md;
 		embedded = photoIds(editor);
+		unlinked = findMentions(editor.state.doc, finder).length;
 	}
+	/** place mentions not linked yet (the toolbar's "Link places"), as of the last settle */
+	let unlinked = $state(0);
 	// toolbar state, at most once a frame
 	let active = $state({ bold: false, italic: false, h2: false, h3: false, quote: false, bullets: false, numbers: false, link: false });
 	let frame = 0;
@@ -193,6 +199,7 @@
 		});
 		editor = e;
 		embedded = photoIds(e);
+		unlinked = findMentions(e.state.doc, finder).length;
 		return () => {
 			settle();
 			editor = null;
@@ -277,10 +284,13 @@
 	let mentions = $state<Mention[]>([]);
 	function linkAll() {
 		if (!editor) return;
+		const all = findMentions(editor.state.doc, finder);
 		// the last first, so nothing moves under the ones still to do
-		for (const m of [...mentions].reverse()) linkMention(editor, m, visitFor(m.place, s.date), clock);
+		for (const m of all.reverse()) linkMention(editor, m, visitFor(m.place, s.date), clock);
 		mentions = [];
-		status = 'Linked the places to the ride';
+		unlinked = 0;
+		chip = null;
+		status = all.length ? `Linked ${all.length === 1 ? '1 place' : `${all.length} places`} to the ride` : 'No places to link';
 	}
 	// the story moved to another day: which visits are offered changes
 	$effect(() => {
@@ -578,7 +588,17 @@
 		<button type="button" onmousedown={keep} onclick={() => run((c) => c.toggleOrderedList())} aria-pressed={active.numbers} aria-label="Numbered list">1.</button>
 		<button type="button" onmousedown={keep} onclick={link} aria-pressed={active.link} aria-label="Link">🔗</button>
 		<span class="sep" aria-hidden="true"></span>
-		<button type="button" class="photo" onmousedown={keep} onclick={() => openPicker('embed')}>＋ Photo or map</button>
+		<button
+			type="button"
+			class="places-btn"
+			onmousedown={keep}
+			onclick={linkAll}
+			disabled={!unlinked}
+			title={unlinked ? 'Link every place mentioned to the moment the ride was there' : 'No places to link'}
+			aria-label="Link places{unlinked ? `: ${unlinked}` : ''}"
+			><span aria-hidden="true">📍</span><span class="label"> Link places</span>{#if unlinked}<span class="n">{unlinked}</span>{/if}</button
+		>
+		<button type="button" class="photo" onmousedown={keep} onclick={() => openPicker('embed')} aria-label="Add a photo or map">＋<span class="label"> Photo or map</span></button>
 	</div>
 {/if}
 
@@ -979,6 +999,30 @@
 		background: var(--ink);
 		color: var(--paper);
 	}
+	.toolbar .places-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding: 0 12px;
+		font-size: 14px;
+		font-weight: 650;
+	}
+	.toolbar .places-btn:disabled {
+		opacity: 0.45;
+		cursor: default;
+	}
+	.places-btn .n {
+		display: grid;
+		place-items: center;
+		min-width: 20px;
+		height: 20px;
+		padding: 0 5px;
+		box-sizing: border-box;
+		border-radius: 999px;
+		background: var(--accent);
+		color: var(--on-accent);
+		font-size: 11px;
+	}
 	.toolbar .photo {
 		padding: 0 14px;
 		background: var(--accent-soft);
@@ -1280,7 +1324,9 @@
 			min-width: 32px;
 			padding: 0 4px;
 		}
-		.toolbar button.small {
+		.toolbar button.small,
+		.places-btn .label,
+		.photo .label {
 			display: none;
 		}
 		.toolbar .photo {

@@ -1,6 +1,6 @@
 <!--
-  A story as it reads on its page, shared by the story page and the story editor's live preview
-  (/wysiwyg): its day and time, a large cover, the text at a comfortable measure (about 65
+  A story as it reads on its page, shared by the story page and the story editor (/wysiwyg),
+  where it's written in place: its day and time, a large cover, the text at a comfortable measure (about 65
   characters a line), then where it happened (the day's route with the moment marked, and a link
   to it in the tour) and, on the page, the stories either side of it as postcards.
 -->
@@ -11,7 +11,8 @@
 	import { dayColor } from '$lib/colors';
 	import type { Sketch } from '$lib/sketch';
 	import Photo from '$lib/blog/Photo.svelte';
-	import { html } from '$lib/blog/morph';
+	import type { Snippet } from 'svelte';
+	import type { Attachment } from 'svelte/attachments';
 	import RouteSketch from '$lib/ui/RouteSketch.svelte';
 
 	type Neighbour = { slug: string; day: string; index: number; title: string; cover: { id: string; w: number; h: number } | null } | null;
@@ -24,7 +25,10 @@
 		place,
 		prev = null,
 		next = null,
-		preview = false
+		preview = false,
+		titleSlot,
+		coverSlot,
+		prose
 	}: {
 		post: { slug: string; title: string; t: number; html: string; minutes: number };
 		cover: { id: string; w: number; h: number } | null;
@@ -36,6 +40,11 @@
 		next?: Neighbour;
 		/** in the editor: no breadcrumb or links into the tour */
 		preview?: boolean;
+		/** the editor: the title's text (editable), the cover (with its picker), and the story itself
+		    (the editor mounts on the .prose element, so the story's own styles apply as it's written) */
+		titleSlot?: Snippet;
+		coverSlot?: Snippet;
+		prose?: Attachment<HTMLElement>;
 	} = $props();
 	const c = $derived(dayColor(day.index, dayCount));
 </script>
@@ -50,18 +59,19 @@
 	</nav>{/if}
 	<header>
 		<p class="kicker"><span class="chip">Day {day.index + 1}</span> {day.title}</p>
-		<h1>{post.title}</h1>
+		<h1>{#if titleSlot}{@render titleSlot()}{:else}{post.title}{/if}</h1>
 		<p class="meta">
 			<time datetime={iso(post.t)}>{longDate(post.t)}, {time(post.t)}</time>{#if place}{' · '}near {place}{/if}{' · '}{post.minutes} minute read
 		</p>
 	</header>
-	{#if cover}
+	{#if coverSlot}
+		{@render coverSlot()}
+	{:else if cover}
 		<!-- the page's main image: fetched first, never lazy -->
 		<Photo class="cover" id={cover.id} size={[cover.w, cover.h]} alt="" sizes="(max-width: 46rem) 100vw, 46rem" priority />
 	{/if}
-	{#if preview}
-		<!-- the editor re-renders as it's written: only the paragraphs that changed are replaced -->
-		<div class="prose" use:html={post.html}></div>
+	{#if prose}
+		<div class="prose" {@attach prose}></div>
 	{:else}
 		<div class="prose">
 			<!-- the author's own Markdown, rendered at build time (scripts/build-blog.mjs) -->

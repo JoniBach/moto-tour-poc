@@ -95,12 +95,17 @@ so the overview outlines their mountains with a line every 1,000 m instead.
 ## Blog posts
 
 **Writing on the move: the story editor** at `/wysiwyg` (https://gt-retrospective.vercel.app/wysiwyg,
-not linked from the site and not indexed). Pick the day and time, write in Markdown with a
-toolbar, add photos from that day by tapping them, and see the story exactly as it will read (the
-build's own renderer, `src/lib/story.js`, and the story page's own article, `StoryArticle`),
-placed on the day's route. Nothing leaves the device: "Open .md" loads a file, "Save a copy"
-downloads a new timestamped copy (`<slug> (saved 2026-10-01 14.30).md`; its `slug:` header keeps the
-address, so the file name doesn't matter), and the draft stays in the browser between visits.
+not linked from the site and not indexed). A WYSIWYG editor: the page is the story page itself
+(`StoryArticle`), and the title and story are typed straight into it, formatted with a toolbar that
+floats above the on-screen keyboard (bold, italic, headings, quote, lists, link, ＋ Photo for the
+day's photos, each with a caption typed under it). Tap the cover to choose it; day, time, address
+and draft are in "Story settings", with the notes on what's missing and the Markdown it saves. The
+story is a Tiptap (ProseMirror) document read from and written to the story's Markdown
+(`src/lib/editor/storyEditor.ts`, `@tiptap/markdown`, which parses with Marked like the build), and
+offers only what the blog publishes; stories come back from a load and save rendering exactly as
+they did. Nothing leaves the device: "Open .md" loads a file, "Save a copy" downloads a new
+timestamped copy (`<slug> (saved 2026-10-01 14.30).md`; its `slug:` header keeps the address, so
+the file name doesn't matter), and the draft stays in the browser between visits.
 Drop the saved file into `tours/<id>/blog/` and build as below.
 
 

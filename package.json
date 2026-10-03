@@ -21,8 +21,7 @@
 		"data:photos": "node scripts/build-photos.mjs && node scripts/build-feed.mjs",
 		"data:blog": "node scripts/build-blog.mjs && node scripts/build-feed.mjs",
 		"data:feed": "node scripts/build-feed.mjs",
-		"data:music": "node --env-file-if-exists=.env.local scripts/build-music.mjs",
-		"spike:bundle": "esbuild src/lib/spike/tiptapSpike.js --bundle --format=esm --minify --outfile=static/tiptap-test.js"
+		"data:music": "node --env-file-if-exists=.env.local scripts/build-music.mjs"
 	},
 	"devDependencies": {
 		"@fontsource-variable/figtree": "^5.3.0",
@@ -50,6 +49,7 @@
 		"@threlte/core": "^8.6.1",
 		"@threlte/extras": "^9.22.0",
 		"@tiptap/core": "3.31.4",
+		"@tiptap/extensions": "3.31.4",
 		"@tiptap/markdown": "3.31.4",
 		"@tiptap/pm": "3.31.4",
 		"@tiptap/starter-kit": "3.31.4",

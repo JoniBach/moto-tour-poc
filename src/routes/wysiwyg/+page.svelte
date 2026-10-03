@@ -1,24 +1,30 @@
 <!--
-  The story editor (/wysiwyg): write a story for the tour on the move, see it exactly as it will
-  read in the blog, and save it as a Markdown file to commit later. Nothing leaves the device:
-  open an existing .md, edit, and "Save a copy" downloads a new timestamped file; the draft also
-  stays in this browser between visits. Not linked from anywhere, and not indexed.
+  The story editor (/wysiwyg): write a story for the tour on the move, straight onto the page as
+  it will read in the blog. The page is the story page itself (StoryArticle): type the title into
+  its heading and the story into its text, format with the toolbar (it floats above the keyboard),
+  add the day's photos with their captions, tap the cover to choose it. Day, time, address and
+  draft are in the settings drawer, with the Markdown it saves. Nothing leaves the device: open
+  an existing .md, edit, and "Save a copy" downloads a new timestamped file; the draft also stays
+  in this browser between visits. Not linked from anywhere, and not indexed.
 
-  The preview is the real thing: the same renderer as the build (src/lib/story.js) and the same
-  article as the story page (StoryArticle), placed on the day's route at the story's moment.
+  The story is a Tiptap (ProseMirror) document, read from and written to the story's Markdown
+  (src/lib/editor/storyEditor.ts), and only offers what the blog publishes.
 -->
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
+	import type { Editor } from '@tiptap/core';
 	import { TOUR, photoSrc } from '$lib/tourConfig';
-	import { loadDay, loadFeed, loadPhotos, loadTourIndex, bisect, type FeedDay, type Photo, type TourData, type TourIndex } from '$lib/data';
+	import { loadDay, loadFeed, loadPhotos, loadTourIndex, bisect, type FeedDay, type Photo as TourPhoto, type TourData, type TourIndex } from '$lib/data';
 	import { ukToEpoch } from '$lib/moment';
-	import { excerptOf, frontmatter, minutesOf, plainText, renderStory, slugFor, storyFile } from '$lib/story.js';
+	import { excerptOf, frontmatter, minutesOf, plainText, slugFor, storyFile } from '$lib/story.js';
 	import { sketch } from '$lib/sketch';
 	import StoryArticle from '$lib/blog/StoryArticle.svelte';
+	import Photo from '$lib/blog/Photo.svelte';
+	import { createStoryEditor, insertPhoto, photoIds, softBreaks } from '$lib/editor/storyEditor';
 
 	// ---- the tour's published data ------------------------------------------------------------
 	let days = $state.raw<FeedDay[]>([]);
-	let photos = $state.raw<Photo[]>([]);
+	let photos = $state.raw<TourPhoto[]>([]);
 	let index = $state.raw<TourIndex | null>(null);
 	let loadError = $state<string | null>(null);
 	onMount(() => {
@@ -33,6 +39,7 @@
 	type Draft = { title: string; date: string; clock: string; cover: string; slug: string; slugEdited: boolean; draft: boolean; body: string };
 	const blank = (): Draft => ({ title: '', date: '', clock: '12:00', cover: '', slug: '', slugEdited: false, draft: false, body: '' });
 	let s = $state<Draft>(blank());
+	let restored = $state(false);
 	onMount(() => {
 		try {
 			const saved = localStorage.getItem(KEY);
@@ -40,24 +47,29 @@
 		} catch {
 			/* private mode or storage off: start blank */
 		}
+		restored = true;
 	});
-	// kept a moment after a change settles (and when the page is hidden or left), with the latest text
+	let saved = $state(false);
 	function persist() {
+		if (!restored) return;
 		try {
 			localStorage.setItem(KEY, JSON.stringify({ ...s, body: latest() }));
+			saved = true;
 		} catch {
 			/* storage full or off: the draft just won't survive a reload */
 		}
 	}
+	// kept a moment after a change settles (and when the page is hidden or left)
 	$effect(() => {
-		JSON.stringify(s); // every field, so any settled change is kept
+		JSON.stringify(s); // every field
+		if (!restored) return;
+		saved = false;
 		const id = setTimeout(persist, 500);
 		return () => clearTimeout(id);
 	});
-	onMount(() => persist);
 	// the first day by default, once the days are in
 	$effect(() => {
-		if (!s.date && days.length) s.date = days[0].day;
+		if (restored && !s.date && days.length) s.date = days[0].day;
 	});
 	// the address follows the date and title until it's edited by hand
 	$effect(() => {
@@ -100,25 +112,130 @@
 		return lines ? sketch(lines, { dot: spot ?? undefined }) : null;
 	});
 
-	// ---- the preview -----------------------------------------------------------------------------
-	// It follows s.body, which only changes once typing settles (see "the text box" below), and
-	// only while it's on screen: beside the text on wide screens, or its own tab on phones.
-	let tab = $state<'write' | 'preview'>('write');
-	let wide = $state(true);
-	onMount(() => {
-		const mq = matchMedia('(min-width: 901px)');
-		const set = () => (wide = mq.matches);
-		set();
-		mq.addEventListener('change', set);
-		return () => mq.removeEventListener('change', set);
-	});
-	const previewing = $derived(wide || tab === 'preview');
-	const rendered = $derived(renderStory(s.body, { photos: byId, src: (id) => photoSrc('large', id) }));
-	const text = $derived(plainText(s.body));
-	const coverPhoto = $derived(s.cover ? byId.get(s.cover) : undefined);
-	const fileOf = (text: string) => storyFile({ title: s.title, time: `${s.date} ${s.clock}`, cover: s.cover, slug: s.slug }, text);
-	const file = $derived(fileOf(s.body));
+	// ---- the story's text: the editor ------------------------------------------------------------
+	// Typing touches nothing else: the Markdown (s.body, and with it the saved draft, the reading
+	// time and the notes) catches up once typing settles.
+	const SETTLE_MS = 600;
+	let editor = $state.raw<Editor | null>(null);
+	let settling: ReturnType<typeof setTimeout> | undefined;
+	/** the photos in the story, as of the last settle */
+	let embedded = $state<string[]>([]);
+	/** the story's Markdown right now */
+	const latest = () => editor?.getMarkdown() ?? s.body;
+	function settle() {
+		clearTimeout(settling);
+		if (!editor) return;
+		const md = editor.getMarkdown();
+		if (md !== s.body) s.body = md;
+		embedded = photoIds(editor);
+	}
+	// toolbar state, at most once a frame
+	let active = $state({ bold: false, italic: false, h2: false, h3: false, quote: false, bullets: false, numbers: false, link: false });
+	let frame = 0;
+	function selectionMoved() {
+		if (frame) return;
+		frame = requestAnimationFrame(() => {
+			frame = 0;
+			const e = editor;
+			if (!e) return;
+			active = {
+				bold: e.isActive('bold'),
+				italic: e.isActive('italic'),
+				h2: e.isActive('heading', { level: 2 }),
+				h3: e.isActive('heading', { level: 3 }),
+				quote: e.isActive('blockquote'),
+				bullets: e.isActive('bulletList'),
+				numbers: e.isActive('orderedList'),
+				link: e.isActive('link')
+			};
+		});
+	}
+	/** mounts the editor on the story page's own text element (StoryArticle's .prose) */
+	const prose = (el: HTMLElement) => {
+		const e = createStoryEditor({
+			el,
+			markdown: untrack(() => s.body),
+			photoSrc: (id) => photoSrc('large', id),
+			photoKnown: (id) => byId.has(id),
+			onChange: () => {
+				clearTimeout(settling);
+				settling = setTimeout(settle, SETTLE_MS);
+				selectionMoved();
+			},
+			onSelection: selectionMoved
+		});
+		editor = e;
+		embedded = photoIds(e);
+		return () => {
+			settle();
+			editor = null;
+			e.destroy();
+		};
+	};
+	/** put Markdown into the story (an opened file, a new story) */
+	function setBody(md: string) {
+		s.body = md;
+		if (!editor) return;
+		editor.commands.setContent(md, { contentType: 'markdown' });
+		softBreaks(editor);
+		embedded = photoIds(editor);
+	}
 
+	// formatting (buttons keep the story's focus and selection: no keyboard flicker on iPad)
+	const keep = (e: Event) => e.preventDefault();
+	const run = (fn: (c: ReturnType<Editor['chain']>) => ReturnType<Editor['chain']>) => editor && fn(editor.chain().focus()).run();
+	function link() {
+		if (!editor) return;
+		const was = editor.getAttributes('link').href as string | undefined;
+		const url = prompt('Link to (leave empty to remove the link)', was ?? 'https://');
+		if (url === null) return;
+		if (!url.trim() || url.trim() === 'https://') run((c) => c.extendMarkRange('link').unsetLink());
+		else run((c) => c.extendMarkRange('link').setLink({ href: url.trim() }));
+	}
+
+	// the toolbar floats just above the on-screen keyboard (or the bottom of the window without one)
+	let keyboard = $state(0);
+	onMount(() => {
+		const vv = window.visualViewport;
+		if (!vv) return;
+		const place = () => (keyboard = Math.max(0, window.innerHeight - vv.height - vv.offsetTop));
+		vv.addEventListener('resize', place);
+		vv.addEventListener('scroll', place);
+		return () => {
+			vv.removeEventListener('resize', place);
+			vv.removeEventListener('scroll', place);
+		};
+	});
+
+	// ---- the title: typed into the page's heading ---------------------------------------------------
+	let titleEl = $state<HTMLElement>();
+	const titleAttach = (el: HTMLElement) => {
+		titleEl = el;
+		el.textContent = untrack(() => s.title);
+		return () => (titleEl = undefined);
+	};
+	// a title from elsewhere (the saved draft, an opened file, "New") into the heading
+	$effect(() => {
+		const title = s.title;
+		if (titleEl && titleEl.textContent !== title) titleEl.textContent = title;
+	});
+	function titleTyped(e: Event) {
+		const el = e.currentTarget as HTMLElement;
+		const text = (el.textContent ?? '').replace(/\s*\n\s*/g, ' ');
+		if (!text.trim()) el.textContent = ''; // empty again: the placeholder shows
+		s.title = text;
+	}
+	function titleKey(e: KeyboardEvent) {
+		// Enter: on to the story
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			editor?.commands.focus('start');
+		}
+	}
+
+	// ---- the notes: what's missing before it's ready -----------------------------------------------
+	const coverPhoto = $derived(s.cover ? byId.get(s.cover) : undefined);
+	const text = $derived(plainText(s.body));
 	const problems = $derived.by(() => {
 		const out: string[] = [];
 		if (!s.title.trim()) out.push('Give it a title.');
@@ -126,126 +243,27 @@
 		else if (!Number.isFinite(t)) out.push('Set the time (hh:mm, the tour’s local time).');
 		else if (spot && !spot.inRide) out.push('That time is outside the day’s riding: it’ll be pinned to the nearest end of the ride.');
 		if (s.cover && !coverPhoto) out.push(`The cover photo ${s.cover} isn’t in the tour.`);
-		for (const id of rendered.withheld) out.push(`Photo ${id} isn’t in the tour (or is kept private): it won’t show.`);
+		for (const id of embedded) if (!byId.has(id)) out.push(`Photo ${id} isn’t in the tour (or is kept private): it won’t show.`);
 		if (s.draft) out.push('Marked as a draft: the file name starts with “_”, and the build skips it.');
 		return out;
 	});
 
-	// ---- the text box ----------------------------------------------------------------------------
-	// Not bound to the draft: the browser owns what's typed, and a key press only restarts a timer.
-	// The draft (and with it the preview, the file and the saved copy) catches up once typing
-	// settles, when the box loses focus, and before anything reads it (save, copy, new, preview tab).
-	// Re-rendering on every key, or at every short pause, made typing lag on iPads.
-	const SETTLE_MS = 700;
-	let area = $state<HTMLTextAreaElement>();
-	let settling: ReturnType<typeof setTimeout> | undefined;
-	/** the text as it is in the box right now */
-	const latest = () => area?.value ?? s.body;
-	function typed() {
-		clearTimeout(settling);
-		settling = setTimeout(settle, SETTLE_MS);
-	}
-	function settle() {
-		clearTimeout(settling);
-		if (area && area.value !== s.body) s.body = area.value;
-	}
-	onMount(() => () => clearTimeout(settling));
-
-	// ---- ?probe: on-device diagnosis of typing lag in the story box ------------------------------
-	// Times every keystroke (input event to the next painted frame, on the device itself), counts
-	// page scrolls while typing, and switches off one suspect at a time: Safari's writing
-	// suggestions, autocorrect/spell-check, the preview, or everything but a bare box (if that still
-	// lags, it's the browser or an extension, not this page). Not shown without ?probe.
-	let probe = $state(false);
-	const pr = $state({ suggestions: true, spelling: true, preview: true, bare: false });
-	let lat = $state<number[]>([]);
-	let scrolls = $state(0);
-	let length = $state(0);
-	onMount(() => {
-		probe = new URLSearchParams(location.search).has('probe');
-		if (!probe) return;
-		const onScroll = () => scrolls++;
-		addEventListener('scroll', onScroll, { passive: true });
-		return () => removeEventListener('scroll', onScroll);
-	});
-	function timeKey(e: Event) {
-		if (!probe) return;
-		const t0 = e.timeStamp;
-		requestAnimationFrame(() =>
-			setTimeout(() => {
-				lat = [...lat.slice(-59), performance.now() - t0];
-				length = area?.value.length ?? 0;
-			})
-		);
-	}
-	const pct = (p: number) => {
-		const l = [...lat].sort((a, b) => a - b);
-		return l.length ? Math.round(l[Math.min(l.length - 1, Math.floor(p * l.length))]) : 0;
-	};
-	/** Safari's own typing aids, as attributes (not in Svelte's types) */
-	const safariTyping = $derived({
-		autocorrect: !probe || pr.spelling ? 'on' : 'off',
-		autocapitalize: !probe || pr.spelling ? 'sentences' : 'off',
-		writingsuggestions: !probe || pr.suggestions ? 'true' : 'false'
-	} as Record<string, string>);
-	function resetProbe() {
-		lat = [];
-		scrolls = 0;
-	}
-	// text from elsewhere (the saved draft, an opened file, "New", the toolbar) into the box
-	$effect(() => {
-		const text = s.body;
-		if (area && area.value !== text) area.value = text;
-	});
-
-	// ---- editing helpers -------------------------------------------------------------------------
-	function edit(fn: (sel: string) => { text: string; select?: [number, number] }) {
-		if (!area) return;
-		const { selectionStart: a, selectionEnd: b, value } = area;
-		const out = fn(value.slice(a, b));
-		s.body = value.slice(0, a) + out.text + value.slice(b);
-		clearTimeout(settling);
-		queueMicrotask(() => {
-			area?.focus();
-			const [x, y] = out.select ?? [out.text.length, out.text.length];
-			area?.setSelectionRange(a + x, a + y);
-		});
-	}
-	const wrap = (mark: string, placeholder: string) =>
-		edit((sel) => {
-			const inner = sel || placeholder;
-			return { text: `${mark}${inner}${mark}`, select: [mark.length, mark.length + inner.length] };
-		});
-	const lines = (prefix: string, placeholder: string) =>
-		edit((sel) => {
-			const inner = sel || placeholder;
-			const text = inner
-				.split('\n')
-				.map((l) => prefix + l)
-				.join('\n');
-			return { text: `\n${text}\n`, select: [1 + prefix.length, 1 + text.length] };
-		});
-	const link = () =>
-		edit((sel) => {
-			const label = sel || 'link text';
-			return { text: `[${label}](https://)`, select: [label.length + 3, label.length + 11] };
-		});
-
-	// the photo picker: the day's photos, nearest the story's moment first in view
+	// ---- photos: the picker, for the story or the cover ---------------------------------------------
 	let picking = $state<'embed' | 'cover' | null>(null);
 	const dayPhotos = $derived(photos.filter((p) => p.day === s.date).sort((a, b) => a.t - b.t));
 	const clockOf = (sec: number) =>
 		new Date(sec * 1000).toLocaleTimeString(TOUR.locale, { hour: '2-digit', minute: '2-digit', timeZone: TOUR.timeZone });
-	function pick(p: Photo) {
+	function pick(p: TourPhoto) {
 		if (picking === 'cover') s.cover = p.id;
-		else edit(() => ({ text: `\n![Caption](photo:${p.id})\n`, select: [3, 10] }));
+		else if (editor) insertPhoto(editor, p.id);
 		picking = null;
 	}
 
 	// ---- files: open one from the device, save a new timestamped copy, copy the Markdown -------------
 	let status = $state('');
-	function open(text: string, name: string) {
-		const { data, body } = frontmatter(text);
+	const fileOf = () => storyFile({ title: s.title, time: `${s.date} ${s.clock}`, cover: s.cover, slug: s.slug }, latest());
+	function open(file: string, name: string) {
+		const { data, body } = frontmatter(file);
 		const [date = '', clock = '12:00'] = (data.time ?? '').split(/[ T]/);
 		s = {
 			title: data.title ?? '',
@@ -255,8 +273,9 @@
 			slug: data.slug ?? name.replace(/^_/, '').replace(/\.md$/i, '').replace(/\s*\(saved [^)]*\)$/, ''),
 			slugEdited: true,
 			draft: name.startsWith('_'),
-			body: body.replace(/^\n+/, '')
+			body: ''
 		};
+		setBody(body.replace(/^\n+/, ''));
 		status = `Opened ${name}`;
 	}
 	async function openFile(f: File | undefined) {
@@ -267,8 +286,7 @@
 		const pad = (n: number) => String(n).padStart(2, '0');
 		const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}.${pad(now.getMinutes())}`;
 		const name = `${s.draft ? '_' : ''}${s.slug || 'story'} (saved ${stamp}).md`;
-		settle();
-		const url = URL.createObjectURL(new Blob([fileOf(s.body)], { type: 'text/markdown' }));
+		const url = URL.createObjectURL(new Blob([fileOf()], { type: 'text/markdown' }));
 		const a = Object.assign(document.createElement('a'), { href: url, download: name });
 		a.click();
 		setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -276,24 +294,27 @@
 	}
 	async function copy() {
 		try {
-			settle();
-			await navigator.clipboard.writeText(fileOf(s.body));
+			await navigator.clipboard.writeText(fileOf());
 			status = 'Copied the Markdown';
 		} catch {
 			status = 'Couldn’t copy: your browser blocked it';
 		}
 	}
 	function fresh() {
-		settle();
-		if (s.body.trim() && !confirm('Start a new story? The current one is only kept if you’ve saved a copy.')) return;
+		if (plainText(latest()).trim() && !confirm('Start a new story? The current one is only kept if you’ve saved a copy.')) return;
 		s = { ...blank(), date: days[0]?.day ?? '' };
+		setBody('');
 		status = 'New story';
+		titleEl?.focus();
 	}
 
-	let showFile = $state(false);
+	// ---- the settings drawer --------------------------------------------------------------------
+	let settings = $state(false);
+	let markdown = $state<string | null>(null);
 	let dragging = $state(false);
 	const dayLabel = (d: FeedDay) =>
 		`Day ${d.index + 1} · ${new Date(d.start * 1000).toLocaleDateString(TOUR.locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: TOUR.timeZone })} · ${d.title}`;
+	const ready = $derived(!!index && days.length > 0 && restored);
 </script>
 
 <svelte:head>
@@ -317,16 +338,19 @@
 
 <svelte:document onvisibilitychange={() => document.visibilityState === 'hidden' && (settle(), persist())} />
 
-<div class="editor" class:dragging class:bare={probe && pr.bare} class:nopreview={probe && !pr.preview}>
+<div class="editor blog-palette" class:dragging>
 	<header class="bar">
 		<div class="brand">
 			<span class="mark" aria-hidden="true">✎</span>
 			<div>
 				<h1 class="display">Story editor</h1>
-				<p>{TOUR.name} · saved on this device only</p>
+				<p role="status">{status || (saved ? 'Saved on this device' : ' ')}</p>
 			</div>
 		</div>
 		<div class="actions">
+			<button type="button" class="pill" onclick={() => (settings = true)} aria-haspopup="dialog">
+				Story settings{#if problems.length}<span class="count" aria-label="{problems.length} notes">{problems.length}</span>{/if}
+			</button>
 			<label class="pill">
 				Open .md
 				<input type="file" accept=".md,.markdown,text/markdown,text/plain" onchange={(e) => openFile((e.currentTarget as HTMLInputElement).files?.[0])} />
@@ -335,203 +359,148 @@
 			<button type="button" class="pill" onclick={copy}>Copy Markdown</button>
 			<button type="button" class="pill go" onclick={save}>Save a copy</button>
 		</div>
-		<p class="status" role="status">{status}</p>
 	</header>
-
-	<div class="tabs" role="tablist" aria-label="Write or preview">
-		<button type="button" role="tab" aria-selected={tab === 'write'} onclick={() => (tab = 'write')}>Write</button>
-		<button type="button" role="tab" aria-selected={tab === 'preview'} onclick={() => (settle(), (tab = 'preview'))}>Preview</button>
-	</div>
 
 	{#if loadError}<p class="problem">Couldn’t load the tour’s data: {loadError}</p>{/if}
 
-	<div class="panes">
-		<section class="write" class:shown={tab === 'write'} aria-label="Write">
-			<label class="field">
-				<span>Title</span>
-				<input bind:value={s.title} placeholder="Up and over Honister" />
-			</label>
-			<div class="row">
-				<label class="field grow">
-					<span>Day</span>
-					<select bind:value={s.date}>
-						{#each days as d (d.day)}<option value={d.day}>{dayLabel(d)}</option>{/each}
-					</select>
-				</label>
-				<label class="field">
-					<span>Time</span>
-					<input type="time" bind:value={s.clock} />
-				</label>
-			</div>
-			<div class="row">
-				<div class="field grow">
-					<span>Cover photo</span>
-					<div class="cover">
-						{#if coverPhoto}<img src={photoSrc('thumb', coverPhoto.id)} alt="" />{/if}
-						<button type="button" class="pill small" onclick={() => (picking = picking === 'cover' ? null : 'cover')}>{s.cover ? 'Change' : 'Choose'}</button>
-						{#if s.cover}<button type="button" class="pill small" onclick={() => (s.cover = '')}>Remove</button>{/if}
-					</div>
-				</div>
-				<label class="field check">
-					<input type="checkbox" bind:checked={s.draft} />
-					<span>Draft</span>
-				</label>
-			</div>
-			<label class="field">
-				<span>Address <small>(the story’s page: /blog/{s.date}/{s.slug || '…'})</small></span>
-				<input bind:value={s.slug} oninput={() => (s.slugEdited = true)} spellcheck="false" />
-			</label>
-
-			<div class="toolbar" role="toolbar" aria-label="Formatting">
-				<button type="button" onclick={() => wrap('**', 'bold')} aria-label="Bold"><b>B</b></button>
-				<button type="button" onclick={() => wrap('*', 'italic')} aria-label="Italic"><i>I</i></button>
-				<button type="button" onclick={() => lines('## ', 'Heading')} aria-label="Heading">H</button>
-				<button type="button" onclick={() => lines('> ', 'A quote')} aria-label="Quote">❝</button>
-				<button type="button" onclick={() => lines('- ', 'A point')} aria-label="List">•</button>
-				<button type="button" onclick={link} aria-label="Link">🔗</button>
-				<button type="button" class="photo" onclick={() => (picking = picking === 'embed' ? null : 'embed')} aria-expanded={picking === 'embed'}>＋ Photo</button>
-			</div>
-
-			{#if picking}
-				<div class="picker">
-					<p>
-						{picking === 'cover' ? 'Choose the cover' : 'Add a photo where the cursor is'} · {dayPhotos.length} photos on this day
-						<button type="button" class="pill small" onclick={() => (picking = null)}>Close</button>
-					</p>
-					<ul>
-						{#each dayPhotos as p (p.id)}
-							<li>
-								<button type="button" onclick={() => pick(p)} aria-label="Photo at {clockOf(p.t)}">
-									<img src={photoSrc('thumb', p.id)} alt="" loading="lazy" />
-									<span>{clockOf(p.t)}</span>
-								</button>
-							</li>
-						{:else}
-							<li class="none">No photos on this day.</li>
-						{/each}
-					</ul>
-				</div>
-			{/if}
-
-			<textarea
-				bind:this={area}
-				oninput={(e) => (typed(), timeKey(e))}
-				onblur={settle}
-				placeholder="Write the story in Markdown…"
-				aria-label="The story, in Markdown"
-				spellcheck={!probe || pr.spelling}
-				{...safariTyping}
-			></textarea>
-
-			{#if problems.length}
-				<ul class="notes" aria-label="Before it’s ready">
-					{#each problems as p (p)}<li>{p}</li>{/each}
-				</ul>
-			{/if}
-			<details class="source" bind:open={showFile}>
-				<summary>The file it saves</summary>
-				{#if showFile}<pre>{file}</pre>{/if}
-			</details>
-		</section>
-
-		<section class="preview" class:shown={tab === 'preview'} aria-label="Preview, as it will read in the blog">
-			<div class="page blog-palette">
-				{#if !previewing}
-					<!-- not on screen (the Write tab on a phone): not rendered -->
-				{:else if day && Number.isFinite(t)}
-					<StoryArticle
-						preview
-						post={{ slug: s.slug, title: s.title || 'Untitled story', t, html: rendered.html, minutes: minutesOf(text) }}
-						cover={coverPhoto ? { id: coverPhoto.id, w: coverPhoto.w, h: coverPhoto.h } : null}
-						day={{ day: day.day, index: day.index, title: day.title }}
-						dayCount={days.length}
-						{where}
-						place={spot?.place ?? null}
-					/>
-					{#if text}<p class="excerpt"><b>In the day’s timeline:</b> {excerptOf(text)}</p>{/if}
-				{:else}
-					<p class="empty">Pick a day and a time to see the story where it happened.</p>
-				{/if}
-			</div>
-		</section>
-	</div>
+	<main class="page">
+		{#if ready && day}
+			<StoryArticle
+				preview
+				post={{ slug: s.slug, title: s.title || 'Untitled story', t: Number.isFinite(t) ? t : day.start, html: '', minutes: minutesOf(text) }}
+				cover={null}
+				day={{ day: day.day, index: day.index, title: day.title }}
+				dayCount={days.length}
+				{where}
+				place={spot?.place ?? null}
+				{titleSlot}
+				{coverSlot}
+				{prose}
+			/>
+		{:else if !loadError}
+			<p class="loading">Getting the tour’s days and photos…</p>
+		{/if}
+	</main>
 </div>
 
-{#if probe}
-	<aside class="probe" aria-label="Typing diagnosis">
-		<p>
-			<b>Typing lag</b> · {lat.length} keys · median <b>{pct(0.5)} ms</b> · slowest 10% <b>{pct(0.9)} ms</b> · page scrolled
-			{scrolls}× · {length} characters
+{#snippet titleSlot()}
+	<span
+		class="title-edit"
+		contenteditable="plaintext-only"
+		role="textbox"
+		tabindex="0"
+		aria-label="Title"
+		data-placeholder="Give it a title"
+		spellcheck="true"
+		{@attach titleAttach}
+		oninput={titleTyped}
+		onkeydown={titleKey}
+	></span>
+{/snippet}
+
+{#snippet coverSlot()}
+	{#if coverPhoto}
+		<button type="button" class="cover-pick" onclick={() => (picking = 'cover')} aria-label="Change the cover photo">
+			<Photo class="cover" id={coverPhoto.id} size={[coverPhoto.w, coverPhoto.h]} alt="" sizes="(max-width: 46rem) 100vw, 46rem" priority />
+			<span class="cover-hint">Change the cover</span>
+		</button>
+	{:else}
+		<button type="button" class="cover-add" onclick={() => (picking = 'cover')}>＋ Add a cover photo</button>
+	{/if}
+{/snippet}
+
+<!-- formatting: floats above the on-screen keyboard -->
+{#if editor}
+	<div class="toolbar" role="toolbar" aria-label="Formatting" style:bottom="{keyboard + 12}px">
+		<button type="button" onmousedown={keep} onclick={() => run((c) => c.toggleBold())} aria-pressed={active.bold} aria-label="Bold"><b>B</b></button>
+		<button type="button" onmousedown={keep} onclick={() => run((c) => c.toggleItalic())} aria-pressed={active.italic} aria-label="Italic"><i>I</i></button>
+		<button type="button" onmousedown={keep} onclick={() => run((c) => c.toggleHeading({ level: 2 }))} aria-pressed={active.h2} aria-label="Heading">H</button>
+		<button type="button" onmousedown={keep} onclick={() => run((c) => c.toggleHeading({ level: 3 }))} aria-pressed={active.h3} aria-label="Small heading" class="small">h</button>
+		<button type="button" onmousedown={keep} onclick={() => run((c) => c.toggleBlockquote())} aria-pressed={active.quote} aria-label="Quote">❝</button>
+		<button type="button" onmousedown={keep} onclick={() => run((c) => c.toggleBulletList())} aria-pressed={active.bullets} aria-label="Bullet list">•</button>
+		<button type="button" onmousedown={keep} onclick={() => run((c) => c.toggleOrderedList())} aria-pressed={active.numbers} aria-label="Numbered list">1.</button>
+		<button type="button" onmousedown={keep} onclick={link} aria-pressed={active.link} aria-label="Link">🔗</button>
+		<span class="sep" aria-hidden="true"></span>
+		<button type="button" class="photo" onmousedown={keep} onclick={() => (picking = 'embed')}>＋ Photo</button>
+	</div>
+{/if}
+
+<!-- the day's photos: for the story (at the cursor) or the cover -->
+{#if picking}
+	<div class="scrim" onclick={() => (picking = null)} aria-hidden="true"></div>
+	<div class="sheet picker" role="dialog" aria-modal="true" aria-label={picking === 'cover' ? 'Choose the cover' : 'Add a photo'}>
+		<p class="sheet-head">
+			<b>{picking === 'cover' ? 'Choose the cover' : 'Add a photo where the cursor is'}</b> · {dayPhotos.length} photos on this day
+			<span>
+				{#if picking === 'cover' && s.cover}<button type="button" class="pill small" onclick={() => ((s.cover = ''), (picking = null))}>Remove the cover</button>{/if}
+				<button type="button" class="pill small" onclick={() => (picking = null)}>Close</button>
+			</span>
 		</p>
-		<label><input type="checkbox" bind:checked={pr.suggestions} onchange={resetProbe} /> Writing suggestions</label>
-		<label><input type="checkbox" bind:checked={pr.spelling} onchange={resetProbe} /> Autocorrect + spell-check</label>
-		<label><input type="checkbox" bind:checked={pr.preview} onchange={resetProbe} /> Preview</label>
-		<label><input type="checkbox" bind:checked={pr.bare} onchange={resetProbe} /> Bare box only</label>
-		<button type="button" onclick={resetProbe}>Reset</button>
-		<small>Untick one, tap back into the story box (changes apply from there), type a few lines, compare.</small>
-	</aside>
+		<ul>
+			{#each dayPhotos as p (p.id)}
+				<li>
+					<button type="button" onclick={() => pick(p)} aria-label="Photo at {clockOf(p.t)}">
+						<img src={photoSrc('thumb', p.id)} alt="" loading="lazy" />
+						<span>{clockOf(p.t)}</span>
+					</button>
+				</li>
+			{:else}
+				<li class="none">No photos on this day.</li>
+			{/each}
+		</ul>
+	</div>
+{/if}
+
+<!-- story settings: when and where it goes, its address, draft, and the Markdown it saves -->
+{#if settings}
+	<div class="scrim" onclick={() => (settings = false)} aria-hidden="true"></div>
+	<div class="sheet drawer" role="dialog" aria-modal="true" aria-label="Story settings">
+		<p class="sheet-head"><b>Story settings</b> <button type="button" class="pill small" onclick={() => (settings = false)}>Done</button></p>
+		<label class="field">
+			<span>Day</span>
+			<select bind:value={s.date}>
+				{#each days as d (d.day)}<option value={d.day}>{dayLabel(d)}</option>{/each}
+			</select>
+		</label>
+		<label class="field">
+			<span>Time <small>(the tour’s local time: the story goes where the bike was)</small></span>
+			<input type="time" bind:value={s.clock} />
+		</label>
+		<label class="field">
+			<span>Address <small>(/blog/{s.date}/{s.slug || '…'})</small></span>
+			<input bind:value={s.slug} oninput={() => (s.slugEdited = true)} spellcheck="false" />
+		</label>
+		<label class="field check">
+			<input type="checkbox" bind:checked={s.draft} />
+			<span>Draft (not published yet)</span>
+		</label>
+		<div class="field">
+			<span>Cover photo</span>
+			<div class="row">
+				<button type="button" class="pill small" onclick={() => ((settings = false), (picking = 'cover'))}>{s.cover ? 'Change' : 'Choose'}</button>
+				{#if s.cover}<button type="button" class="pill small" onclick={() => (s.cover = '')}>Remove</button>{/if}
+			</div>
+		</div>
+		{#if problems.length}
+			<ul class="notes" aria-label="Before it’s ready">
+				{#each problems as p (p)}<li>{p}</li>{/each}
+			</ul>
+		{/if}
+		{#if text}<p class="excerpt"><b>In the day’s timeline:</b> {excerptOf(text)}</p>{/if}
+		<details class="source" ontoggle={(e) => (markdown = (e.currentTarget as HTMLDetailsElement).open ? fileOf() : null)}>
+			<summary>View the Markdown it saves</summary>
+			{#if markdown !== null}<pre>{markdown}</pre>{/if}
+		</details>
+	</div>
 {/if}
 
 <style>
-	.probe {
-		position: fixed;
-		z-index: 50;
-		left: 8px;
-		right: 8px;
-		top: 8px;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 6px 14px;
-		align-items: center;
-		padding: 8px 12px;
-		border-radius: 12px;
-		background: #263238;
-		color: #fff;
-		font: 13px/1.4 var(--font-ui);
-		box-shadow: var(--shadow);
-	}
-	.probe p {
-		flex-basis: 100%;
-		margin: 0;
-	}
-	.probe button {
-		font: inherit;
-	}
-	.probe small {
-		flex-basis: 100%;
-		opacity: 0.75;
-	}
-	/* the control: nothing on the page but the box */
-	.editor.bare .bar,
-	.editor.bare .tabs,
-	.editor.bare .preview,
-	.editor.bare .write > :not(textarea) {
-		display: none !important;
-	}
-	.editor.bare .panes {
-		display: block;
-	}
-	.editor.bare,
-	.editor.bare .write {
-		background: #fff;
-		box-shadow: none;
-	}
-	.editor.bare textarea {
-		width: 100%;
-		box-sizing: border-box;
-	}
-	.editor.nopreview .preview {
-		display: none !important;
-	}
-
-	.editor:has(~ .probe) {
-		padding-top: 110px;
-	}
 	.editor {
 		min-height: 100vh;
 		box-sizing: border-box;
-		padding: 16px;
-		background: linear-gradient(to bottom, #cfe6f5 0, #e6f1f6 14rem, #fbf6ec 30rem) no-repeat, #fbf6ec;
+		/* room for the floating toolbar under the story */
+		padding: 16px 16px 120px;
+		background: var(--paper);
 		color: var(--text);
 		font-family: var(--font-ui);
 	}
@@ -545,8 +514,8 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 12px;
-		max-width: 96rem;
-		margin: 0 auto 12px;
+		max-width: 72rem;
+		margin: 0 auto 8px;
 	}
 	.brand {
 		display: flex;
@@ -556,19 +525,20 @@
 	.mark {
 		display: grid;
 		place-items: center;
-		width: 44px;
-		height: 44px;
+		width: 40px;
+		height: 40px;
 		border-radius: 50%;
 		background: var(--accent);
 		color: var(--on-accent);
-		font-size: 20px;
+		font-size: 18px;
 	}
 	.brand h1 {
 		margin: 0;
-		font-size: 24px;
+		font-size: 20px;
 	}
 	.brand p {
 		margin: 0;
+		min-height: 1.2em;
 		font-size: 13px;
 		color: var(--muted);
 	}
@@ -581,8 +551,9 @@
 		position: relative;
 		display: inline-flex;
 		align-items: center;
-		min-height: 42px;
-		padding: 0 16px;
+		gap: 6px;
+		min-height: 40px;
+		padding: 0 14px;
 		border: 0;
 		border-radius: 999px;
 		background: var(--card);
@@ -611,140 +582,205 @@
 		opacity: 0;
 		cursor: pointer;
 	}
-	.status {
-		flex-basis: 100%;
-		margin: 0;
-		min-height: 1.2em;
-		font-size: 13px;
-		color: var(--muted);
-		text-align: right;
-	}
-	.tabs {
-		display: none;
-	}
-	.panes {
+	.count {
 		display: grid;
-		grid-template-columns: minmax(0, 34rem) minmax(0, 1fr);
-		gap: 20px;
-		max-width: 96rem;
+		place-items: center;
+		min-width: 20px;
+		height: 20px;
+		padding: 0 5px;
+		box-sizing: border-box;
+		border-radius: 999px;
+		background: var(--butter);
+		color: var(--butter-ink);
+		font-size: 12px;
+	}
+	.page {
+		max-width: 46rem;
 		margin: 0 auto;
-		align-items: start;
 	}
-	.write {
-		/* typing changes nothing outside the panel: the browser needn't re-lay out the page */
-		contain: layout style;
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-		padding: 18px;
-		border-radius: 24px;
-		background: var(--glass);
-		box-shadow: var(--shadow);
-	}
-	.field {
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-		font-size: 13px;
-		font-weight: 650;
-	}
-	.field small {
-		font-weight: 400;
+	.loading,
+	.problem {
+		margin: 2rem auto;
+		max-width: 46rem;
 		color: var(--muted);
 	}
-	.field input:not([type='checkbox']),
-	.field select {
-		min-height: 42px;
-		padding: 0 12px;
+
+	/* ---- writing on the page ---- */
+	.title-edit {
+		display: inline-block;
+		min-width: 6ch;
+		outline: none;
+		cursor: text;
+	}
+	.title-edit:empty::before {
+		content: attr(data-placeholder);
+		color: var(--b-muted, var(--muted));
+		opacity: 0.6;
+	}
+	.page :global(.prose.ProseMirror) {
+		outline: none;
+		min-height: 40vh;
+		caret-color: var(--accent);
+	}
+	.page :global(.prose p.is-editor-empty:first-child::before) {
+		content: attr(data-placeholder);
+		float: left;
+		height: 0;
+		color: var(--b-muted, var(--muted));
+		opacity: 0.6;
+		pointer-events: none;
+	}
+	.page :global(.prose figure.is-empty figcaption::before) {
+		content: 'Add a caption…';
+		color: var(--b-muted, var(--muted));
+		opacity: 0.6;
+		pointer-events: none;
+	}
+	.page :global(.prose figure.ProseMirror-selectednode img) {
+		outline: 4px solid var(--accent);
+	}
+	.page :global(.prose .missing-photo) {
+		padding: 2rem 1rem;
+		border: 2px dashed var(--line);
+		border-radius: 18px;
+		color: var(--muted);
+		font-size: 0.9rem;
+		text-align: center;
+	}
+	.cover-pick {
+		position: relative;
+		display: block;
+		width: 100%;
+		padding: 0;
 		border: 0;
-		border-radius: 12px;
-		background: var(--card);
-		box-shadow: 0 0 0 1px var(--line);
-		color: var(--text);
-		font: inherit;
-		font-weight: 500;
-		font-size: 15px;
-	}
-	.row {
-		display: flex;
-		gap: 12px;
-		align-items: end;
-	}
-	.grow {
-		flex: 1;
-		min-width: 0;
-	}
-	.check {
-		flex-direction: row;
-		align-items: center;
-		gap: 8px;
-		min-height: 42px;
-	}
-	.check input {
-		width: 20px;
-		height: 20px;
-		accent-color: var(--accent);
-	}
-	.cover {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		min-height: 42px;
-	}
-	.cover img {
-		width: 56px;
-		height: 42px;
-		object-fit: cover;
-		border-radius: 10px;
-	}
-	.toolbar {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 6px;
-	}
-	.toolbar button {
-		min-width: 40px;
-		min-height: 40px;
-		padding: 0 10px;
-		border: 0;
-		border-radius: 12px;
-		background: var(--card);
-		box-shadow: 0 0 0 1px var(--line);
-		color: var(--text);
-		font: inherit;
-		font-size: 15px;
+		background: none;
 		cursor: pointer;
 	}
-	.toolbar button:hover {
-		background: var(--accent-soft);
+	.cover-hint {
+		position: absolute;
+		right: 12px;
+		bottom: 2.6rem;
+		padding: 4px 12px;
+		border-radius: 999px;
+		background: rgb(0 0 0 / 0.55);
+		color: #fff;
+		font: 600 13px var(--font-ui);
+	}
+	.cover-add {
+		display: block;
+		width: 100%;
+		margin: 0.5rem 0 2rem;
+		padding: 2.2rem 1rem;
+		border: 2px dashed var(--line);
+		border-radius: 22px;
+		background: none;
+		color: var(--muted);
+		font: 600 15px var(--font-ui);
+		cursor: pointer;
+	}
+
+	/* ---- the formatting toolbar: a pill above the keyboard ---- */
+	.toolbar {
+		position: fixed;
+		z-index: 30;
+		/* centred with the whole width to fit in (left: 50% would leave it only half) */
+		left: 0;
+		right: 0;
+		width: fit-content;
+		margin: 0 auto;
+		display: flex;
+		align-items: center;
+		gap: 2px;
+		max-width: calc(100% - 16px);
+		overflow-x: auto;
+		padding: 5px;
+		box-sizing: border-box;
+		border-radius: 999px;
+		background: var(--card);
+		box-shadow:
+			var(--shadow),
+			0 0 0 1px var(--line);
+		font-family: var(--font-ui);
+	}
+	.toolbar button {
+		flex: none;
+		min-width: 40px;
+		height: 40px;
+		padding: 0 8px;
+		border: 0;
+		border-radius: 999px;
+		background: none;
+		color: var(--text);
+		font: inherit;
+		font-size: 16px;
+		cursor: pointer;
+	}
+	.toolbar button.small {
+		font-size: 13px;
+	}
+	.toolbar button[aria-pressed='true'] {
+		background: var(--ink);
+		color: var(--paper);
 	}
 	.toolbar .photo {
-		margin-left: auto;
-		font-weight: 650;
+		padding: 0 14px;
+		background: var(--accent-soft);
+		color: var(--accent-ink);
+		font-weight: 700;
+		font-size: 14px;
 	}
-	.picker {
-		padding: 10px;
-		border-radius: 16px;
-		background: var(--card);
-		box-shadow: 0 0 0 1px var(--line);
+	.sep {
+		flex: none;
+		width: 1px;
+		height: 24px;
+		margin: 0 4px;
+		background: var(--line);
 	}
-	.picker p {
+
+	/* ---- sheets: the photo picker and the settings drawer ---- */
+	.scrim {
+		position: fixed;
+		inset: 0;
+		z-index: 40;
+		background: rgb(30 30 30 / 0.3);
+	}
+	.sheet {
+		position: fixed;
+		z-index: 41;
+		box-sizing: border-box;
+		padding: 16px;
+		background: var(--paper);
+		box-shadow: var(--shadow);
+		font-family: var(--font-ui);
+		overflow-y: auto;
+	}
+	.sheet-head {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
 		gap: 8px;
-		margin: 0 0 8px;
-		font-size: 13px;
-		font-weight: 650;
+		margin: 0 0 12px;
+		font-size: 14px;
+	}
+	.sheet-head span {
+		display: flex;
+		gap: 6px;
+	}
+	.picker {
+		left: 50%;
+		bottom: 0;
+		transform: translateX(-50%);
+		width: min(46rem, 100%);
+		max-height: 70vh;
+		border-radius: 24px 24px 0 0;
 	}
 	.picker ul {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-		gap: 6px;
-		max-height: 260px;
+		grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+		gap: 8px;
 		margin: 0;
 		padding: 0;
-		overflow-y: auto;
 		list-style: none;
 	}
 	.picker li button {
@@ -774,16 +810,52 @@
 		font-size: 13px;
 		color: var(--muted);
 	}
-	textarea {
-		min-height: 22rem;
-		padding: 14px;
+	.drawer {
+		top: 0;
+		right: 0;
+		bottom: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+		width: min(24rem, 100%);
+	}
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		font-size: 13px;
+		font-weight: 650;
+	}
+	.field small {
+		font-weight: 400;
+		color: var(--muted);
+	}
+	.field input:not([type='checkbox']),
+	.field select {
+		min-height: 42px;
+		padding: 0 12px;
 		border: 0;
-		border-radius: 16px;
+		border-radius: 12px;
 		background: var(--card);
 		box-shadow: 0 0 0 1px var(--line);
 		color: var(--text);
-		font: 15px/1.6 ui-monospace, 'Cascadia Code', Consolas, monospace;
-		resize: vertical;
+		font: inherit;
+		font-weight: 500;
+		font-size: 15px;
+	}
+	.check {
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+	}
+	.check input {
+		width: 20px;
+		height: 20px;
+		accent-color: var(--accent);
+	}
+	.row {
+		display: flex;
+		gap: 8px;
 	}
 	.notes {
 		margin: 0;
@@ -794,13 +866,13 @@
 		font-size: 13px;
 		line-height: 1.5;
 	}
-	.problem {
-		max-width: 96rem;
-		margin: 0 auto 12px;
-		padding: 10px 14px;
+	.excerpt {
+		margin: 0;
+		padding: 10px 12px;
 		border-radius: 14px;
-		background: var(--accent-soft);
-		color: var(--accent-ink);
+		background: var(--sky);
+		color: var(--sky-ink);
+		font-size: 13px;
 	}
 	.source summary {
 		cursor: pointer;
@@ -818,78 +890,28 @@
 		white-space: pre-wrap;
 		word-break: break-word;
 	}
-	.preview {
-		contain: layout style;
-		position: sticky;
-		top: 16px;
-		max-height: calc(100vh - 32px);
-		overflow-y: auto;
-		border-radius: 24px;
-		background: var(--paper);
-		box-shadow: var(--shadow);
-	}
-	.page {
-		max-width: 46rem;
-		margin: 0 auto;
-		padding: 24px 20px 32px;
-	}
-	.excerpt,
-	.empty {
-		margin-top: 2rem;
-		padding: 12px 14px;
-		border-radius: 14px;
-		background: var(--sky);
-		color: var(--sky-ink);
-		font-size: 14px;
-	}
-	/* phones: one pane at a time */
-	@media (max-width: 900px) {
+	@media (max-width: 700px) {
 		.editor {
-			padding: 12px;
+			padding: 12px 12px 110px;
 		}
 		.actions {
 			width: 100%;
 		}
-		.tabs {
-			display: flex;
-			gap: 4px;
-			margin: 0 0 12px;
-			padding: 4px;
-			border-radius: 999px;
-			background: var(--glass);
-			box-shadow:
-				var(--press),
-				0 0 0 1px var(--line);
+	}
+	/* phones: the whole toolbar on screen, Photo included */
+	@media (max-width: 480px) {
+		.toolbar button {
+			min-width: 32px;
+			padding: 0 4px;
 		}
-		.tabs button {
-			flex: 1;
-			min-height: 40px;
-			border: 0;
-			border-radius: 999px;
-			background: none;
-			color: var(--muted);
-			font: inherit;
-			font-weight: 650;
-		}
-		.tabs button[aria-selected='true'] {
-			background: var(--ink);
-			color: var(--paper);
-		}
-		.panes {
-			display: block;
-		}
-		.write,
-		.preview {
+		.toolbar button.small {
 			display: none;
 		}
-		.write.shown,
-		.preview.shown {
-			display: flex;
+		.toolbar .photo {
+			padding: 0 10px;
 		}
-		.preview.shown {
-			display: block;
-			position: static;
-			max-height: none;
+		.sep {
+			margin: 0 2px;
 		}
 	}
 </style>

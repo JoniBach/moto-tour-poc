@@ -418,11 +418,11 @@ flaky connection just re-run. `node scripts/deploy.mjs --prod` would publish pub
 2. builds the blog, its email images (starting the site briefly if a map snapshot needs drawing)
    and the events feed,
 3. deploys to production (privacy audit first),
-4. reads the live RSS feed back and creates a **draft** email in Buttondown for each story not
-   emailed before (the feed's own copy of the story); check and send it in Buttondown.
+4. reads the live RSS feed back and **emails each story not emailed before** to subscribers through
+   Buttondown (the feed's own copy of the story).
    `tours/<id>/emails.json` (committed) records which stories have been emailed.
 
-`-- --send` sends instead of drafting, `-- --no-email` leaves the mailing list alone, `-- --no-deploy`
+`-- --draft` leaves the emails as drafts to check and send in Buttondown, `-- --no-email` leaves the mailing list alone, `-- --no-deploy`
 only builds. Emails need `BUTTONDOWN_API_KEY` in `.env.local` (Buttondown → Settings → API; the API
 is free, unlike Buttondown's own RSS-to-email). Nothing is pushed to GitHub. In Claude Code: `/release`.
 

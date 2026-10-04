@@ -1,14 +1,14 @@
 ---
 name: release
-description: Publish the GT Retrospective blog to production - commit new stories, build, deploy, and draft (or send) the mailing-list email for each new story. Use when the user asks to publish, release or deploy stories/content to prod.
+description: Publish the GT Retrospective blog to production - commit new stories, build, deploy, and email each new story to subscribers (or leave drafts). Use when the user asks to publish, release or deploy stories/content to prod.
 ---
 
 # Release the blog
 
 The user invoking this is their go-ahead for a **production deploy** of moto-tour-poc.
 
-1. In `H:\workspaces\play\moto-tour-poc`, run `npm run release` (add `-- --send` only if the user said
-   to send the emails, `-- --no-email` if they said not to email). It takes several minutes: run it
+1. In `H:\workspaces\play\moto-tour-poc`, run `npm run release` (it emails new stories to subscribers;
+   add `-- --draft` if the user wants to check the emails first, `-- --no-email` if they said not to email). It takes several minutes: run it
    in the foreground with a 10-minute timeout, output to a log file, and read the tail.
 2. Before running, glance at `git status --short -- tours/` and tell the user which story files will
    be committed. Stories with `when`/`time` problems are skipped by build-blog with a message: report

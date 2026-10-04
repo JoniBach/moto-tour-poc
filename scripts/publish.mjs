@@ -1,7 +1,7 @@
 // Publish the blog: one command from "I've written a story" to "it's live and in subscribers' inbox".
 //
-//   npm run release                 commit stories, build, deploy to production, draft the emails
-//   npm run release -- --send       …and send the emails straight away
+//   npm run release                 commit stories, build, deploy to production, email new stories
+//   npm run release -- --draft      …but leave the emails as drafts to check and send in Buttondown
 //   npm run release -- --no-email   …without touching the mailing list
 //   npm run release -- --no-deploy  build only (check a story before it goes out)
 //   TOUR=<id> npm run release       another tour (default uk-2026)
@@ -12,7 +12,7 @@
 //    still yet, starts the site locally to draw it) and the events feed (build-feed).
 // 3. Deploys to production (deploy.mjs --prod, which runs the privacy audit first).
 // 4. Reads the live RSS feed back, and for each story not emailed yet creates the email in
-//    Buttondown, as a draft to check and send there (or sent with --send). The emails are the
+//    Buttondown and sends it to subscribers (or leaves it as a draft with --draft). The emails are the
 //    feed's own copy of each story. Which stories have been emailed is kept in
 //    tours/<id>/emails.json (committed), so a story is never emailed twice.
 //
@@ -24,7 +24,7 @@ import { mapFile } from '../src/lib/story.js';
 import { PATHS, TOUR, TOUR_ID } from './lib/tour.mjs';
 
 const args = process.argv.slice(2);
-const SEND = args.includes('--send');
+const SEND = !args.includes('--draft');
 const EMAIL = !args.includes('--no-email');
 const DEPLOY = !args.includes('--no-deploy');
 const ORIGIN = (TOUR.origin ?? 'https://gt-retrospective.vercel.app').replace(/\/$/, '');
@@ -40,7 +40,7 @@ const out = (cmd) => execSync(cmd, { encoding: 'utf8' }).trim();
 const step = (s) => console.log(`\n── ${s}`);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-if (EMAIL && DEPLOY && !KEY) console.log('No BUTTONDOWN_API_KEY in .env.local: publishing without emails (add it to draft them)');
+if (EMAIL && DEPLOY && !KEY) console.log('No BUTTONDOWN_API_KEY in .env.local: publishing without emails (add it to email them)');
 
 // ---- 1. commit the stories ----
 step('Stories');

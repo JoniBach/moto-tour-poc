@@ -44,3 +44,6 @@ static/data/tours/
 static/photos/
 # Spotify listening history and its lookups (scripts/build-music.mjs publishes only the ride's plays)
 tours/*/spotify/
+
+# encrypted packs of the git-ignored files, for setting up another machine (scripts/private-pack.mjs)
+private-packs/

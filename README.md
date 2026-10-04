@@ -33,6 +33,36 @@ node scripts/build-photos.mjs        # resize + place photos
 
 Only the tour configs, titles, pins and stories are committed.
 
+### Setting up another machine
+
+Everything git doesn't have travels in one encrypted file (`scripts/private-pack.mjs`): the built
+site data, the private inputs (rides, `privacy.json`, the Spotify export) and the secrets in
+`.env.local` (not the machine's own `VERCEL_OIDC_TOKEN`). Works the same on Windows and macOS
+(the system `tar` and Node's own AES-256-GCM: nothing to install).
+
+On the machine that has everything:
+
+```sh
+npm run private:pack               # ~310 MB: enough to run the site and rebuild the data
+npm run private:pack -- --full     # + the original photos (~1.7 GB more), to re-process them
+```
+
+It writes `private-packs/<tour>-<dev|full>-<date>.tgz.enc` (git-ignored) and prints a password
+once (or set `PACK_PASSWORD` to choose it). Carry the file any way you like; it's encrypted, but
+keep the password apart from it: `privacy.json` says where family live.
+
+On the new machine:
+
+```sh
+git clone git@github.com:JoniBach/moto-tour-poc.git && cd moto-tour-poc
+npm install
+PACK_PASSWORD='…' npm run private:unpack -- path/to/uk-2026-dev-….tgz.enc
+npm run dev                        # the whole site, as it is on the other machine
+```
+
+Unpack checks the password and that the file is whole before writing anything. The tile cache
+(`data/cache`) refills itself when the data is rebuilt; `npx vercel link` reconnects deploys.
+
 ## Tours
 
 Everything tour-specific lives in `tours/<id>/`; the site and scripts are the same for every

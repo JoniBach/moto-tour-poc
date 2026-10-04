@@ -181,3 +181,12 @@ export function blogPaths(): { path: string; changed?: number }[] {
 		...photos().map((p) => ({ path: `/blog/${p.day}/photo/${p.id}` }))
 	];
 }
+
+/** The newest stories by when they went out, as cards (the "you're subscribed" page). */
+export function latestPosts(n: number) {
+	const days = feed().days;
+	return [...posts()]
+		.sort((a, b) => b.published - a.published)
+		.slice(0, n)
+		.map((p) => ({ slug: p.slug, day: p.day, index: days.find((d) => d.day === p.day)?.index ?? 0, title: p.title, excerpt: p.excerpt }));
+}

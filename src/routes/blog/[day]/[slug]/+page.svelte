@@ -3,6 +3,7 @@
 	import { TOUR } from '$lib/tourConfig';
 	import StoryArticle from '$lib/blog/StoryArticle.svelte';
 	import Meta from '$lib/blog/Meta.svelte';
+	import Subscribe from '$lib/blog/Subscribe.svelte';
 
 	let { data } = $props();
 </script>
@@ -19,3 +20,4 @@
 	prev={data.prev}
 	next={data.next}
 />
+<Subscribe />

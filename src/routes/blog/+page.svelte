@@ -17,6 +17,7 @@
 	import RouteSketch from '$lib/ui/RouteSketch.svelte';
 	import Photo from '$lib/blog/Photo.svelte';
 	import Meta from '$lib/blog/Meta.svelte';
+	import Subscribe from '$lib/blog/Subscribe.svelte';
 
 	let { data } = $props();
 	const { days, totals } = $derived(data);
@@ -48,6 +49,7 @@
 		{#if totals.photos}<li class="lilac"><strong>{totals.photos}</strong> photos</li>{/if}
 		{#if totals.stories}<li class="peach"><strong>{totals.stories}</strong> {totals.stories === 1 ? 'story' : 'stories'}</li>{/if}
 	</ul>
+	{#if on('stories')}<Subscribe />{/if}
 	{#if on('blogFilters')}<ViewControls days={dayOptions} {shown} {total} />{/if}
 </header>
 

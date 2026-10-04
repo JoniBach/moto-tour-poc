@@ -10,9 +10,11 @@
 	import { on, VIEWS_ON } from '$lib/flags';
 	import { page } from '$app/state';
 	import JourneyRail from '$lib/blog/JourneyRail.svelte';
+	import Subscribe from '$lib/blog/Subscribe.svelte';
 
 	let { data, children } = $props();
 
+	const withForm = $derived(page.route.id === '/blog' || page.route.id === '/blog/[day]/[slug]');
 	// the other views open at the day you're reading
 	const at = $derived(page.params.day ? `${base}/day/${page.params.day}` : `${base}/`);
 	const views = (
@@ -48,7 +50,10 @@
 	</div>
 
 	<footer class="site">
-		{#if on('stories')}
+		<!-- the front page and stories have the sign-up in the page; elsewhere it's here -->
+		{#if on('stories') && TOUR.newsletter && on('newsletter') && !withForm}
+			<Subscribe variant="line" />
+		{:else if on('stories')}
 			<p class="follow">
 				<a href="{base}/blog/feed.xml" type="application/rss+xml"
 					><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2" /><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16" /></svg> Follow new stories by RSS</a

@@ -3,6 +3,9 @@
 	"id": "uk-2026",
 	"slug": "the-parks-26",
 	"origin": "https://gt-retrospective.vercel.app",
+	"newsletter": {
+		"buttondown": "crook"
+	},
 	"name": "Parks Tour 26",
 	"when": "September 2026",
 	"title": "A motorcycle tour of Britain's national parks",

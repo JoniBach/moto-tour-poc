@@ -71,7 +71,8 @@ export default defineConfig({
 					'frame-src': ['https://open.spotify.com', 'https://vercel.live'],
 					'object-src': ['none'],
 					'base-uri': ['self'],
-					'form-action': ['self']
+					// the mailing list's sign-up form posts to Buttondown (src/lib/blog/Subscribe.svelte)
+					'form-action': ['self', ...(TOUR.newsletter ? (['https://buttondown.com'] as const) : [])]
 				}
 			}
 		})

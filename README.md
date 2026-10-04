@@ -222,6 +222,13 @@ axe can't check target size, reflow, text spacing or focus visibility, so test t
   Twitter tags with `src/lib/blog/Meta.svelte`; the image is the story's cover (the JPEG copy) or the
   day's photo. Full addresses use the tour config's `origin`.
 
+- **Mailing list** (Buttondown, `newsletter.buttondown` in the tour config; flag `newsletter`):
+  `src/lib/blog/Subscribe.svelte` is a plain form posting to Buttondown's embed-subscribe address
+  (the CSP's `form-action` allows it; no script), on the blog's front page, at the end of every
+  story and in the footer elsewhere. Buttondown asks for a confirmation click, then sends each new
+  story from the RSS feed (its RSS-to-email automation, set up in Buttondown). After confirming,
+  people land on `/<tour>/blog/subscribed` (Buttondown's subscription confirmation redirect URL).
+
 After writing a story: `npm run data:blog`, then (if it has a map snapshot) the `BASE=…` run above,
 then deploy.
 
@@ -421,6 +428,7 @@ one at a time:
 | Flag | What it switches |
 | --- | --- |
 | `blog` | the blog: `/blog` pages (not built; URLs 404) and every 📖 link to them |
+| `newsletter` | the mailing list's sign-up forms (needs the tour config's `newsletter`) |
 | `map` | the 2D map view |
 | `dx3d` | the 3D view |
 | `globe` | the globe view |

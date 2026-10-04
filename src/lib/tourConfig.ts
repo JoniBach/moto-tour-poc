@@ -9,6 +9,11 @@ export interface TourConfig {
 	/** where the site is published ("https://gt-retrospective.vercel.app"): full addresses in the
 	 *  feed, the sitemap and share tags. Default: the GT Retrospective site */
 	origin?: string;
+	/** the mailing list new stories go out to (Buttondown sends each one from the RSS feed) */
+	newsletter?: {
+		/** the Buttondown username: buttondown.com/<name> */
+		buttondown: string;
+	};
 	/** false: npm run deploy refuses it (test tours) */
 	deploy?: boolean;
 	/** short name: "UK Tour" */

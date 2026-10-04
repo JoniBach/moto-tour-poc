@@ -48,6 +48,13 @@
 	</div>
 
 	<footer class="site">
+		{#if on('stories')}
+			<p class="follow">
+				<a href="{base}/blog/feed.xml" type="application/rss+xml"
+					><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2" /><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16" /></svg> Follow new stories by RSS</a
+				>
+			</p>
+		{/if}
 		<p>
 			Place names and national parks from <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a
 			>{#if on('weather')}{' · '}weather by <a href="https://open-meteo.com/">Open-Meteo.com</a>{/if}
@@ -154,6 +161,28 @@
 	}
 	footer.site p {
 		margin: 0;
+	}
+	.follow {
+		margin-bottom: 0.6rem !important;
+		font-size: 0.95rem;
+	}
+	.follow a {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		color: var(--b-text);
+	}
+	.follow svg {
+		width: 1.1em;
+		height: 1.1em;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2.4;
+		stroke-linecap: round;
+	}
+	.follow circle {
+		fill: currentColor;
+		stroke: none;
 	}
 	/* phones: the brand as its mark alone, like the app */
 	@media (max-width: 30rem) {

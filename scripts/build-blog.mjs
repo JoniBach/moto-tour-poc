@@ -5,6 +5,7 @@
 //   time: 2026-09-16 11:30        # the tour's local time (or full ISO); the post goes where the bike was
 //   cover: 20260916_113010        # optional: a photo id for the header image
 //   slug: 2026-09-16-honister     # optional: its address (default: the file name)
+//   published: 2026-10-04         # optional: when it went out (default: when its file was first committed)
 //   ---
 //   Markdown body. Photos from the tour can be embedded by id:
 //   ![Looking down Borrowdale](photo:20260916_115051)
@@ -13,6 +14,7 @@
 // written to static/data/tours/<id>/blog.json. Posts whose moment falls inside a privacy zone are refused
 // (with a message), and photos withheld for privacy are removed from posts.
 // Files starting with "_" are drafts and skipped.
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { excerptOf, frontmatter, minutesOf, plainText, renderStory } from '../src/lib/story.js';
@@ -58,6 +60,25 @@ function track(day) {
 const moment = (day, time, end) => `/${TOUR.slug ?? TOUR.id}/day/${day}?t=${time}${end ? `&to=${end}` : ""}`;
 const photoSrc = (id) => `/${TOUR.slug ?? TOUR.id}/photos/${TOUR.id}/large/${id}.webp`;
 
+/**
+ * When a story went out (epoch seconds): its header's "published" if it has one, else when its file
+ * was first committed, else now (not committed yet). The RSS feed, and the mailing list that reads
+ * it, go by this: a story about September that goes out in October is new in October.
+ */
+function publishedOf(file, data) {
+	const own = data.published ? Date.parse(data.published) : NaN;
+	if (Number.isFinite(own)) return Math.round(own / 1000);
+	try {
+		const added = execFileSync('git', ['log', '--diff-filter=A', '--follow', '--format=%at', '--', path.join(SRC, file)], { encoding: 'utf8' })
+			.split('\n')
+			.filter(Boolean);
+		if (added.length) return +added.at(-1);
+	} catch {
+		// not a git checkout: now
+	}
+	return Math.round(Date.now() / 1000);
+}
+
 /** the tour's days, in order (for stories before and after the trip) */
 const tourDays = fs.existsSync(PATHS.tourJson) ? JSON.parse(fs.readFileSync(PATHS.tourJson, 'utf8')).days : [];
 
@@ -101,6 +122,7 @@ for (const file of fs.readdirSync(SRC).filter((f) => f.endsWith('.md') && !f.sta
 			excerpt: excerptOf(text),
 			minutes: minutesOf(text),
 			html,
+			published: publishedOf(file, data),
 			when,
 			...(Number.isFinite(own) ? { date: own } : {})
 		});
@@ -140,7 +162,8 @@ for (const file of fs.readdirSync(SRC).filter((f) => f.endsWith('.md') && !f.sta
 		cover,
 		excerpt: excerptOf(text),
 		minutes: minutesOf(text),
-		html
+		html,
+		published: publishedOf(file, data)
 	});
 }
 posts.sort((a, b) => a.t - b.t);

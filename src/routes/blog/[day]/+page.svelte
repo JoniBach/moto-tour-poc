@@ -8,6 +8,7 @@
 	import { iso, longDate } from '$lib/blog';
 	import EventGroup from '$lib/blog/EventGroup.svelte';
 	import EventItem from '$lib/blog/EventItem.svelte';
+	import Meta from '$lib/blog/Meta.svelte';
 	import { arrange, shows, view } from '$lib/blog/view.svelte';
 	import ViewControls from '$lib/blog/ViewControls.svelte';
 	import { dayColor } from '$lib/colors';
@@ -20,10 +21,11 @@
 	const shown = $derived(d.events.filter(shows).length);
 </script>
 
-<svelte:head>
-	<title>Day {d.index + 1}: {d.title} · {TOUR.name} blog</title>
-	<meta name="description" content="Day {d.index + 1} of {TOUR.title.replace(/^A /, 'a ')}: {d.title}, {distRound(d.km)} {distWord}." />
-</svelte:head>
+<Meta
+	title="Day {d.index + 1}: {d.title} · {TOUR.name} blog"
+	description="Day {d.index + 1} of {TOUR.title.replace(/^A /, 'a ')}: {d.title}, {distRound(d.km)} {distWord}."
+	image={data.share}
+/>
 
 <article style:--c={dayColor(d.index, dayCount)}>
 	<nav aria-label="Breadcrumb" class="crumb">

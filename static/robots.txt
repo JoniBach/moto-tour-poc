@@ -2,3 +2,5 @@
 User-agent: *
 Disallow: /the-parks-26/wysiwyg
 Disallow: /wysiwyg
+
+Sitemap: https://gt-retrospective.vercel.app/the-parks-26/sitemap.xml

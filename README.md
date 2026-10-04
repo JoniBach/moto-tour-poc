@@ -201,6 +201,30 @@ not hidden by the sticky header, reflow at 320 px, ← / → between photos. To 
 changes, build, run `npx vite preview`, then audit with axe-core (`wcag2aaa` + `wcag22aa` tags);
 axe can't check target size, reflow, text spacing or focus visibility, so test those by hand.
 
+## Following the blog: RSS feed, sitemap and share cards
+
+- **RSS feed** at `/<tour>/blog/feed.xml` (https://gt-retrospective.vercel.app/the-parks-26/blog/feed.xml;
+  keep this address: readers and the mailing list poll it). Every story in full, newest first,
+  prerendered by `src/routes/blog/feed.xml/+server.ts`. Every page's `<head>` links to it (the
+  shell's `%tour.feed%`, `src/hooks.server.ts`) and the blog's footer has "Follow new stories by RSS".
+- **Dated by when it went out**, not the ride moment it's about: each story's `published` is its
+  header's `published:` if set, else when its file was first committed (`scripts/build-blog.mjs`).
+  A story about September posted in October is new in October, so the mailing list sends it.
+- **Standing alone**: in the feed every address is made full, photos are 1200 px JPEG copies
+  (WebP isn't safe in email) and map snapshots, which the story page draws with script, are
+  stills. `npm run data:email` (`scripts/build-email-images.mjs`, also run by `data:blog`) makes
+  the JPEGs in `static/photos/<id>/email/`; the map stills (`static/photos/<id>/maps/`) need the
+  site running: `BASE=http://localhost:5173/the-parks-26 npm run data:email` opens each story in
+  Chrome and saves what the site draws. Without a still the feed links to the map instead.
+- **Sitemap** at `/<tour>/sitemap.xml` (`src/routes/sitemap.xml/+server.ts`, named in `robots.txt`):
+  the front page and every blog page.
+- **Share cards**: blog pages set their title, description, canonical address and Open Graph /
+  Twitter tags with `src/lib/blog/Meta.svelte`; the image is the story's cover (the JPEG copy) or the
+  day's photo. Full addresses use the tour config's `origin`.
+
+After writing a story: `npm run data:blog`, then (if it has a map snapshot) the `BASE=…` run above,
+then deploy.
+
 ## The 2D map
 
 The same tour on a flat street map, for anyone who'd rather not fly around in 3D (or whose

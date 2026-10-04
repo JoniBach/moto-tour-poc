@@ -61,9 +61,10 @@ if (fs.existsSync(PATHS.blogJson))
 const photos = JSON.parse(fs.readFileSync(PATHS.photosJson, 'utf8')).photos;
 for (const p of photos) check(`photo ${p.id}`, p.e, p.n);
 const listed = new Set(photos.map((p) => p.id));
-for (const size of ['thumb', 'medium', 'large'])
-	for (const f of fs.readdirSync(`${PATHS.photos}/${size}`))
-		if (!listed.has(path.basename(f, '.webp'))) {
+// …and the JPEG copies for the feed and email (build-email-images)
+for (const size of ['thumb', 'medium', 'large', 'email'])
+	for (const f of fs.existsSync(`${PATHS.photos}/${size}`) ? fs.readdirSync(`${PATHS.photos}/${size}`) : [])
+		if (!listed.has(path.basename(f, path.extname(f)))) {
 			leaks++;
 			console.log(`LEAK unlisted photo file ${PATHS.photos}/${size}/${f}`);
 		}

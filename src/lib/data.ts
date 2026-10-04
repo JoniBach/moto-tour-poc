@@ -356,6 +356,9 @@ export interface BlogPost {
 	when?: 'before' | 'after';
 	/** a before / after story's own date (epoch seconds), if it has one */
 	date?: number;
+	/** when it went out (epoch seconds): the header's "published", else when its file was first
+	 *  committed. The feed and the mailing list go by this, not the moment it's about */
+	published: number;
 }
 
 export async function loadBlog(): Promise<BlogPost[]> {

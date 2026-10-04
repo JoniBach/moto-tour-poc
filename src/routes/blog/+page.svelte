@@ -16,6 +16,7 @@
 	import { dayColor } from '$lib/colors';
 	import RouteSketch from '$lib/ui/RouteSketch.svelte';
 	import Photo from '$lib/blog/Photo.svelte';
+	import Meta from '$lib/blog/Meta.svelte';
 
 	let { data } = $props();
 	const { days, totals } = $derived(data);
@@ -32,13 +33,7 @@
 	const dayOptions = $derived(days.map((d) => ({ day: d.day, label: `Day ${d.index + 1}, ${shortDate(d.start)}` })));
 </script>
 
-<svelte:head>
-	<title>{SITE_NAME} · Blog</title>
-	<meta
-		name="description"
-		content="{TOUR.title}: {totals.days} days and {totals.distance} {distWord}, day by day."
-	/>
-</svelte:head>
+<Meta title="{SITE_NAME} · Blog" description="{TOUR.title}: {totals.days} days and {totals.distance} {distWord}, day by day." image={data.share} />
 
 <header class="intro">
 	<p class="eyebrow">{TOUR.name} · {TOUR.when}</p>

@@ -6,6 +6,9 @@ export interface TourConfig {
 	id: string;
 	/** the tour's path on the site: every page lives under /<slug> (the bare domain sends people there) */
 	slug: string;
+	/** where the site is published ("https://gt-retrospective.vercel.app"): full addresses in the
+	 *  feed, the sitemap and share tags. Default: the GT Retrospective site */
+	origin?: string;
 	/** false: npm run deploy refuses it (test tours) */
 	deploy?: boolean;
 	/** short name: "UK Tour" */
@@ -84,9 +87,17 @@ export const PROJECTION =
 /** "UK Tour · September 2026" */
 export const SITE_NAME = `${TOUR.name} · ${TOUR.when}`;
 
+/** The site's address, without the tour's path: links that leave the site (feed, email, share
+ *  cards) are made full with it. */
+export const ORIGIN = (TOUR.origin ?? 'https://gt-retrospective.vercel.app').replace(/\/$/, '');
+/** The tour's own pages, as a full address: https://…/the-parks-26 */
+export const SITE_URL = `${ORIGIN}${base}`;
+
 /** Where this tour's data is served from (the pipeline writes static/data/tours/<id>/). */
 export const DATA = `${base}/data/tours/${TOUR.id}`;
 /** …and where it sits on disk at build time (for the prerendered blog). */
 export const DATA_DIR = `static/data/tours/${TOUR.id}`;
 /** A photo in one of its sizes: /photos/<tour>/<size>/<id>.webp */
 export const photoSrc = (size: 'thumb' | 'medium' | 'large', id: string) => `${base}/photos/${TOUR.id}/${size}/${id}.webp`;
+/** The JPEG copy of a story's photo for email and feed readers (scripts/build-email-images.mjs) */
+export const emailPhotoSrc = (id: string) => `${base}/photos/${TOUR.id}/email/${id}.jpg`;

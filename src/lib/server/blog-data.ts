@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import type { BlogPost, Feed, FeedDay, FeedEvent, Photo, TourIndex } from '$lib/data';
 import { sketch, type Sketch } from '$lib/sketch';
 import { on } from '$lib/flags';
-import { DATA_DIR } from '$lib/tourConfig';
+import { DATA_DIR, emailPhotoSrc, ORIGIN, photoSrc } from '$lib/tourConfig';
 import { distRound } from '../units';
 
 const cache = new Map<string, unknown>();
@@ -20,6 +20,14 @@ const rawFeed = () => read<Feed>('feed.json', { days: [] });
 const posts = () => (on('stories') ? read<{ posts: BlogPost[] }>('blog.json', { posts: [] }).posts : []);
 const photos = () => (on('photos') ? read<{ photos: Photo[] }>('photos.json', { photos: [] }).photos : []);
 const tourIndex = () => read<TourIndex>('tour.json', { days: [] });
+
+/** A photo as a share card's image (a full address): the JPEG copy if the story has one
+ *  (scripts/build-email-images.mjs), else the gallery WebP. */
+export function shareImage(id: string | null | undefined): string | null {
+	if (!id) return null;
+	const jpg = emailPhotoSrc(id);
+	return ORIGIN + (fs.existsSync(`static${jpg.slice(jpg.indexOf('/photos/'))}`) ? jpg : photoSrc('large', id));
+}
 
 /** A day's route sketch (tour.json's simplified lines), with a moment marked if given. */
 export function sketchOf(day: string, dot?: { e: number; n: number }, max = 160): Sketch {
@@ -87,8 +95,10 @@ function resolve(d: FeedDay, maxPhotos: number): BlogDay {
 
 export function indexPage() {
 	const days = feed().days;
+	const resolved = days.map((d) => resolve(d, 6));
 	return {
-		days: days.map((d) => resolve(d, 6)),
+		days: resolved,
+		share: shareImage(posts().find((p) => p.cover)?.cover ?? resolved.find((d) => d.cover)?.cover?.id),
 		totals: {
 			days: days.length,
 			distance: distRound(days.reduce((a, d) => a + d.km, 0)),
@@ -103,8 +113,10 @@ export function dayPage(day: string) {
 	const days = feed().days;
 	const k = days.findIndex((d) => d.day === day);
 	if (k < 0) return null;
+	const shown = resolve(days[k], 12);
 	return {
-		day: resolve(days[k], 12),
+		day: shown,
+		share: shareImage(shown.cover?.id),
 		dayCount: days.length,
 		prev: k > 0 ? ref(days[k - 1]) : null,
 		next: k < days.length - 1 ? ref(days[k + 1]) : null
@@ -130,6 +142,7 @@ export function postPage(slug: string) {
 	return {
 		post,
 		cover: cover ? { id: cover.id, w: cover.w, h: cover.h } : null,
+		share: shareImage(cover?.id),
 		day: ref(d),
 		dayCount: days.length,
 		where: sketchOf(d.day, { e: post.e, n: post.n }),
@@ -155,4 +168,16 @@ export function photoPage(day: string, id: string) {
 		day: ref(d),
 		place
 	};
+}
+
+/** Every blog page, for the sitemap: its path under the tour, and when it last changed if known. */
+export function blogPaths(): { path: string; changed?: number }[] {
+	if (!on('blog')) return [];
+	const days = feed().days;
+	return [
+		{ path: '/blog' },
+		...days.map((d) => ({ path: `/blog/${d.day}` })),
+		...posts().map((p) => ({ path: `/blog/${p.day}/${p.slug}`, changed: p.published })),
+		...photos().map((p) => ({ path: `/blog/${p.day}/photo/${p.id}` }))
+	];
 }

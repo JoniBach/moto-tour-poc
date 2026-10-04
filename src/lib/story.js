@@ -94,6 +94,10 @@ export const mapRef = (shot) =>
 			? `${shot.day}T${shot.time}-${shot.end}`
 			: `${shot.day}T${shot.time}${shot.zoom !== MAP_ZOOM ? `@${shot.zoom}` : ''}`;
 
+/** A map snapshot saved as a still for the feed and email (scripts/build-email-images.mjs):
+ *  "2026-09-16T11:40@13" -> "2026-09-16T11-40@13.jpg". @param {string} ref */
+export const mapFile = (ref) => `${ref.replace(/[^\w~@.-]/g, '-')}.jpg`;
+
 /**
  * Markdown -> the story's HTML. Photo embeds (![caption](photo:ID)) become figures with the
  * gallery-size image; ones not in `photos` (unknown, or withheld for privacy) are dropped and

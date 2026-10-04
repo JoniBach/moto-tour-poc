@@ -2,14 +2,12 @@
 <script lang="ts">
 	import { TOUR } from '$lib/tourConfig';
 	import StoryArticle from '$lib/blog/StoryArticle.svelte';
+	import Meta from '$lib/blog/Meta.svelte';
 
 	let { data } = $props();
 </script>
 
-<svelte:head>
-	<title>{data.post.title} · {TOUR.name} blog</title>
-	<meta name="description" content={data.post.excerpt} />
-</svelte:head>
+<Meta title="{data.post.title} · {TOUR.name} blog" description={data.post.excerpt} image={data.share} published={data.post.published} />
 
 <StoryArticle
 	post={data.post}

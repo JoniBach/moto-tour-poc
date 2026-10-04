@@ -82,6 +82,17 @@ function publishedOf(file, data) {
 /** the tour's days, in order (for stories before and after the trip) */
 const tourDays = fs.existsSync(PATHS.tourJson) ? JSON.parse(fs.readFileSync(PATHS.tourJson, 'utf8')).days : [];
 
+// photos and map snapshots link to their moment of the trip: "📍 Day 8, 13:22"
+const clock = new Intl.DateTimeFormat('en-GB', { timeZone: TOUR.timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+/** @type {import('../src/lib/story.js').Where} */
+const where = ({ day, time, end, t, photo }) => {
+	const n = tourDays.findIndex((d) => d.day === day) + 1;
+	if (!n) return null;
+	const at = time ?? (t ? clock.format(new Date(t * 1000)) : '');
+	if (!at) return { href: `/${TOUR.slug ?? TOUR.id}/day/${day}`, label: `Day ${n}` };
+	return { href: moment(day, at, end) + (photo ? `&photo=${photo}` : ''), label: `Day ${n}, ${at}${end ? `–${end}` : ''}` };
+};
+
 fs.mkdirSync(SRC, { recursive: true });
 const posts = [];
 for (const file of fs.readdirSync(SRC).filter((f) => f.endsWith('.md') && !f.startsWith('_')).sort()) {
@@ -105,7 +116,7 @@ for (const file of fs.readdirSync(SRC).filter((f) => f.endsWith('.md') && !f.sta
 		const { tr, meta } = d;
 		const i = when === 'before' ? 0 : tr.count - 1;
 		const own = data.time ? parseTourTime(/^\d{4}-\d{2}-\d{2}$/.test(data.time) ? `${data.time} 12:00` : data.time) : NaN;
-		const { html, withheld } = renderStory(body, { photos, src: photoSrc, moment });
+		const { html, withheld } = renderStory(body, { photos, src: photoSrc, moment, where });
 		if (withheld.length) console.log(`  ${file}: removed photo(s) ${withheld.join(', ')} (unknown or withheld)`);
 		const text = plainText(body);
 		posts.push({
@@ -146,7 +157,7 @@ for (const file of fs.readdirSync(SRC).filter((f) => f.endsWith('.md') && !f.sta
 	const { tr, meta } = d;
 	const rel = t - tr.t0;
 	const i = rel <= 0 ? 0 : lastLE(tr.t, rel);
-	const { html, withheld } = renderStory(body, { photos, src: photoSrc, moment });
+	const { html, withheld } = renderStory(body, { photos, src: photoSrc, moment, where });
 	if (withheld.length) console.log(`  ${file}: removed photo(s) ${withheld.join(', ')} (unknown or withheld)`);
 	const text = plainText(body);
 	const cover = data.cover && photos.has(data.cover) ? data.cover : null;

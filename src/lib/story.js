@@ -99,15 +99,27 @@ export const mapRef = (shot) =>
 export const mapFile = (ref) => `${ref.replace(/[^\w~@.-]/g, '-')}.jpg`;
 
 /**
+ * Where a photo or map snapshot is in the trip: its link and how to say it, or null.
+ * @typedef {(at: { day: string, time?: string, end?: string, t?: number, photo?: string }) => { href: string, label: string } | null} Where
+ */
+
+/** a caption's "📍 Day 8, 13:22" link @param {{ href: string, label: string }} w */
+const whereLink = (w) => `<a class="where" href="${w.href.replace(/&/g, '&amp;')}"><span aria-hidden="true">📍 </span>${w.label}</a>`;
+/** a figure's caption: the author's words, then where it is @param {string} text @param {{ href: string, label: string } | null} w */
+const caption = (text, w) => (text || w ? `<figcaption>${[text, w && whereLink(w)].filter(Boolean).join(' ')}</figcaption>` : '');
+
+/**
  * Markdown -> the story's HTML. Photo embeds (![caption](photo:ID)) become figures with the
  * gallery-size image; ones not in `photos` (unknown, or withheld for privacy) are dropped and
  * listed in `withheld`. Links to a moment of the ride ([the Lakes](tour:2026-09-16T10:29)), or a
  * stretch of it ([Honister](tour:2026-09-16T11:10-11:45)), go to `moment(day, time, end?)`, or are
- * plain words without it.
+ * plain words without it. With `where`, every photo and map snapshot links to its moment of the
+ * trip too: the picture itself, and a "📍 Day 8, 13:22" line in its caption (which also works in
+ * email and feed readers, where the picture's link is easy to miss).
  * @param {string} body
- * @param {{ photos: Map<string, { id: string, w: number, h: number }>, src: (id: string) => string, moment?: (day: string, time: string, end?: string) => string }} opts
+ * @param {{ photos: Map<string, { id: string, w: number, h: number, t?: number, day?: string }>, src: (id: string) => string, moment?: (day: string, time: string, end?: string) => string, where?: Where }} opts
  */
-export function renderStory(body, { photos, src, moment }) {
+export function renderStory(body, { photos, src, moment, where }) {
 	/** @type {string[]} */
 	const withheld = [];
 	const md = new Marked({
@@ -128,7 +140,9 @@ export function renderStory(body, { photos, src, moment }) {
 					}
 					const what = shot.whole ? 'Map of the whole journey' : shot.end ? `Map of the stretch from ${shot.time}` : `Map of the ride at ${shot.time}`;
 					const label = `${what}${text ? `: ${text}` : ''}`.replace(/"/g, '&quot;');
-					return `<figure class="map-shot${shot.whole ? ' whole' : shot.end ? ' stretch' : ''}" data-map="${mapRef(shot)}"><div class="map-frame" role="img" aria-label="${label}"></div>${text ? `<figcaption>${text}</figcaption>` : ''}</figure>`;
+					// the whole journey has no one moment; with a day picked out, that day
+					const w = shot.whole ? (shot.day ? (where?.({ day: shot.day }) ?? null) : null) : (where?.({ day: shot.day, time: shot.time, end: shot.end }) ?? null);
+					return `<figure class="map-shot${shot.whole ? ' whole' : shot.end ? ' stretch' : ''}" data-map="${mapRef(shot)}"><div class="map-frame" role="img" aria-label="${label}"></div>${caption(text, w)}</figure>`;
 				}
 				if (!href?.startsWith('photo:')) return false; // default rendering for normal images
 				const p = photos.get(href.slice(6));
@@ -137,7 +151,10 @@ export function renderStory(body, { photos, src, moment }) {
 					return '';
 				}
 				const alt = text.replace(/"/g, '&quot;');
-				return `<figure><img src="${src(p.id)}" width="${p.w}" height="${p.h}" alt="${alt}" loading="lazy" data-photo="${p.id}">${text ? `<figcaption>${text}</figcaption>` : ''}</figure>`;
+				const img = `<img src="${src(p.id)}" width="${p.w}" height="${p.h}" alt="${alt}" loading="lazy" data-photo="${p.id}">`;
+				const w = p.day && p.t ? (where?.({ day: p.day, t: p.t, photo: p.id }) ?? null) : null;
+				// the picture links there too, but out of the tab order: the caption's link is the one to reach
+				return `<figure>${w ? `<a class="photo-where" href="${w.href.replace(/&/g, '&amp;')}" tabindex="-1" aria-hidden="true">${img}</a>` : img}${caption(text, w)}</figure>`;
 			}
 		}
 	});

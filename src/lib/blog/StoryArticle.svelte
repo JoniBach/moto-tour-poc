@@ -297,6 +297,20 @@
 		font-size: 0.95rem;
 		color: var(--b-muted);
 	}
+	/* where a photo or map is in the trip (src/lib/story.js): "📍 Day 8, 13:22" */
+	.prose :global(figcaption a.where) {
+		display: inline-block;
+		margin-left: 0.15rem;
+		font-weight: 600;
+		white-space: nowrap;
+		color: var(--b-link);
+		text-decoration-style: dotted;
+		text-decoration-thickness: 2px;
+		text-underline-offset: 0.22em;
+	}
+	.prose :global(a.photo-where) {
+		display: block;
+	}
 	.prose :global(blockquote) {
 		margin: 0 0 1.5em;
 		padding: 0.6rem 1.2rem;

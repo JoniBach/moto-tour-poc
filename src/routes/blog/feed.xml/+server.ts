@@ -42,7 +42,7 @@ function content(post: BlogPost) {
 				const href = mapHref(ref);
 				return has(`maps/${mapFile(ref)}`)
 					? `<figure><a href="${href}"><img src="${base}/photos/${TOUR.id}/maps/${mapFile(ref)}" alt="${label}" style="${IMG_STYLE}"></a>${caption ? `<figcaption>${caption}</figcaption>` : ''}</figure>`
-					: `<p><a href="${href}">🗺 ${caption || label} (see the map)</a></p>`;
+					: `<p><a href="${href}">🗺 ${caption?.replace(/<a [^>]*>[\s\S]*?<\/a>/g, '').trim() || label} (see the map)</a></p>`;
 			}
 		)
 		// photos: the JPEG copy where there is one, sized to fit

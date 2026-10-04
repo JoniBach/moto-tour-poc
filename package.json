@@ -16,6 +16,7 @@
 		"data:tour": "node scripts/build-tour.mjs && node scripts/build-parks.mjs && node scripts/build-places.mjs",
 		"data:parks": "node scripts/build-parks.mjs",
 		"deploy": "node scripts/deploy.mjs",
+		"release": "node --env-file-if-exists=.env.local scripts/publish.mjs",
 		"audit:privacy": "node scripts/audit-privacy.mjs",
 		"test:smoke": "node tests/smoke.mjs",
 		"data:photos": "node scripts/build-photos.mjs && node scripts/build-feed.mjs",

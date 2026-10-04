@@ -411,6 +411,21 @@ every page prerendered as static files, and uploads with `--prebuilt`. Uploads r
 flaky connection just re-run. `node scripts/deploy.mjs --prod` would publish publicly.
 `TOUR=<id>` deploys another tour; only that tour's data and photos are uploaded.
 
+**Publishing stories: `npm run release`** (`scripts/publish.mjs`). From "I've dropped a story into
+`tours/<id>/blog/`" to live and in subscribers' inboxes:
+
+1. commits changes in `tours/<id>/blog/` (a story's `published` date is its first commit),
+2. builds the blog, its email images (starting the site briefly if a map snapshot needs drawing)
+   and the events feed,
+3. deploys to production (privacy audit first),
+4. reads the live RSS feed back and creates a **draft** email in Buttondown for each story not
+   emailed before (the feed's own copy of the story); check and send it in Buttondown.
+   `tours/<id>/emails.json` (committed) records which stories have been emailed.
+
+`-- --send` sends instead of drafting, `-- --no-email` leaves the mailing list alone, `-- --no-deploy`
+only builds. Emails need `BUTTONDOWN_API_KEY` in `.env.local` (Buttondown → Settings → API; the API
+is free, unlike Buttondown's own RSS-to-email). Nothing is pushed to GitHub. In Claude Code: `/release`.
+
 ## Customising the globe
 
 The globe's "Customise" drawer (surface, route colour, what to show, surroundings, size, relief)

@@ -428,7 +428,6 @@ one at a time:
 | Flag | What it switches |
 | --- | --- |
 | `blog` | the blog: `/blog` pages (not built; URLs 404) and every 📖 link to them |
-| `newsletter` | the mailing list's sign-up forms (needs the tour config's `newsletter`) |
 | `map` | the 2D map view |
 | `dx3d` | the 3D view |
 | `globe` | the globe view |
@@ -436,6 +435,7 @@ one at a time:
 | `stories` | blog posts everywhere: pins, reader, banner, story cards and pages |
 | `weather` | recorded weather: readouts, rain, clouds, the blog's temperatures |
 | `blogFilters` | the blog's filter and group panel |
+| `newsletter` | the mailing list's sign-up forms (needs the tour config's `newsletter`) |
 | `music` | the now-playing card (track names, from our own data); off = not fetched |
 | `spotify` | Spotify on that card: cover, link, in-page player. Off = track names only (see Music) |
 

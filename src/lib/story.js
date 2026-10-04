@@ -141,7 +141,10 @@ export function renderStory(body, { photos, src, moment }) {
 			}
 		}
 	});
-	return { html: /** @type {string} */ (md.parse(body)), withheld };
+	// a photo or map on a line of its own is a paragraph to Markdown, but a <figure> can't sit in a
+	// <p>: browsers close the <p> early and leave an empty one after it (and feed validators object)
+	const html = /** @type {string} */ (md.parse(body)).replace(/<p>((?:<figure[\s\S]*?<\/figure>\s*)+)<\/p>/g, '$1');
+	return { html, withheld };
 }
 
 /** The story as plain words: for its excerpt and reading time. @param {string} body */

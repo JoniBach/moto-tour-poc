@@ -228,6 +228,12 @@ axe can't check target size, reflow, text spacing or focus visibility, so test t
   story and in the footer elsewhere. Buttondown asks for a confirmation click, then sends each new
   story from the RSS feed (its RSS-to-email automation, set up in Buttondown). After confirming,
   people land on `/<tour>/blog/subscribed` (Buttondown's subscription confirmation redirect URL).
+- **Welcome prompt** (`src/lib/blog/SubscribePrompt.svelte`, in the root layout so on every page but
+  the story editor): new visitors are asked to subscribe 8 s after arriving, over a blurred page.
+  "Yes, subscribe" posts to Buttondown in a new tab (the tour stays put) and never asks again;
+  "Maybe later" (or Esc / ×) waits 3 days; "No thanks" 60 days. Kept in this browser's storage
+  (`src/lib/newsletter.ts`, key `gt-newsletter`); subscribing with any form, or landing on the
+  confirmation page, counts as yes. The smoke tests answer it up front.
 
 After writing a story: `npm run data:blog`, then (if it has a map snapshot) the `BASE=…` run above,
 then deploy.

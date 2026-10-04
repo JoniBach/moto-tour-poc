@@ -8,6 +8,7 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import { on } from '$lib/flags';
+	import { remember } from '$lib/newsletter';
 	import { TOUR } from '$lib/tourConfig';
 
 	let { variant = 'card' }: { variant?: 'card' | 'line' } = $props();
@@ -17,7 +18,7 @@
 </script>
 
 {#if name && on('newsletter')}
-	<form class="subscribe {variant}" action="https://buttondown.com/api/emails/embed-subscribe/{name}" method="post" aria-labelledby="{id}-h">
+	<form class="subscribe {variant}" action="https://buttondown.com/api/emails/embed-subscribe/{name}" method="post" aria-labelledby="{id}-h" onsubmit={() => remember('yes')}>
 		{#if variant === 'card'}
 			<h2 id="{id}-h">Get the next story by email</h2>
 			<p class="why">One email when a new story goes out, nothing else.</p>

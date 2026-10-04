@@ -27,6 +27,8 @@ let errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => m.type() === 'error' && !/favicon/.test(m.text()) && errors.push(m.text()));
 // a Content Security Policy that blocks something the site needs
+// the mailing-list prompt (SubscribePrompt.svelte) would cover the views being checked: answered
+await page.evaluateOnNewDocument(() => localStorage.setItem('gt-newsletter', JSON.stringify({ answer: 'yes' })));
 await page.evaluateOnNewDocument(() =>
 	document.addEventListener('securitypolicyviolation', (e) => console.error(`CSP blocked ${e.blockedURI} (${e.violatedDirective})`))
 );

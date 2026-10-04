@@ -8,10 +8,12 @@
 <script lang="ts">
 	import '@fontsource-variable/fraunces/full.css';
 	import '@fontsource-variable/figtree';
+	import SubscribePrompt from '$lib/blog/SubscribePrompt.svelte';
 	let { children } = $props();
 </script>
 
 {@render children()}
+<SubscribePrompt />
 
 <style>
 	:global(:root) {

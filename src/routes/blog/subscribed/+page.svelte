@@ -1,9 +1,12 @@
 <!-- "You're subscribed": where the mailing list's confirmation link ends up. -->
 <script lang="ts">
 	import { base } from '$app/paths';
+	import { remember } from '$lib/newsletter';
 	import { TOUR } from '$lib/tourConfig';
 
 	let { data } = $props();
+	// confirmed: the welcome prompt never asks this browser again
+	$effect(() => remember('yes'));
 </script>
 
 <svelte:head>

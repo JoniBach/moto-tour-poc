@@ -10,7 +10,7 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
 	import { on } from '$lib/flags';
-	import { remember, shouldAsk, type Answer } from '$lib/newsletter';
+	import { count, remember, shouldAsk, type Answer } from '$lib/newsletter';
 	import { TOUR } from '$lib/tourConfig';
 
 	/** how long a new visitor looks around before being asked */
@@ -26,18 +26,23 @@
 		if (!name || !on('newsletter') || quiet || !shouldAsk()) return;
 		const timer = setTimeout(() => {
 			// not over another modal, and not if they've answered in another tab meanwhile
-			if (!document.querySelector('dialog[open]') && shouldAsk()) dialog?.showModal();
+			if (!document.querySelector('dialog[open]') && shouldAsk()) {
+				dialog?.showModal();
+				count('shown');
+			}
 		}, DELAY_MS);
 		return () => clearTimeout(timer);
 	});
 
-	function answer(a: Answer) {
+	function answer(a: Answer, via: '' | '-x' | '-esc' = '') {
 		remember(a);
+		count(a === 'later' ? `later${via}` : a);
 		dialog?.close();
 	}
 	function subscribed() {
 		// the form goes on to Buttondown in a new tab; this one says what happens next
 		remember('yes');
+		count('yes');
 		// after the browser has sent it: a form taken out of the page mid-submit is never sent
 		setTimeout(() => (sent = true));
 	}
@@ -52,10 +57,10 @@
 		aria-describedby="nl-why"
 		oncancel={(e) => {
 			e.preventDefault();
-			answer('later');
+			answer('later', '-esc');
 		}}
 	>
-		<button class="x" type="button" aria-label="Close (maybe later)" onclick={() => (sent ? dialog?.close() : answer('later'))}>×</button>
+		<button class="x" type="button" aria-label="Close (maybe later)" onclick={() => (sent ? dialog?.close() : answer('later', '-x'))}>×</button>
 		{#if !sent}
 			<p class="eyebrow">{TOUR.name} · {TOUR.when}</p>
 			<!-- svelte-ignore a11y_autofocus -->

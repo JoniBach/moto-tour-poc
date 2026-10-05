@@ -3,6 +3,8 @@
 // Storage can be missing or throw (private windows, blocked site data): then it asks, and
 // remembers nothing.
 
+import { base } from '$app/paths';
+
 const KEY = 'gt-newsletter';
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -19,6 +21,21 @@ export function shouldAsk(now = Date.now()): boolean {
 		return !(saved.until && now < saved.until);
 	} catch {
 		return true;
+	}
+}
+
+/** What's counted (src/routes/api/nl): the prompt shown; its answers, "later" split by how it was
+ * given (the button, ×, Esc); and a subscribe from the inline form. */
+export const EVENTS = ['shown', 'yes', 'later', 'later-x', 'later-esc', 'no', 'form-yes'] as const;
+export type Event = (typeof EVENTS)[number];
+
+/** Add one to an event's count, fire and forget: a beacon survives the page moving on. Not in dev. */
+export function count(event: Event) {
+	if (import.meta.env.DEV) return;
+	try {
+		navigator.sendBeacon(`${base}/api/nl`, event);
+	} catch {
+		// uncounted
 	}
 }
 

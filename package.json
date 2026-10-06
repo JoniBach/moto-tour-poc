@@ -26,6 +26,7 @@
 		"data:email": "node scripts/build-email-images.mjs",
 		"data:feed": "node scripts/build-feed.mjs",
 		"data:music": "node --env-file-if-exists=.env.local scripts/build-music.mjs",
+		"stats:newsletter": "node --env-file-if-exists=.env.local scripts/newsletter-stats.mjs",
 		"data:places": "node scripts/build-places.mjs"
 	},
 	"devDependencies": {

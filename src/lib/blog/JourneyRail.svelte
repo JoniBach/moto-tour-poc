@@ -58,15 +58,15 @@
 </script>
 
 <nav class="rail" aria-label="The journey, day by day" style:--p={at < 0 ? 0 : (at + 0.5) / days.length}>
-	<p class="head display">The journey</p>
+	<p class="head pc-display">The journey</p>
 	<ol bind:this={list}>
 		{#each days as d (d.day)}
 			{@const c = dayColor(d.index, days.length)}
-			<li class:on={d.day === current} class:past={at >= 0 && d.index < at} style:--c={c}>
+			<li class:on={d.day === current} class:past={at >= 0 && d.index < at} style:--pc-c={c}>
 				<a href={href(d)} aria-current={d.day === current ? (onIndex ? 'location' : 'page') : undefined}>
-					<span class="stamp" aria-hidden="true">{d.index + 1}</span>
+					<span class="pc-stamp pc-stamp--outline stamp" aria-hidden="true">{d.index + 1}</span>
 					<!-- the name for screen readers, kept even where the strip hides the titles -->
-					<span class="sr">Day {d.index + 1}: {d.title}, {date(d.start)}</span>
+					<span class="pc-sr-only">Day {d.index + 1}: {d.title}, {date(d.start)}</span>
 					<span class="what" aria-hidden="true">
 						<span class="t">{d.title}</span>
 						<span class="d">{date(d.start)}</span>
@@ -112,11 +112,11 @@
 	}
 	ol::before {
 		bottom: 1.2rem;
-		background: var(--b-line);
+		background: var(--pc-line);
 	}
 	ol::after {
 		height: calc((100% - 2.4rem) * var(--p));
-		background: #c2562d;
+		background: var(--pc-accent);
 		transition: height 0.4s ease;
 	}
 	li a {
@@ -130,35 +130,23 @@
 		min-height: 2.75rem;
 		padding: 0.3rem 0.4rem 0.3rem 0;
 		border-radius: 14px;
-		color: var(--b-text) !important;
+		color: var(--pc-ink) !important;
 		text-decoration: none;
 	}
 	li a:hover {
-		background: color-mix(in srgb, var(--c) 14%, transparent);
+		background: color-mix(in srgb, var(--pc-c) 14%, transparent);
 	}
 	li.on a {
-		background: color-mix(in srgb, var(--c) 22%, var(--b-card));
-		box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 45%, transparent);
+		background: color-mix(in srgb, var(--pc-c) 22%, var(--pc-card));
+		box-shadow: 0 0 0 1px color-mix(in srgb, var(--pc-c) 45%, transparent);
 	}
 	.stamp {
 		justify-self: center;
-		display: grid;
-		place-items: center;
-		width: 1.9rem;
-		height: 1.9rem;
-		border-radius: 9px;
-		background: var(--b-card);
-		box-shadow: 0 0 0 2px var(--c);
-		color: var(--b-text);
-		font-family: var(--font-display);
-		font-weight: 700;
-		font-size: 0.95rem;
-		transform: rotate(-4deg);
 	}
 	/* days read so far filled with a tint of their colour (dark ink stays at AAA contrast) */
 	li.past .stamp,
 	li.on .stamp {
-		background: color-mix(in srgb, var(--c) 45%, var(--b-card));
+		background: color-mix(in srgb, var(--pc-c) 45%, var(--pc-card));
 	}
 	.what {
 		display: flex;
@@ -177,20 +165,12 @@
 	}
 	.d {
 		font-size: 0.78rem;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.mini {
 		width: 2.2rem;
 		height: 2.2rem;
 		opacity: 0.85;
-	}
-	.sr {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
 	}
 	/* narrower screens: a sticky strip of stamps under the header */
 	@media (max-width: 68rem) {
@@ -215,11 +195,11 @@
 			margin: 0 0.75rem;
 			padding: 0.25rem 0.6rem;
 			border-radius: 999px;
-			background: rgb(255 253 248 / 0.92);
+			background: var(--pc-glass);
 			backdrop-filter: blur(12px);
 			box-shadow:
-				0 3px 0 rgb(38 50 56 / 0.18),
-				0 0 0 1px rgb(38 50 56 / 0.14);
+				var(--pc-press),
+				0 0 0 1px var(--pc-line);
 			overflow-x: auto;
 			overflow-y: hidden;
 			scrollbar-width: none;

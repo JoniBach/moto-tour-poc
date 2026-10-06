@@ -55,7 +55,7 @@
 			<p class="kicker">Story{where}</p>
 			<p>{card.excerpt}</p>
 			<p class="more">
-				<a href="{base}/blog/{day}/{card.slug}">Continue reading<span class="sr"> “{card.title}”</span></a>
+				<a href="{base}/blog/{day}/{card.slug}">Continue reading<span class="pc-sr-only"> “{card.title}”</span></a>
 				<span aria-hidden="true"> · </span>
 				<span>{card.minutes} minute read</span>
 			</p>
@@ -77,7 +77,7 @@
 			{#if e.photos.length > shown.length}
 				<li class="rest">
 					<a href="{base}/blog/{day}/photo/{e.photos[shown.length]}">
-						{e.photos.length - shown.length} more<span class="sr"> photos from {time(e.t)}</span>
+						{e.photos.length - shown.length} more<span class="pc-sr-only"> photos from {time(e.t)}</span>
 					</a>
 				</li>
 			{/if}
@@ -90,12 +90,12 @@
 <style>
 	.note {
 		margin: 0;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.story {
 		border-radius: 22px;
-		background: var(--b-card);
-		box-shadow: 0 10px 26px rgb(70 55 30 / 0.12);
+		background: var(--pc-card);
+		box-shadow: var(--pc-shadow);
 		overflow: hidden;
 		margin: 0.1rem 0 0.4rem;
 	}
@@ -116,7 +116,7 @@
 		font-size: 0.85rem;
 		letter-spacing: 0.05em;
 		text-transform: uppercase;
-		color: var(--b-warm-text);
+		color: var(--pc-butter-ink);
 	}
 	/* :global(.head) outranks Row's title spacing */
 	:global(.event .head > h3.title) {
@@ -128,7 +128,7 @@
 		display: inline-flex;
 		align-items: center;
 		min-height: 2.75rem;
-		color: var(--b-text);
+		color: var(--pc-ink);
 	}
 	.more {
 		display: flex;
@@ -136,7 +136,7 @@
 		flex-wrap: wrap;
 		gap: 0 0.2rem;
 		margin-bottom: 0.4rem;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.more a {
 		display: inline-flex;
@@ -176,19 +176,10 @@
 		place-items: center;
 		height: 100%;
 		min-height: 4.5rem;
-		background: var(--b-card);
-		border: 1px solid var(--b-line);
+		background: var(--pc-card);
+		border: 1px solid var(--pc-line);
 		font-weight: 600;
 		text-decoration: none;
-	}
-	.sr {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip: rect(0 0 0 0);
-		clip-path: inset(50%);
-		white-space: nowrap;
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.grid :global(img) {

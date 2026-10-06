@@ -110,7 +110,7 @@
 			type="button"
 			class="gp {it.kind}"
 			class:in={on}
-			style:--c={it.color}
+			style:--pc-c={it.color}
 			aria-label={it.label}
 			title={it.label}
 			aria-hidden={!on}
@@ -174,7 +174,7 @@
 		outline-offset: 2px;
 	}
 	.gp.pin {
-		border-color: var(--c);
+		border-color: var(--pc-c);
 	}
 	.gp.post {
 		width: 38px;

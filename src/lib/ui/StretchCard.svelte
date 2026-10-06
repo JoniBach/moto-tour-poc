@@ -5,6 +5,7 @@
   shared link (?t=…&to=…), a named stretch in the pins, or "Share a stretch".
 -->
 <script lang="ts">
+	import Icon from '$lib/ui/Icon.svelte';
 	import { app } from '$lib/app.svelte';
 	import { clock } from '$lib/data';
 	import { copyLink, momentUrl } from '$lib/moment';
@@ -64,7 +65,7 @@
 
 {#if tour.picking}
 	<div class="card picking" role="dialog" aria-label="Choose a stretch to share">
-		<p class="what"><span aria-hidden="true">✂</span> <b>Choose a stretch</b></p>
+		<p class="what"><Icon name="scissors" size="sm" /> <b>Choose a stretch</b></p>
 		{#if tour.picking.i == null}
 			<p>Move to where it starts (play, or drag the timeline), then:</p>
 			<div class="row">
@@ -82,11 +83,11 @@
 	</div>
 {:else if s && facts}
 	<div class="card" role="region" aria-label="A stretch of the ride">
-		<p class="what"><span aria-hidden="true">⤳</span> <b>{title}</b></p>
+		<p class="what"><Icon name="route" size="sm" /> <b>{title}</b></p>
 		<p class="facts">{factsLine(facts)}{#if facts.roads.length}<br /><span class="roads">on the {facts.roads.join(', ')}</span>{/if}</p>
 		<div class="row">
-			<button type="button" class="go" onclick={play}>▶ Play it</button>
-			<button type="button" onclick={gpx} title="A GPX file to ride it: for a satnav, Beeline, Garmin…">⬇ GPX</button>
+			<button type="button" class="go" onclick={play}><Icon name="play" size="sm" /> Play it</button>
+			<button type="button" onclick={gpx} title="A GPX file to ride it: for a satnav, Beeline, Garmin…"><Icon name="download" size="sm" /> GPX</button>
 			<button type="button" onclick={share}>{shared || 'Share'}</button>
 			<button type="button" class="x" onclick={close} aria-label="Close the stretch">×</button>
 		</div>
@@ -104,12 +105,12 @@
 		box-sizing: border-box;
 		padding: 12px 14px;
 		border-radius: 20px;
-		background: var(--glass);
+		background: var(--pc-glass);
 		backdrop-filter: blur(12px);
 		box-shadow:
-			var(--shadow),
-			0 0 0 1px var(--line);
-		color: var(--text);
+			var(--pc-shadow),
+			0 0 0 1px var(--pc-line);
+		color: var(--pc-ink);
 		font-size: 14px;
 	}
 	p {
@@ -119,12 +120,12 @@
 		font-size: 15px;
 	}
 	.facts {
-		color: var(--muted);
+		color: var(--pc-muted);
 		font-size: 13px;
 		line-height: 1.5;
 	}
 	.roads {
-		color: var(--text);
+		color: var(--pc-ink);
 	}
 	.row {
 		display: flex;
@@ -136,20 +137,20 @@
 		padding: 0 14px;
 		border: 0;
 		border-radius: 999px;
-		background: var(--card);
+		background: var(--pc-card);
 		box-shadow:
-			var(--press),
-			0 0 0 1px var(--line);
-		color: var(--text);
+			var(--pc-press),
+			0 0 0 1px var(--pc-line);
+		color: var(--pc-ink);
 		font: inherit;
 		font-size: 13px;
 		font-weight: 650;
 		cursor: pointer;
 	}
 	button.go {
-		background: var(--accent);
-		color: var(--on-accent);
-		box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 55%, #000);
+		background: var(--pc-accent);
+		color: var(--pc-on-accent);
+		box-shadow: 0 3px 0 var(--pc-accent-deep);
 	}
 	button:disabled {
 		opacity: 0.5;

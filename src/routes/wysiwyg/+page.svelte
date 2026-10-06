@@ -532,7 +532,7 @@
 		<div class="brand">
 			<span class="mark" aria-hidden="true">✎</span>
 			<div>
-				<h1 class="display">Story editor</h1>
+				<h1 class="pc-display">Story editor</h1>
 				<p role="status">{status || (saved ? 'Saved on this device' : ' ')}</p>
 			</div>
 		</div>
@@ -788,12 +788,12 @@
 		box-sizing: border-box;
 		/* room for the floating toolbar under the story */
 		padding: 16px 16px 120px;
-		background: var(--paper);
-		color: var(--text);
-		font-family: var(--font-ui);
+		background: var(--pc-paper);
+		color: var(--pc-ink);
+		font-family: var(--pc-font-ui);
 	}
 	.editor.dragging {
-		outline: 4px dashed var(--accent);
+		outline: 4px dashed var(--pc-accent);
 		outline-offset: -8px;
 	}
 	.bar {
@@ -816,8 +816,8 @@
 		width: 40px;
 		height: 40px;
 		border-radius: 50%;
-		background: var(--accent);
-		color: var(--on-accent);
+		background: var(--pc-accent);
+		color: var(--pc-on-accent);
 		font-size: 18px;
 	}
 	.brand h1 {
@@ -828,7 +828,7 @@
 		margin: 0;
 		min-height: 1.2em;
 		font-size: 13px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.actions {
 		display: flex;
@@ -844,20 +844,20 @@
 		padding: 0 14px;
 		border: 0;
 		border-radius: 999px;
-		background: var(--card);
-		color: var(--text);
+		background: var(--pc-card);
+		color: var(--pc-ink);
 		font: inherit;
 		font-weight: 650;
 		font-size: 14px;
 		cursor: pointer;
 		box-shadow:
-			var(--press),
-			0 0 0 1px var(--line);
+			var(--pc-press),
+			0 0 0 1px var(--pc-line);
 	}
 	.pill.go {
-		background: var(--accent);
-		color: var(--on-accent);
-		box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 55%, #000);
+		background: var(--pc-accent);
+		color: var(--pc-on-accent);
+		box-shadow: 0 3px 0 var(--pc-accent-deep);
 	}
 	.pill.small {
 		min-height: 32px;
@@ -878,8 +878,8 @@
 		padding: 0 5px;
 		box-sizing: border-box;
 		border-radius: 999px;
-		background: var(--butter);
-		color: var(--butter-ink);
+		background: var(--pc-butter);
+		color: var(--pc-butter-ink);
 		font-size: 12px;
 	}
 	.page {
@@ -890,7 +890,7 @@
 	.problem {
 		margin: 2rem auto;
 		max-width: 46rem;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 
 	/* ---- writing on the page ---- */
@@ -902,36 +902,36 @@
 	}
 	.title-edit:empty::before {
 		content: attr(data-placeholder);
-		color: var(--b-muted, var(--muted));
+		color: var(--pc-muted, var(--pc-muted));
 		opacity: 0.6;
 	}
 	.page :global(.prose.ProseMirror) {
 		outline: none;
 		min-height: 40vh;
-		caret-color: var(--accent);
+		caret-color: var(--pc-accent);
 	}
 	.page :global(.prose p.is-editor-empty:first-child::before) {
 		content: attr(data-placeholder);
 		float: left;
 		height: 0;
-		color: var(--b-muted, var(--muted));
+		color: var(--pc-muted, var(--pc-muted));
 		opacity: 0.6;
 		pointer-events: none;
 	}
 	.page :global(.prose figure.is-empty figcaption::before) {
 		content: 'Add a caption…';
-		color: var(--b-muted, var(--muted));
+		color: var(--pc-muted, var(--pc-muted));
 		opacity: 0.6;
 		pointer-events: none;
 	}
 	.page :global(.prose figure.ProseMirror-selectednode img) {
-		outline: 4px solid var(--accent);
+		outline: 4px solid var(--pc-accent);
 	}
 	.page :global(.prose .missing-photo) {
 		padding: 2rem 1rem;
-		border: 2px dashed var(--line);
+		border: 2px dashed var(--pc-line);
 		border-radius: 18px;
-		color: var(--muted);
+		color: var(--pc-muted);
 		font-size: 0.9rem;
 		text-align: center;
 	}
@@ -952,24 +952,24 @@
 		border-radius: 999px;
 		background: rgb(0 0 0 / 0.55);
 		color: #fff;
-		font: 600 13px var(--font-ui);
+		font: 600 13px var(--pc-font-ui);
 	}
 	.cover-add {
 		display: block;
 		width: 100%;
 		margin: 0.5rem 0 2rem;
 		padding: 2.2rem 1rem;
-		border: 2px dashed var(--line);
+		border: 2px dashed var(--pc-line);
 		border-radius: 22px;
 		background: none;
-		color: var(--muted);
-		font: 600 15px var(--font-ui);
+		color: var(--pc-muted);
+		font: 600 15px var(--pc-font-ui);
 		cursor: pointer;
 	}
 
 	/* ---- places: mentions waiting to be linked, and ones linked to a moment ---- */
 	.page :global(.place-mention) {
-		text-decoration: underline dotted var(--accent);
+		text-decoration: underline dotted var(--pc-accent);
 		text-decoration-thickness: 2px;
 		text-underline-offset: 0.25em;
 		cursor: pointer;
@@ -986,10 +986,10 @@
 		gap: 6px;
 		padding: 6px;
 		border-radius: 999px;
-		background: var(--paper);
+		background: var(--pc-paper);
 		box-shadow:
-			var(--shadow),
-			0 0 0 1px var(--line);
+			var(--pc-shadow),
+			0 0 0 1px var(--pc-line);
 	}
 	.seg.when {
 		flex-wrap: wrap;
@@ -998,8 +998,8 @@
 	.places {
 		padding: 10px 12px;
 		border-radius: 14px;
-		background: var(--card);
-		box-shadow: 0 0 0 1px var(--line);
+		background: var(--pc-card);
+		box-shadow: 0 0 0 1px var(--pc-line);
 		font-size: 13px;
 	}
 	.places p {
@@ -1016,7 +1016,7 @@
 	.hint {
 		margin: 0;
 		font-size: 12px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 
 	/* ---- the formatting toolbar: a pill above the keyboard ---- */
@@ -1036,11 +1036,11 @@
 		padding: 5px;
 		box-sizing: border-box;
 		border-radius: 999px;
-		background: var(--card);
+		background: var(--pc-card);
 		box-shadow:
-			var(--shadow),
-			0 0 0 1px var(--line);
-		font-family: var(--font-ui);
+			var(--pc-shadow),
+			0 0 0 1px var(--pc-line);
+		font-family: var(--pc-font-ui);
 	}
 	.toolbar button {
 		flex: none;
@@ -1050,7 +1050,7 @@
 		border: 0;
 		border-radius: 999px;
 		background: none;
-		color: var(--text);
+		color: var(--pc-ink);
 		font: inherit;
 		font-size: 16px;
 		cursor: pointer;
@@ -1059,8 +1059,8 @@
 		font-size: 13px;
 	}
 	.toolbar button[aria-pressed='true'] {
-		background: var(--ink);
-		color: var(--paper);
+		background: var(--pc-ink);
+		color: var(--pc-paper);
 	}
 	.toolbar .places-btn {
 		display: inline-flex;
@@ -1082,14 +1082,14 @@
 		padding: 0 5px;
 		box-sizing: border-box;
 		border-radius: 999px;
-		background: var(--accent);
-		color: var(--on-accent);
+		background: var(--pc-accent);
+		color: var(--pc-on-accent);
 		font-size: 11px;
 	}
 	.toolbar .photo {
 		padding: 0 14px;
-		background: var(--accent-soft);
-		color: var(--accent-ink);
+		background: var(--pc-accent-soft);
+		color: var(--pc-accent-ink);
 		font-weight: 700;
 		font-size: 14px;
 	}
@@ -1098,7 +1098,7 @@
 		width: 1px;
 		height: 24px;
 		margin: 0 4px;
-		background: var(--line);
+		background: var(--pc-line);
 	}
 
 	/* ---- sheets: the photo picker and the settings drawer ---- */
@@ -1113,9 +1113,9 @@
 		z-index: 41;
 		box-sizing: border-box;
 		padding: 16px;
-		background: var(--paper);
-		box-shadow: var(--shadow);
-		font-family: var(--font-ui);
+		background: var(--pc-paper);
+		box-shadow: var(--pc-shadow);
+		font-family: var(--pc-font-ui);
 		overflow-y: auto;
 	}
 	.sheet-head {
@@ -1151,9 +1151,9 @@
 		padding: 0 10px;
 		border: 0;
 		border-radius: 999px;
-		background: var(--card);
-		box-shadow: 0 0 0 1px var(--line);
-		color: var(--text);
+		background: var(--pc-card);
+		box-shadow: 0 0 0 1px var(--pc-line);
+		color: var(--pc-ink);
 		font: inherit;
 		font-size: 14px;
 	}
@@ -1161,8 +1161,8 @@
 		display: inline-flex;
 		padding: 3px;
 		border-radius: 999px;
-		background: var(--card);
-		box-shadow: 0 0 0 1px var(--line);
+		background: var(--pc-card);
+		box-shadow: 0 0 0 1px var(--pc-line);
 	}
 	.seg button {
 		min-height: 30px;
@@ -1170,7 +1170,7 @@
 		border: 0;
 		border-radius: 999px;
 		background: none;
-		color: var(--muted);
+		color: var(--pc-muted);
 		font: inherit;
 		font-size: 13px;
 		font-weight: 650;
@@ -1178,8 +1178,8 @@
 	}
 	.seg button[aria-selected='true'],
 	.seg button[aria-checked='true'] {
-		background: var(--ink);
-		color: var(--paper);
+		background: var(--pc-ink);
+		color: var(--pc-paper);
 	}
 	.field.inline {
 		flex-direction: row;
@@ -1192,7 +1192,7 @@
 	.count-line {
 		margin: 0 0 8px;
 		font-size: 13px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.map-pick {
 		display: flex;
@@ -1208,8 +1208,8 @@
 		max-height: 40vh;
 		overflow: hidden;
 		border-radius: 14px;
-		background: #f6f0e3;
-		color: var(--muted);
+		background: var(--pc-sunk);
+		color: var(--pc-muted);
 		font-size: 13px;
 	}
 	.map-preview.whole {
@@ -1236,7 +1236,7 @@
 		border-radius: 999px;
 		background: rgb(255 255 255 / 0.9);
 		box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
-		font: 13px var(--font-ui);
+		font: 13px var(--pc-font-ui);
 	}
 	.page :global(.map-tools[hidden]) {
 		display: none;
@@ -1256,7 +1256,7 @@
 		font: inherit;
 	}
 	.page :global(.prose figure.map-shot.ProseMirror-selectednode .map-frame) {
-		outline: 4px solid var(--accent);
+		outline: 4px solid var(--pc-accent);
 	}
 	.picker ul {
 		display: grid;
@@ -1274,7 +1274,7 @@
 		padding: 0;
 		border: 0;
 		background: none;
-		color: var(--muted);
+		color: var(--pc-muted);
 		font: inherit;
 		font-size: 11px;
 		cursor: pointer;
@@ -1286,12 +1286,12 @@
 		border-radius: 10px;
 	}
 	.picker li button:hover img {
-		outline: 3px solid var(--accent);
+		outline: 3px solid var(--pc-accent);
 	}
 	.picker .none {
 		grid-column: 1 / -1;
 		font-size: 13px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.drawer {
 		top: 0;
@@ -1311,7 +1311,7 @@
 	}
 	.field small {
 		font-weight: 400;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.field input:not([type='checkbox']),
 	.field select {
@@ -1319,9 +1319,9 @@
 		padding: 0 12px;
 		border: 0;
 		border-radius: 12px;
-		background: var(--card);
-		box-shadow: 0 0 0 1px var(--line);
-		color: var(--text);
+		background: var(--pc-card);
+		box-shadow: 0 0 0 1px var(--pc-line);
+		color: var(--pc-ink);
 		font: inherit;
 		font-weight: 500;
 		font-size: 15px;
@@ -1334,7 +1334,7 @@
 	.check input {
 		width: 20px;
 		height: 20px;
-		accent-color: var(--accent);
+		accent-color: var(--pc-accent);
 	}
 	.row {
 		display: flex;
@@ -1344,8 +1344,8 @@
 		margin: 0;
 		padding: 10px 12px 10px 28px;
 		border-radius: 14px;
-		background: var(--butter);
-		color: var(--butter-ink);
+		background: var(--pc-butter);
+		color: var(--pc-butter-ink);
 		font-size: 13px;
 		line-height: 1.5;
 	}
@@ -1353,22 +1353,22 @@
 		margin: 0;
 		padding: 10px 12px;
 		border-radius: 14px;
-		background: var(--sky);
-		color: var(--sky-ink);
+		background: var(--pc-sky);
+		color: var(--pc-sky-ink);
 		font-size: 13px;
 	}
 	.source summary {
 		cursor: pointer;
 		font-size: 13px;
 		font-weight: 650;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.source pre {
 		margin: 8px 0 0;
 		padding: 12px;
 		border-radius: 12px;
-		background: var(--card);
-		box-shadow: 0 0 0 1px var(--line);
+		background: var(--pc-card);
+		box-shadow: 0 0 0 1px var(--pc-line);
 		font-size: 12px;
 		white-space: pre-wrap;
 		word-break: break-word;

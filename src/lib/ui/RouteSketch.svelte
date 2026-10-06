@@ -10,7 +10,7 @@
 	let { s, color, label, width = 3.5, pulse = true }: { s: Sketch; color: string; label?: string; width?: number; pulse?: boolean } = $props();
 </script>
 
-<svg class="sketch" viewBox="0 0 100 100" style:--c={color} role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : 'true'}>
+<svg class="sketch" viewBox="0 0 100 100" style:--pc-c={color} role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : 'true'}>
 	{#each s.paths as p, i (i)}<path d={p} stroke-width={width} />{/each}
 	{#if s.start}<circle class="start" cx={s.start[0]} cy={s.start[1]} r={width * 0.95} />{/if}
 	{#if s.end}<circle class="end" cx={s.end[0]} cy={s.end[1]} r={width * 0.95} />{/if}
@@ -28,25 +28,25 @@
 	}
 	path {
 		fill: none;
-		stroke: var(--c);
+		stroke: var(--pc-c);
 		stroke-linecap: round;
 		stroke-linejoin: round;
 	}
 	.start {
 		fill: #fff;
-		stroke: #263238;
+		stroke: var(--pc-ink);
 		stroke-width: 1.8;
 	}
 	.end {
-		fill: #263238;
+		fill: var(--pc-ink);
 	}
 	.dot {
-		fill: #c2562d;
+		fill: var(--pc-accent);
 		stroke: #fff;
 		stroke-width: 1.5;
 	}
 	.halo {
-		fill: #c2562d;
+		fill: var(--pc-accent);
 		opacity: 0.25;
 	}
 	.halo.pulse {

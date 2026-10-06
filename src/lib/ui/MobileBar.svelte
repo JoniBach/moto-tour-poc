@@ -8,40 +8,40 @@
 	import type { App, View } from '$lib/app.svelte';
 	import { on, VIEWS_ON } from '$lib/flags';
 	import { ui } from '$lib/ui.svelte';
+	import Icon from './Icon.svelte';
 
 	let { app, events }: { app: App; events: number } = $props();
 
 	const ABOUT: Record<View, { icon: string; name: string }> = {
-		'3d': { icon: '⛰', name: '3D view' },
-		'2d': { icon: '🗺', name: 'flat map' },
-		globe: { icon: '◍', name: 'globe' }
+		'3d': { icon: 'mountain', name: '3D view' },
+		'2d': { icon: 'map', name: 'flat map' },
+		globe: { icon: 'globe', name: 'globe' }
 	};
 </script>
 
 <nav class="mbar" aria-label="Views and panels">
 	<!-- every view that's on, always in the same place; the current one lit -->
 	{#if VIEWS_ON.length > 1}
-		<div class="views" role="group" aria-label="View">
+		<div class="pc-segmented views" role="group" aria-label="View">
 			{#each VIEWS_ON as v (v)}
-				<button class:on={app.view === v} aria-pressed={app.view === v} onclick={() => app.setView(v)} aria-label="The {ABOUT[v].name}">
-					{ABOUT[v].icon}
-				</button>
+				<button aria-pressed={app.view === v} onclick={() => app.setView(v)} aria-label="The {ABOUT[v].name}"><Icon name={ABOUT[v].icon} /></button>
 			{/each}
 		</div>
 	{/if}
 	{#if app.tour}
-		<button class:on={ui.sheet === 'controls'} onclick={() => ui.toggle('controls')} aria-label="Map and view settings">⚙</button>
-		<button class:on={ui.sheet === 'events'} onclick={() => ui.toggle('events')} aria-label="Day events">
-			☰{#if events}<span class="n">{events}</span>{/if}
+		<button class="pc-icon-button pc-icon-button--glass" aria-pressed={ui.sheet === 'controls'} onclick={() => ui.toggle('controls')} aria-label="Map and view settings"><Icon name="sliders" /></button>
+		<button class="pc-icon-button pc-icon-button--glass" aria-pressed={ui.sheet === 'events'} onclick={() => ui.toggle('events')} aria-label="Day events">
+			<Icon name="menu" />{#if events}<span class="pc-badge n">{events}</span>{/if}
 		</button>
 	{/if}
 	{#if on('blog')}
-		<a class="btn" href={app.tour ? `${base}/blog/${app.tour.data.track.day}` : `${base}/blog`} aria-label="Read as a blog">📖</a>
+		<a class="pc-icon-button pc-icon-button--glass" href={app.tour ? `${base}/blog/${app.tour.data.track.day}` : `${base}/blog`} aria-label="Read as a blog"><Icon name="book" /></a>
 	{/if}
-	<button class:on={ui.sheet === 'info'} onclick={() => ui.toggle('info')} aria-label="Map info and credits">ⓘ</button>
+	<button class="pc-icon-button pc-icon-button--glass" aria-pressed={ui.sheet === 'info'} onclick={() => ui.toggle('info')} aria-label="Map info and credits"><Icon name="info" /></button>
 </nav>
 
 <style>
+	/* a column of Postcard's frosted round buttons down the right edge, the views as a segmented column */
 	.mbar {
 		position: fixed;
 		z-index: 110;
@@ -51,51 +51,21 @@
 		flex-direction: column;
 		gap: 8px;
 	}
-	button,
-	.btn {
-		all: unset;
-		cursor: pointer;
+	.mbar > .pc-icon-button {
 		position: relative;
-		width: 44px;
-		height: 44px;
-		display: grid;
-		place-items: center;
-		border: 0;
-		border-radius: 50%;
-		background: var(--glass);
-		backdrop-filter: blur(12px);
-		box-shadow:
-			var(--press),
-			0 0 0 1px var(--line);
-		color: var(--text);
-		font-size: 19px;
 	}
-	/* the views as one segmented column, set apart from the panel buttons */
 	.views {
-		display: flex;
 		flex-direction: column;
 		gap: 2px;
 		padding: 2px;
 		margin-bottom: 6px;
-		border-radius: 999px;
-		background: var(--glass);
 		backdrop-filter: blur(12px);
-		box-shadow:
-			var(--press),
-			0 0 0 1px var(--line);
 	}
 	.views button {
-		background: none;
-		backdrop-filter: none;
-		box-shadow: none;
-	}
-	button.on {
-		background: var(--ink);
-		color: var(--paper);
-	}
-	:global(.theme-night) button.on {
-		background: var(--accent-soft);
-		color: var(--text);
+		justify-content: center;
+		width: 40px;
+		min-height: 40px;
+		padding: 0;
 	}
 	.n {
 		position: absolute;
@@ -103,14 +73,8 @@
 		right: -5px;
 		min-width: 18px;
 		height: 18px;
-		padding: 0 4px;
-		box-sizing: border-box;
-		border-radius: 9px;
-		background: var(--accent);
-		color: var(--on-accent);
 		font-size: 10px;
-		font-weight: 700;
-		line-height: 18px;
-		text-align: center;
+		background: var(--pc-accent);
+		color: var(--pc-on-accent);
 	}
 </style>

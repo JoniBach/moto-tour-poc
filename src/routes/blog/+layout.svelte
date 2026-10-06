@@ -11,6 +11,7 @@
 	import { page } from '$app/state';
 	import JourneyRail from '$lib/blog/JourneyRail.svelte';
 	import Subscribe from '$lib/blog/Subscribe.svelte';
+	import Icon from '$lib/ui/Icon.svelte';
 
 	let { data, children } = $props();
 
@@ -19,26 +20,26 @@
 	const at = $derived(page.params.day ? `${base}/day/${page.params.day}` : `${base}/`);
 	const views = (
 		[
-			{ id: 'globe', label: 'Globe', icon: '◍' },
-			{ id: '2d', label: 'Map', icon: '⌖' }
+			{ id: 'globe', label: 'Globe', icon: 'globe' },
+			{ id: '2d', label: 'Map', icon: 'map' }
 		] as const
 	).filter((v) => VIEWS_ON.includes(v.id));
 </script>
 
-<div class="blog blog-palette">
-	<a class="skip" href="#content">Skip to content</a>
-	<header class="site">
-		<a class="pill brand" href="{base}/" title="The tour">
-			<span class="mark" aria-hidden="true">
+<div class="blog blog-palette pc-sky">
+	<a class="pc-skip-link" href="#content">Skip to content</a>
+	<header class="pc-topbar">
+		<a class="pc-pill pc-brand" href="{base}/" title="The tour">
+			<span class="pc-mark" aria-hidden="true">
 				<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M4.5 15c3-1 4-5 7.5-5s3.5 3 7.5 2" /></svg>
 			</span>
-			<span class="display">{TOUR.name}</span>
+			<span class="pc-brand__name pc-display">{TOUR.name}</span>
 		</a>
-		<nav class="pill views" aria-label="Views">
+		<nav class="pc-segmented" aria-label="Views">
 			{#each views as v (v.id)}
-				<a href="{at}?view={v.id}"><span aria-hidden="true">{v.icon}</span> {v.label}</a>
+				<a href="{at}?view={v.id}"><Icon name={v.icon} /> {v.label}</a>
 			{/each}
-			<a href="{base}/blog" class="on" aria-current={page.url.pathname === `${base}/blog` ? 'page' : 'true'}><span aria-hidden="true">✎</span> Blog</a>
+			<a href="{base}/blog" aria-current={page.url.pathname === `${base}/blog` ? 'page' : 'true'}><Icon name="pen" /> Blog</a>
 		</nav>
 	</header>
 
@@ -55,9 +56,7 @@
 			<Subscribe variant="line" />
 		{:else if on('stories')}
 			<p class="follow">
-				<a href="{base}/blog/feed.xml" type="application/rss+xml"
-					><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2" /><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16" /></svg> Follow new stories by RSS</a
-				>
+				<a href="{base}/blog/feed.xml" type="application/rss+xml"><Icon name="rss" /> Follow new stories by RSS</a>
 			</p>
 		{/if}
 		<p>
@@ -68,101 +67,35 @@
 </div>
 
 <style>
-	/* the palette and reading typography are .blog-palette, in the root layout (shared with the
-	   story editor's preview) */
+	/* the blog's frame: Postcard's sky, top bar, brand and view switch, with the journey rail beside the page */
 	.blog {
 		color-scheme: light;
 		min-height: 100vh;
-		/* the globe's sky at the top, settling into paper */
-		background:
-			linear-gradient(to bottom, #cfe6f5 0, #e6f1f6 18rem, #fbf6ec 38rem) no-repeat,
-			#fbf6ec;
-		color: var(--b-text);
-		font-family: var(--font-ui);
-		font-size: 1.0625rem;
-		line-height: 1.6;
+		color: var(--pc-ink);
+		font-family: var(--pc-font-ui);
+		font-size: var(--pc-text-read);
+		line-height: var(--pc-leading-body);
 	}
-	/* the app's floating pill bar */
-	header.site {
-		position: sticky;
-		top: 0;
-		z-index: 5;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.75rem;
-		max-width: 74rem;
-		margin: 0 auto;
-		padding: calc(0.9rem + env(safe-area-inset-top)) 1rem 0.5rem;
-		pointer-events: none;
+	.pc-topbar {
+		padding-inline: 1rem;
 	}
-	.pill {
-		pointer-events: auto;
-		display: flex;
-		align-items: center;
-		border-radius: 999px;
-		background: rgb(255 253 248 / 0.9);
-		backdrop-filter: blur(12px);
-		box-shadow:
-			0 3px 0 rgb(38 50 56 / 0.18),
-			0 0 0 1px rgb(38 50 56 / 0.14);
-	}
-	.brand {
-		gap: 0.55rem;
-		min-height: 3rem;
-		padding: 0 1.1rem 0 0.45rem;
-		font-size: 1.1rem;
-		color: var(--b-text) !important;
+	.pc-brand {
+		color: var(--pc-ink) !important;
 		text-decoration: none;
 	}
-	.mark {
-		display: grid;
-		place-items: center;
-		width: 2.15rem;
-		height: 2.15rem;
-		border-radius: 50%;
-		background: #c2562d;
-	}
-	.mark svg {
-		width: 1.35rem;
-		height: 1.35rem;
-		fill: none;
-		stroke: #fff;
-		stroke-width: 2;
-		stroke-linecap: round;
-	}
-	.mark circle {
-		stroke-opacity: 0.55;
-	}
-	.views {
-		gap: 0.15rem;
-		padding: 0.25rem;
-	}
-	.views a {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.4rem;
-		min-height: 2.5rem;
-		padding: 0 1rem;
-		border-radius: 999px;
-		color: var(--b-muted) !important;
-		font-weight: 650;
-		font-size: 0.95rem;
+	.pc-segmented a {
+		color: var(--pc-muted);
 		text-decoration: none;
 	}
-	.views a:hover {
-		color: var(--b-text) !important;
-	}
-	.views a.on {
-		background: #263238;
-		color: #fbf6ec !important;
+	.pc-segmented a[aria-current]:not([aria-current='false']) {
+		color: var(--pc-paper);
 	}
 	footer.site {
-		max-width: 74rem;
+		max-width: var(--pc-page);
 		margin: 0 auto;
 		padding: 1.5rem 1rem calc(1.5rem + env(safe-area-inset-bottom));
 		font-size: 0.85rem;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	footer.site p {
 		margin: 0;
@@ -175,34 +108,10 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.4rem;
-		color: var(--b-text);
+		color: var(--pc-ink);
 	}
-	.follow svg {
-		width: 1.1em;
-		height: 1.1em;
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 2.4;
-		stroke-linecap: round;
-	}
-	.follow circle {
-		fill: currentColor;
-		stroke: none;
-	}
-	/* phones: the brand as its mark alone, like the app */
 	@media (max-width: 30rem) {
-		.brand {
-			padding: 0 0.45rem;
-		}
-		.brand .display {
-			position: absolute;
-			width: 1px;
-			height: 1px;
-			overflow: hidden;
-			clip-path: inset(50%);
-			white-space: nowrap;
-		}
-		.views a {
+		.pc-segmented a {
 			padding: 0 0.75rem;
 		}
 	}
@@ -213,28 +122,16 @@
 	}
 	.blog :global(a:focus-visible),
 	.blog :global(button:focus-visible) {
-		outline: 3px solid var(--b-accent);
+		outline: 3px solid var(--pc-accent-ink);
 		outline-offset: 2px;
 		border-radius: 6px;
-	}
-	.skip {
-		position: absolute;
-		left: 0.5rem;
-		top: -3rem;
-		padding: 0.5rem 0.8rem;
-		background: var(--b-card);
-		border-radius: 999px;
-		z-index: 10;
-	}
-	.skip:focus {
-		top: 0.5rem;
 	}
 	.shell {
 		display: grid;
 		grid-template-columns: 17rem minmax(0, 46rem);
 		justify-content: center;
 		gap: 3rem;
-		max-width: 74rem;
+		max-width: var(--pc-page);
 		margin: 0 auto;
 		padding: 1.5rem 1rem 3rem;
 	}

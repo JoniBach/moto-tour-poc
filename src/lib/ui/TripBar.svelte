@@ -12,15 +12,16 @@
 	import type { App } from '$lib/app.svelte';
 	import { dayColor } from '$lib/colors';
 	import { ui } from '$lib/ui.svelte';
+	import Icon from './Icon.svelte';
 
 	let { app }: { app: App } = $props();
 
 	// only the views switched on in this release (src/lib/flags.ts)
 	const VIEWS = (
 		[
-			{ id: 'globe', label: 'Globe', icon: '◍', title: `The ${A.leg} as a little globe: the landscape turns under ${A.mover}` },
-			{ id: '2d', label: 'Map', icon: '⌖', title: 'The tour on a street map' },
-			{ id: '3d', label: '3D', icon: '▲', title: 'The tour in 3D' }
+			{ id: 'globe', label: 'Globe', icon: 'globe', title: `The ${A.leg} as a little globe: the landscape turns under ${A.mover}` },
+			{ id: '2d', label: 'Map', icon: 'map', title: 'The tour on a street map' },
+			{ id: '3d', label: '3D', icon: 'mountain', title: 'The tour in 3D' }
 		] as const
 	).filter((v) => VIEWS_ON.includes(v.id));
 
@@ -55,32 +56,32 @@
 </script>
 
 <header class="top">
-	<a class="brand display" class:on={!activeDay && !app.pending} href="{base}/" title="Every day of the tour">
-		<span class="mark" aria-hidden="true">
+	<a class="pc-pill pc-brand pc-display" class:on={!activeDay && !app.pending} href="{base}/" title="Every day of the tour">
+		<span class="pc-mark" aria-hidden="true">
 			<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M4.5 15c3-1 4-5 7.5-5s3.5 3 7.5 2" /></svg>
 		</span><span class="name">{TOUR.name}</span>
 	</a>
 
 	{#if active}
-		<nav class="stepper" aria-label="Days" style:--c={dayColor(active.index, days.length)}>
-			<a class="step" class:disabled={!prev} href={prev ? `${base}/day/${prev.day}` : undefined} aria-label="Previous day">‹</a>
+		<nav class="pc-pill stepper" aria-label="Days" style:--pc-c={dayColor(active.index, days.length)}>
+			<a class="step" class:disabled={!prev} href={prev ? `${base}/day/${prev.day}` : undefined} aria-label="Previous day"><Icon name="chevron-left" /></a>
 			<button type="button" class="today" aria-expanded={menuOpen} aria-haspopup="true" onclick={() => (menuOpen = !menuOpen)}>
-				<span class="stamp" aria-hidden="true">{active.index + 1}</span>
+				<span class="pc-tile" aria-hidden="true">{active.index + 1}</span>
 				<span class="what">
 					<span class="t">{app.pending ? `Heading to day ${active.index + 1}…` : `Day ${active.index + 1} of ${days.length}`}</span>
 					<span class="d">{date(active.start)}</span>
 				</span>
-				<span class="caret" aria-hidden="true">▾</span>
+				<span class="caret"><Icon name="chevron-down" size="sm" /></span>
 			</button>
-			<a class="step" class:disabled={!next} href={next ? `${base}/day/${next.day}` : undefined} aria-label="Next day">›</a>
+			<a class="step" class:disabled={!next} href={next ? `${base}/day/${next.day}` : undefined} aria-label="Next day"><Icon name="chevron-right" /></a>
 			{#if menuOpen}
-				<div class="menu scroll-y" bind:this={menu}>
+				<div class="pc-menu menu" bind:this={menu}>
 					<a class="all" href="{base}/">All days as postcards</a>
 					<ol>
 						{#each days as d (d.day)}
 							<li>
-								<a href="{base}/day/{d.day}" aria-current={d.day === activeDay ? 'page' : undefined} style:--c={dayColor(d.index, days.length)}>
-									<span class="stamp" aria-hidden="true">{d.index + 1}</span>
+								<a href="{base}/day/{d.day}" aria-current={d.day === activeDay ? 'page' : undefined} style:--pc-c={dayColor(d.index, days.length)}>
+									<span class="pc-tile" aria-hidden="true">{d.index + 1}</span>
 									<span class="what">
 										<span class="t">{d.title}</span>
 										<span class="d">{date(d.start)}</span>
@@ -97,21 +98,22 @@
 	{#if !ui.mobile}
 		<div class="end">
 			{#if VIEWS.length > 1}
-				<div class="views" role="group" aria-label="View">
+				<div class="pc-segmented" role="group" aria-label="View">
 					{#each VIEWS as v (v.id)}
 						<button type="button" aria-pressed={app.view === v.id} title={v.title} onclick={() => app.setView(v.id)}>
-							<span aria-hidden="true">{v.icon}</span>
+							<Icon name={v.icon} />
 							{v.label}
 						</button>
 					{/each}
 				</div>
 			{/if}
-			{#if on('blog')}<a class="blog" href={activeDay ? `${base}/blog/${activeDay}` : `${base}/blog`} title="Read the tour as a blog">Blog</a>{/if}
+			{#if on('blog')}<a class="pc-pill blog" href={activeDay ? `${base}/blog/${activeDay}` : `${base}/blog`} title="Read the tour as a blog">Blog</a>{/if}
 		</div>
 	{/if}
 </header>
 
 <style>
+	/* the bar's layout over the scene; the pills, brand, menu and view switch are Postcard's */
 	.top {
 		position: absolute;
 		z-index: 110;
@@ -122,67 +124,18 @@
 		align-items: flex-start;
 		gap: 12px;
 		pointer-events: none;
-		color: var(--text);
+		color: var(--pc-ink);
 		font-size: 14px;
 	}
 	.top > * {
 		pointer-events: auto;
 	}
-	a {
-		color: inherit;
-		text-decoration: none;
-	}
-
-	.brand,
-	.stepper,
-	.views,
-	.blog {
-		background: var(--glass);
-		backdrop-filter: blur(12px);
-		box-shadow:
-			var(--press),
-			0 0 0 1px var(--line);
-		border-radius: 999px;
-	}
-	.brand {
-		display: flex;
-		align-items: center;
-		gap: 8px;
+	.pc-brand {
 		min-height: 48px;
-		padding: 0 18px 0 8px;
 		font-size: 17px;
-		white-space: nowrap;
-	}
-	.mark {
-		display: grid;
-		place-items: center;
-		width: 34px;
-		height: 34px;
-		border-radius: 50%;
-		background: var(--accent);
-		color: var(--on-accent);
-	}
-	.mark svg {
-		width: 22px;
-		height: 22px;
-		fill: none;
-		stroke: #fff;
-		stroke-width: 2;
-		stroke-linecap: round;
-	}
-	.mark circle {
-		stroke-opacity: 0.55;
-	}
-	.brand:hover .mark {
-		transform: rotate(-12deg);
-	}
-	.mark {
-		transition: transform 0.2s ease;
 	}
 	.stepper {
 		position: relative;
-		display: flex;
-		align-items: center;
 		min-height: 48px;
 		margin: 0 auto;
 		padding: 0 4px;
@@ -193,11 +146,10 @@
 		width: 40px;
 		height: 40px;
 		border-radius: 50%;
-		font-size: 24px;
-		line-height: 1;
+		color: var(--pc-ink);
 	}
 	.step:hover {
-		background: var(--accent-soft);
+		background: var(--pc-accent-soft);
 	}
 	.step.disabled {
 		opacity: 0.3;
@@ -219,22 +171,7 @@
 		cursor: pointer;
 	}
 	.today:hover {
-		background: color-mix(in srgb, var(--c) 14%, transparent);
-	}
-	.stamp {
-		flex: none;
-		display: grid;
-		place-items: center;
-		width: 32px;
-		height: 32px;
-		border-radius: 10px;
-		background: var(--c);
-		color: #fff;
-		font-family: var(--font-display);
-		font-weight: 700;
-		font-size: 16px;
-		transform: rotate(-4deg);
-		text-shadow: 0 1px 1px rgb(0 0 0 / 0.25);
+		background: color-mix(in srgb, var(--pc-c) 14%, transparent);
 	}
 	.what {
 		display: flex;
@@ -246,60 +183,37 @@
 		overflow: hidden;
 		white-space: nowrap;
 		text-overflow: ellipsis;
-		font-family: var(--font-display);
-		font-variation-settings: 'SOFT' 100;
+		font-family: var(--pc-font-display);
+		font-variation-settings: var(--pc-display-axes);
 		font-weight: 600;
 		font-size: 16px;
 	}
 	.d {
 		font-size: 12px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.caret {
-		color: var(--muted);
-		font-size: 12px;
+		color: var(--pc-muted);
 	}
 	.menu {
 		position: absolute;
 		top: calc(100% + 10px);
 		left: 50%;
 		width: 340px;
-		max-height: min(62vh, 560px);
 		transform: translateX(-50%);
-		padding: 10px 6px 10px 10px;
-		border-radius: var(--radius);
-		background: var(--card);
-		box-shadow:
-			var(--shadow),
-			0 0 0 1px var(--line);
-	}
-	.menu ol {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-	}
-	.menu li a {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 7px 8px;
-		border-radius: 14px;
-	}
-	.menu li a:hover {
-		background: color-mix(in srgb, var(--c) 14%, transparent);
-	}
-	.menu li a[aria-current='page'] {
-		background: color-mix(in srgb, var(--c) 22%, transparent);
 	}
 	.menu .all {
 		display: block;
 		margin: 0 4px 8px 0;
 		padding: 8px 12px;
 		border-radius: 12px;
-		background: var(--sky);
-		color: var(--sky-ink);
+		background: var(--pc-sky);
+		color: var(--pc-sky-ink);
 		font-weight: 700;
 		text-align: center;
+	}
+	.menu .what .t {
+		font-size: 15px;
 	}
 	.end {
 		display: flex;
@@ -309,47 +223,22 @@
 	.stepper + .end {
 		margin-left: 0;
 	}
-	.views {
-		display: flex;
-		padding: 4px;
-		gap: 2px;
-	}
-	.views button {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		min-height: 40px;
-		padding: 0 14px;
-		border: 0;
-		border-radius: 999px;
-		background: none;
-		color: var(--muted);
-		font: inherit;
-		font-weight: 650;
-		cursor: pointer;
-	}
-	.views button:hover {
-		color: var(--text);
-	}
-	.views button[aria-pressed='true'] {
-		background: var(--ink);
-		color: var(--paper);
-	}
 	.blog {
-		display: grid;
-		place-items: center;
+		justify-content: center;
 		min-height: 48px;
 		padding: 0 18px;
+		color: var(--pc-ink);
 		font-weight: 650;
+		text-decoration: none;
 	}
 	.blog:hover {
-		background: var(--card);
+		background: var(--pc-card);
 	}
 	@media (max-width: 1100px) {
 		.name {
 			display: none;
 		}
-		.brand {
+		.pc-brand {
 			padding: 0 7px;
 		}
 	}

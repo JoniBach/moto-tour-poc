@@ -86,7 +86,7 @@
 			<h2>Day events</h2>
 			<span>{events.length} · click to jump</span>
 		</header>
-		<div class="list scroll-y">
+		<div class="list pc-scroll-y">
 			<Timeline {items} {current} fadePast />
 		</div>
 	</aside>
@@ -104,12 +104,12 @@
 		transform: translateY(-50%) rotate(180deg);
 		writing-mode: vertical-rl;
 		padding: 12px 6px;
-		border: 1px solid var(--line);
+		border: 1px solid var(--pc-line);
 		border-left: none;
 		border-radius: 0 16px 16px 0;
-		background: var(--glass);
+		background: var(--pc-glass);
 		backdrop-filter: blur(10px);
-		color: var(--text);
+		color: var(--pc-ink);
 		font-size: 12px;
 		letter-spacing: 0.08em;
 	}
@@ -117,7 +117,7 @@
 		right: 316px;
 	}
 	.tab .n {
-		color: var(--accent);
+		color: var(--pc-accent);
 	}
 	.drawer {
 		position: absolute;
@@ -128,28 +128,28 @@
 		width: 300px;
 		display: flex;
 		flex-direction: column;
-		border: 1px solid var(--line);
-		border-radius: var(--radius);
-		background: var(--glass);
-		box-shadow: var(--shadow);
+		border: 1px solid var(--pc-line);
+		border-radius: var(--pc-radius);
+		background: var(--pc-glass);
+		box-shadow: var(--pc-shadow);
 		backdrop-filter: blur(10px);
-		color: var(--text);
+		color: var(--pc-ink);
 	}
 	header {
 		display: flex;
 		justify-content: space-between;
 		align-items: baseline;
 		padding: 12px 14px 8px;
-		border-bottom: 1px solid var(--line);
+		border-bottom: 1px solid var(--pc-line);
 	}
 	h2 {
 		margin: 0;
 		font-size: 14px;
-		color: var(--accent);
+		color: var(--pc-accent);
 	}
 	header span {
 		font-size: 11px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.list {
 		flex: 1;

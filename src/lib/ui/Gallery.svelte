@@ -4,6 +4,7 @@
   tour to that moment. Esc or the backdrop closes it.
 -->
 <script lang="ts">
+	import Icon from '$lib/ui/Icon.svelte';
 	import { base } from '$app/paths';
 	import { A } from '$lib/activity';
 	import { TOUR } from '$lib/tourConfig';
@@ -85,7 +86,7 @@
 				<div class="actions">
 					<span class="pos">{g.index + 1} / {g.photos.length}</span>
 					{#if photo.day}
-						<button onclick={share} title="Copy a link to this photo">{linked ? '✓ Copied' : '🔗 Link'}</button>
+						<button onclick={share} title="Copy a link to this photo"><Icon name={linked ? 'check' : 'link'} size="sm" /> {linked ? 'Copied' : 'Link'}</button>
 					{/if}
 					{#if photo.day}
 						<button
@@ -110,7 +111,7 @@
 			</div>
 
 			{#if g.photos.length > 1}
-				<div class="strip scroll-x" bind:this={strip}>
+				<div class="strip pc-scroll-x" bind:this={strip}>
 					{#each g.photos as p, k (p.id)}
 						<button class:on={k === g.index} onclick={() => app.gallery && (app.gallery.index = k)} aria-label="Photo {k + 1}">
 							<img src={photoUrl(p, 'thumb')} alt="" loading="lazy" draggable="false" />
@@ -148,8 +149,8 @@
 		padding: 14px;
 		border: 0;
 		border-radius: 26px;
-		background: var(--card);
-		box-shadow: var(--shadow);
+		background: var(--pc-card);
+		box-shadow: var(--pc-shadow);
 		outline: none;
 	}
 	header {
@@ -160,13 +161,13 @@
 		font-size: 13px;
 	}
 	.meta b {
-		font-family: var(--font-display);
+		font-family: var(--pc-font-display);
 		font-size: 15px;
-		color: var(--accent-ink);
+		color: var(--pc-accent-ink);
 	}
 	.meta span,
 	.pos {
-		color: var(--muted);
+		color: var(--pc-muted);
 		font-size: 12px;
 	}
 	.actions {
@@ -180,11 +181,11 @@
 		cursor: pointer;
 		padding: 7px 14px;
 		border-radius: 999px;
-		background: var(--accent);
-		color: var(--on-accent);
+		background: var(--pc-accent);
+		color: var(--pc-on-accent);
 		font-size: 13px;
 		font-weight: 650;
-		box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 55%, #000);
+		box-shadow: 0 3px 0 var(--pc-accent-deep);
 	}
 	.actions .close {
 		width: 36px;
@@ -193,12 +194,12 @@
 		display: grid;
 		place-items: center;
 		border-radius: 50%;
-		background: var(--card);
+		background: var(--pc-card);
 		box-shadow:
-			var(--press),
-			0 0 0 1px var(--line);
+			var(--pc-press),
+			0 0 0 1px var(--pc-line);
 		font-size: 22px;
-		color: var(--text);
+		color: var(--pc-ink);
 	}
 	.stage {
 		position: relative;
@@ -232,15 +233,15 @@
 		display: grid;
 		place-items: center;
 		border-radius: 50%;
-		background: rgb(255 253 248 / 0.92);
+		background: var(--pc-glass);
 		box-shadow:
-			var(--press),
-			0 0 0 1px var(--line);
-		color: var(--text);
+			var(--pc-press),
+			0 0 0 1px var(--pc-line);
+		color: var(--pc-ink);
 		font-size: 26px;
 	}
 	.nav:hover {
-		background: var(--accent-soft);
+		background: var(--pc-accent-soft);
 	}
 	.prev {
 		left: 8px;
@@ -266,7 +267,7 @@
 	}
 	.strip button.on {
 		opacity: 1;
-		border-color: var(--accent);
+		border-color: var(--pc-accent);
 	}
 	.strip button:hover {
 		opacity: 1;

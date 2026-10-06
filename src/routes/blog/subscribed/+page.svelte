@@ -44,11 +44,11 @@
 		font-weight: 750;
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	h1 {
 		margin: 0 0 0.75rem;
-		font-family: var(--font-display, inherit);
+		font-family: var(--pc-font-display, inherit);
 	}
 	.lede {
 		font-size: 1.15rem;
@@ -67,10 +67,10 @@
 	}
 	li p {
 		margin: 0.2rem 0 0;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	a {
-		color: var(--b-link);
+		color: var(--pc-accent-ink);
 		font-weight: 600;
 	}
 </style>

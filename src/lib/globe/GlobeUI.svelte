@@ -5,6 +5,7 @@
   time, the weather, a slider through the day). On phones the drawer is the settings sheet.
 -->
 <script lang="ts">
+	import Icon from '$lib/ui/Icon.svelte';
 	import { A, cap } from '$lib/activity';
 	import { TOUR } from '$lib/tourConfig';
 	import { tempRound, tempUnit } from '$lib/units';
@@ -89,17 +90,17 @@
 </script>
 
 {#snippet settings()}
-	<fieldset class="knobs">
+	<fieldset class="pc-knobs">
 		<legend>Surface</legend>
-		<div class="pills">
+		<div class="pc-pills">
 			{#each surfaces as s (s.id)}
 				<button type="button" aria-pressed={tour.mapStyle === s.id} onclick={() => (tour.mapStyle = s.id)}>{s.label}</button>
 			{/each}
 		</div>
 	</fieldset>
-	<fieldset class="knobs">
+	<fieldset class="pc-knobs">
 		<legend>Route colour</legend>
-		<div class="pills">
+		<div class="pc-pills">
 			{#each colourings as c (c.id)}
 				<button type="button" aria-pressed={tour.settings.globeColorBy === c.id} onclick={() => (tour.settings.globeColorBy = c.id)}>{c.label}</button>
 			{/each}
@@ -113,16 +114,16 @@
 			</div>
 		{/if}
 	</fieldset>
-	<fieldset class="knobs">
+	<fieldset class="pc-knobs">
 		<legend>Show</legend>
-		<div class="chips">
+		<div class="pc-chips">
 			{#each toggles as t (t.key)}
-				<label class="chip"><input type="checkbox" bind:checked={tour.layers[t.key]} /><span class="tick" aria-hidden="true"></span>{t.label}</label>
+				<label class="pc-chip"><input type="checkbox" bind:checked={tour.layers[t.key]} /><span class="pc-chip__tick" aria-hidden="true"></span>{t.label}</label>
 			{/each}
-			<label class="chip"><input type="checkbox" bind:checked={tour.settings.globeHalo} /><span class="tick" aria-hidden="true"></span>Surroundings</label>
+			<label class="pc-chip"><input type="checkbox" bind:checked={tour.settings.globeHalo} /><span class="pc-chip__tick" aria-hidden="true"></span>Surroundings</label>
 		</div>
 	</fieldset>
-	<label class="slider">
+	<label class="pc-slider">
 		<span>Size <output>{km(size)} to the rim</output></span>
 		<input
 			type="range"
@@ -134,12 +135,12 @@
 			aria-valuetext="{km(size)} from the centre to the rim"
 		/>
 	</label>
-	<label class="slider">
+	<label class="pc-slider">
 		<span>Relief <output>{tour.exaggeration.toFixed(1)}×</output></span>
 		<input type="range" min="1" max="4" step="0.1" bind:value={tour.exaggeration} />
 	</label>
 	{#if tour.settings.globeHalo}
-		<div class="slider">
+		<div class="pc-slider">
 			<span>Surroundings <output>from {fogKm(tour.settings.fogIn)} · gone by {fogKm(fogOut)}</output></span>
 			<RangeSlider
 				min={FOG_MIN}
@@ -156,13 +157,13 @@
 			/>
 		</div>
 	{/if}
-	<label class="slider">
+	<label class="pc-slider">
 		<span>{cap(A.mover.replace(/^the /, ''))} size <output>{tour.settings.vehicleScale.toFixed(1)}×</output></span>
 		<input type="range" min="0.5" max="3" step="0.1" bind:value={tour.settings.vehicleScale} />
 	</label>
 	<div class="reset-row">
 		<button type="button" class="reset" disabled={!tour.settings.globeCustomised} onclick={() => tour.settings.resetGlobe()}>
-			<span aria-hidden="true">↺</span> Reset to the defaults
+			<Icon name="reset" size="sm" /> Reset to the defaults
 		</button>
 	</div>
 	<p class="hint">Drag to turn the globe · scroll or pinch to zoom · Space to play. Your choices stay in the page's address, so a refresh or a shared link keeps them.</p>
@@ -179,19 +180,19 @@
 <div class="dock">
 	<!-- the park on the left, the music on the right -->
 	<div class="row">
-		{#if park && tour.layers.parks}<p class="park"><span aria-hidden="true">⛰</span> {park} {TOUR.protectedAreas.one}</p>{/if}
+		{#if park && tour.layers.parks}<p class="park"><Icon name="mountain" size="sm" /> {park} {TOUR.protectedAreas.one}</p>{/if}
 		<NowPlaying {tour} pill={!ui.compact} />
 	</div>
 	<GlobeBanner {tour} music={ui.compact} />
 	<div class="play" role="group" aria-label="Playback">
 		<button type="button" class="pp" class:playing={tour.playing} onclick={() => tour.togglePlay()} aria-label={tour.playing ? 'Pause' : 'Play'}
-			>{tour.playing ? '❚❚' : '▶'}</button
+			><Icon name={tour.playing ? 'pause' : 'play'} /></button
 		>
-		<button type="button" class="cut" onclick={() => tour.pickStretch()} aria-label="Share a stretch" title="Choose a stretch to share, with a GPX to ride it">✂</button>
+		<button type="button" class="cut" onclick={() => tour.pickStretch()} aria-label="Share a stretch" title="Choose a stretch to share, with a GPX to ride it"><Icon name="scissors" /></button>
 		<select bind:value={tour.rate} aria-label="Playback speed">
 			{#each [5, 20, 60, 200] as r (r)}<option value={r}>{r}×</option>{/each}
 		</select>
-		<span class="clock display">{clock}</span>
+		<span class="clock pc-display">{clock}</span>
 		{#if wxText}<span class="wx" title={wxText}><span aria-hidden="true">{wxIcon}</span> <span class="wxt">{wxText}</span></span>{/if}
 		<input
 			class="through"
@@ -215,7 +216,7 @@
 		gap: 6px;
 		margin-top: 8px;
 		font-size: 11px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.ramp {
 		flex: 1;
@@ -226,10 +227,10 @@
 		flex: none;
 		width: 36px;
 		height: 36px;
-		border: 1px dashed var(--line);
+		border: 1px dashed var(--pc-line);
 		border-radius: 50%;
 		background: transparent;
-		color: var(--text);
+		color: var(--pc-ink);
 		font-size: 15px;
 		cursor: pointer;
 	}
@@ -244,18 +245,18 @@
 		padding: 0 14px;
 		border: 0;
 		border-radius: 999px;
-		background: var(--card);
-		color: var(--text);
+		background: var(--pc-card);
+		color: var(--pc-ink);
 		font: inherit;
 		font-size: 13px;
 		font-weight: 650;
 		cursor: pointer;
 		box-shadow:
-			var(--press),
-			0 0 0 1px var(--line);
+			var(--pc-press),
+			0 0 0 1px var(--pc-line);
 	}
 	.reset:hover:not(:disabled) {
-		background: var(--accent-soft);
+		background: var(--pc-accent-soft);
 	}
 	.reset:disabled {
 		opacity: 0.5;
@@ -264,7 +265,7 @@
 	.hint {
 		margin: 12px 0 0;
 		font-size: 12px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	/* the park, the latest moment and the play bar, centred along the bottom */
 	.row {
@@ -282,11 +283,11 @@
 		margin: 0;
 		padding: 5px 14px;
 		border-radius: 999px;
-		background: var(--sage);
-		color: var(--sage-ink);
+		background: var(--pc-sage);
+		color: var(--pc-sage-ink);
 		font-size: 13px;
 		font-weight: 700;
-		box-shadow: var(--press);
+		box-shadow: var(--pc-press);
 	}
 	.dock {
 		position: absolute;
@@ -306,12 +307,12 @@
 		box-sizing: border-box;
 		padding: 8px 20px 8px 8px;
 		border-radius: 999px;
-		background: var(--glass);
+		background: var(--pc-glass);
 		backdrop-filter: blur(12px);
 		box-shadow:
-			var(--shadow),
-			0 0 0 1px var(--line);
-		color: var(--text);
+			var(--pc-shadow),
+			0 0 0 1px var(--pc-line);
+		color: var(--pc-ink);
 	}
 	.pp {
 		flex: none;
@@ -319,19 +320,19 @@
 		height: 52px;
 		border: 0;
 		border-radius: 50%;
-		background: var(--accent);
-		color: var(--on-accent);
+		background: var(--pc-accent);
+		color: var(--pc-on-accent);
 		font-size: 17px;
 		cursor: pointer;
-		box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 55%, #000);
+		box-shadow: 0 4px 0 var(--pc-accent-deep);
 		transition: transform 0.1s ease;
 	}
 	.pp:active {
 		transform: translateY(3px);
-		box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 55%, #000);
+		box-shadow: 0 1px 0 var(--pc-accent-deep);
 	}
 	.pp.playing {
-		background: var(--ink);
+		background: var(--pc-ink);
 		box-shadow: 0 4px 0 #000;
 	}
 	select {
@@ -340,11 +341,11 @@
 		padding: 0 8px;
 		border: 0;
 		border-radius: 999px;
-		background: var(--card);
+		background: var(--pc-card);
 		color: inherit;
 		font: inherit;
 		font-weight: 650;
-		box-shadow: 0 0 0 1px var(--line);
+		box-shadow: 0 0 0 1px var(--pc-line);
 	}
 	.clock {
 		flex: none;
@@ -354,7 +355,7 @@
 	.wx {
 		flex: none;
 		font-size: 13px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	/* the slider through the day: a fat rounded track, filled up to the moment on screen */
 	.through {
@@ -370,12 +371,12 @@
 	.through::-webkit-slider-runnable-track {
 		height: 10px;
 		border-radius: 5px;
-		background: linear-gradient(to right, var(--accent) var(--p), color-mix(in srgb, var(--ink) 14%, transparent) var(--p));
+		background: linear-gradient(to right, var(--pc-accent) var(--p), color-mix(in srgb, var(--pc-ink) 14%, transparent) var(--p));
 	}
 	.through::-moz-range-track {
 		height: 10px;
 		border-radius: 5px;
-		background: linear-gradient(to right, var(--accent) var(--p), color-mix(in srgb, var(--ink) 14%, transparent) var(--p));
+		background: linear-gradient(to right, var(--pc-accent) var(--p), color-mix(in srgb, var(--pc-ink) 14%, transparent) var(--p));
 	}
 	.through::-webkit-slider-thumb {
 		-webkit-appearance: none;
@@ -385,7 +386,7 @@
 		border-radius: 50%;
 		background: #fff;
 		box-shadow:
-			0 0 0 3px var(--accent),
+			0 0 0 3px var(--pc-accent),
 			0 2px 4px rgb(0 0 0 / 0.2);
 	}
 	.through::-moz-range-thumb {
@@ -395,7 +396,7 @@
 		border-radius: 50%;
 		background: #fff;
 		box-shadow:
-			0 0 0 3px var(--accent),
+			0 0 0 3px var(--pc-accent),
 			0 2px 4px rgb(0 0 0 / 0.2);
 	}
 	@media (max-width: 900px) {

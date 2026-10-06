@@ -114,12 +114,12 @@
 		padding: 4px 4px 4px 16px;
 		border: 0;
 		border-radius: 999px;
-		background: var(--glass);
+		background: var(--pc-glass);
 		backdrop-filter: blur(12px);
 		box-shadow:
-			0 4px 16px rgb(70 55 30 / 0.1),
-			0 0 0 1px var(--line);
-		color: var(--text);
+			var(--pc-shadow),
+			0 0 0 1px var(--pc-line);
+		color: var(--pc-ink);
 		font: inherit;
 		font-size: 14px;
 		text-align: left;
@@ -128,7 +128,7 @@
 		cursor: pointer;
 	}
 	.banner.opens:hover {
-		background: var(--card);
+		background: var(--pc-card);
 	}
 	.icon {
 		flex: none;
@@ -155,9 +155,9 @@
 		font-size: 12px;
 		padding: 4px 10px;
 		border-radius: 999px;
-		background: var(--accent-soft);
+		background: var(--pc-accent-soft);
 		font-weight: 700;
-		color: var(--accent-ink);
+		color: var(--pc-accent-ink);
 	}
 	img {
 		flex: none;
@@ -165,7 +165,7 @@
 		height: 36px;
 		border-radius: 50%;
 		object-fit: cover;
-		border: 2px solid var(--card);
+		border: 2px solid var(--pc-card);
 	}
 	.banner:not(:has(img)) {
 		padding-right: 16px;

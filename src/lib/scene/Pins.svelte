@@ -23,7 +23,7 @@
 				class:reached
 				class:active
 				class:selected={tour.selectedPin === pin.id}
-				style:--c={meta.color}
+				style:--pc-c={meta.color}
 				title={pin.title}
 				{@attach clickThroughControls}
 				onclick={() => {
@@ -66,8 +66,8 @@
 		border-radius: 50%;
 		font-size: 14px;
 		color: #03070c;
-		background: var(--c);
-		box-shadow: 0 0 12px var(--c);
+		background: var(--pc-c);
+		box-shadow: 0 0 12px var(--pc-c);
 		transition: transform 0.2s;
 	}
 	.pin.active .head,
@@ -78,6 +78,6 @@
 	.stalk {
 		width: 2px;
 		height: 26px;
-		background: linear-gradient(var(--c), transparent);
+		background: linear-gradient(var(--pc-c), transparent);
 	}
 </style>

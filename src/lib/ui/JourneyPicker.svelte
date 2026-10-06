@@ -52,7 +52,7 @@
 
 <section class="hero" aria-labelledby="tour-title">
 	<p class="eyebrow">{TOUR.name} · {TOUR.when}</p>
-	<h1 id="tour-title" class="display">{TOUR.title}</h1>
+	<h1 id="tour-title" class="pc-display">{TOUR.title}</h1>
 	<p class="summary">{days.length} days {TOUR.summary}.</p>
 	<ul class="stats" aria-label="The tour in numbers">
 		<li class="sage"><b>{days.length}</b> days</li>
@@ -68,13 +68,13 @@
 
 <section class="rail-wrap" aria-labelledby="rail-title">
 	<header>
-		<h2 id="rail-title" class="display">Pick a day</h2>
+		<h2 id="rail-title" class="pc-display">Pick a day</h2>
 		<div class="arrows">
 			<button type="button" onclick={() => page(-1)} disabled={atStart} aria-label="Earlier days">‹</button>
 			<button type="button" onclick={() => page(1)} disabled={atEnd} aria-label="Later days">›</button>
 		</div>
 	</header>
-	<ol class="rail scroll-x" bind:this={rail} {onscroll} {onwheel}>
+	<ol class="rail pc-scroll-x" bind:this={rail} {onscroll} {onwheel}>
 		{#each days as d (d.day)}
 			<li>
 				<DayPostcard {d} total={days.length} photo={cover(d.day)} photos={photosByDay.get(d.day)?.length ?? 0} href="{base}/day/{d.day}" />
@@ -93,10 +93,10 @@
 		box-sizing: border-box;
 		padding: 22px 24px 24px;
 		border-radius: 28px;
-		background: var(--glass);
+		background: var(--pc-glass);
 		backdrop-filter: blur(12px);
-		box-shadow: var(--shadow);
-		color: var(--text);
+		box-shadow: var(--pc-shadow);
+		color: var(--pc-ink);
 	}
 	.eyebrow {
 		margin: 0 0 6px;
@@ -104,7 +104,7 @@
 		font-weight: 700;
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
-		color: var(--accent-ink);
+		color: var(--pc-accent-ink);
 	}
 	h1 {
 		margin: 0;
@@ -115,7 +115,7 @@
 		margin: 10px 0 14px;
 		font-size: 15px;
 		line-height: 1.45;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.stats {
 		display: flex;
@@ -134,20 +134,20 @@
 		font-weight: 800;
 	}
 	.sage {
-		background: var(--sage);
-		color: var(--sage-ink);
+		background: var(--pc-sage);
+		color: var(--pc-sage-ink);
 	}
 	.sky {
-		background: var(--sky);
-		color: var(--sky-ink);
+		background: var(--pc-sky);
+		color: var(--pc-sky-ink);
 	}
 	.butter {
-		background: var(--butter);
-		color: var(--butter-ink);
+		background: var(--pc-butter);
+		color: var(--pc-butter-ink);
 	}
 	.lilac {
-		background: var(--lilac);
-		color: var(--lilac-ink);
+		background: var(--pc-lilac);
+		color: var(--pc-lilac-ink);
 	}
 	.actions {
 		display: flex;
@@ -169,16 +169,16 @@
 		transition: transform 0.12s ease;
 	}
 	.go {
-		background: var(--accent);
-		color: var(--on-accent);
-		box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 55%, #000);
+		background: var(--pc-accent);
+		color: var(--pc-on-accent);
+		box-shadow: 0 4px 0 var(--pc-accent-deep);
 	}
 	.read {
-		color: var(--text);
-		background: var(--card);
+		color: var(--pc-ink);
+		background: var(--pc-card);
 		box-shadow:
-			var(--press),
-			0 0 0 1px var(--line);
+			var(--pc-press),
+			0 0 0 1px var(--pc-line);
 	}
 	.go:hover,
 	.read:hover {
@@ -196,7 +196,7 @@
 		left: 0;
 		right: 0;
 		bottom: 18px;
-		color: var(--text);
+		color: var(--pc-ink);
 	}
 	header {
 		display: flex;
@@ -208,7 +208,7 @@
 		margin: 0;
 		padding: 4px 14px;
 		border-radius: 999px;
-		background: var(--glass);
+		background: var(--pc-glass);
 		backdrop-filter: blur(8px);
 		font-size: 18px;
 	}
@@ -221,14 +221,14 @@
 		height: 40px;
 		border: 0;
 		border-radius: 50%;
-		background: var(--card);
-		color: var(--text);
+		background: var(--pc-card);
+		color: var(--pc-ink);
 		font-size: 22px;
 		line-height: 1;
 		cursor: pointer;
 		box-shadow:
-			var(--press),
-			0 0 0 1px var(--line);
+			var(--pc-press),
+			0 0 0 1px var(--pc-line);
 	}
 	.arrows button:disabled {
 		opacity: 0.4;

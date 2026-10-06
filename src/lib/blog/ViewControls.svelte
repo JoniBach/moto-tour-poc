@@ -43,11 +43,11 @@
 
 <section class="controls" aria-label="View settings">
 	<div class="bar">
-		<button type="button" class="toggle" aria-expanded={panel} aria-controls="{uid}-panel" onclick={() => (panel = !panel)}>
+		<button type="button" class="pc-button toggle" aria-expanded={panel} aria-controls="{uid}-panel" onclick={() => (panel = !panel)}>
 			<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" class:shut={!panel}>
 				<path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
 			</svg>
-			Filter and group{#if n}<span class="badge">{n}<span class="sr">{' '}{n === 1 ? 'setting' : 'settings'} changed</span></span>{/if}
+			Filter and group{#if n}<span class="pc-badge">{n}<span class="pc-sr-only">{' '}{n === 1 ? 'setting' : 'settings'} changed</span></span>{/if}
 		</button>
 		<FoldAll />
 		<p class="count" role="status">
@@ -55,12 +55,12 @@
 		</p>
 	</div>
 
-	<div class="panel" id="{uid}-panel" hidden={!panel}>
+	<div class="pc-panel panel" id="{uid}-panel" hidden={!panel}>
 		<fieldset>
 			<legend>Show</legend>
-			<div class="checks">
+			<div class="pc-checks">
 				{#each TYPES as t (t.key)}
-					<label class="check">
+					<label class="pc-check">
 						<input type="checkbox" value={t.key} bind:group={view.types} />
 						<span aria-hidden="true" class="ic">{t.icon}</span>
 						{t.label}
@@ -75,7 +75,7 @@
 				<div class="range">
 					<label>
 						From
-						<select bind:value={view.from}>
+						<select class="pc-select" bind:value={view.from}>
 							<option value="">The start</option>
 							{#each days as d (d.day)}
 								<option value={d.day} disabled={!!view.to && d.day > view.to}>{d.label}</option>
@@ -84,7 +84,7 @@
 					</label>
 					<label>
 						To
-						<select bind:value={view.to}>
+						<select class="pc-select" bind:value={view.to}>
 							<option value="">The end</option>
 							{#each days as d (d.day)}
 								<option value={d.day} disabled={!!view.from && d.day < view.from}>{d.label}</option>
@@ -97,15 +97,15 @@
 
 		<fieldset>
 			<legend>Layout</legend>
-			<label class="check">
+			<label class="pc-check">
 				<input type="checkbox" bind:checked={view.group} />
 				Group back-to-back similar events
 			</label>
-			<p class="hint">For example, six photo stops in a row become one item you can open. Stories always show on their own.</p>
+			<p class="pc-field__hint hint">For example, six photo stops in a row become one item you can open. Stories always show on their own.</p>
 		</fieldset>
 
 		{#if n}
-			<button type="button" class="reset" onclick={resetView}>Reset to show everything</button>
+			<button type="button" class="pc-button reset" onclick={resetView}>Reset to show everything</button>
 		{/if}
 	</div>
 </section>
@@ -120,59 +120,18 @@
 		align-items: center;
 		gap: 0.6rem;
 	}
-	.toggle,
-	.reset {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45rem;
-		min-height: 2.75rem;
-		padding: 0 1rem;
-		border: 0;
-		border-radius: 999px;
-		background: rgb(255 253 248 / 0.92);
-		box-shadow:
-			0 3px 0 rgb(38 50 56 / 0.18),
-			0 0 0 1px rgb(38 50 56 / 0.2);
-		background: var(--b-card);
-		color: var(--b-text);
-		font: inherit;
-		font-weight: 600;
-		cursor: pointer;
-	}
-	.toggle:hover,
-	.reset:hover {
-		box-shadow:
-			0 3px 0 rgb(38 50 56 / 0.18),
-			0 0 0 2px var(--b-accent);
-	}
 	svg {
 		transition: transform 0.15s;
 	}
 	svg.shut {
 		transform: rotate(-90deg);
 	}
-	.badge {
-		display: inline-grid;
-		place-items: center;
-		min-width: 1.5rem;
-		height: 1.5rem;
-		padding: 0 0.3rem;
-		border-radius: 999px;
-		background: var(--b-accent);
-		color: var(--b-bg);
-		font-size: 0.85rem;
-	}
 	.bar .count {
 		margin: 0;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.panel {
 		margin-top: 0.6rem;
-		padding: 0.6rem 1rem 1rem;
-		border: 0;
-		border-radius: 22px;
-		box-shadow: 0 10px 26px rgb(70 55 30 / 0.12);
-		background: var(--b-card);
 	}
 	fieldset {
 		margin: 0;
@@ -183,27 +142,8 @@
 		padding: 0;
 		font-weight: 700;
 	}
-	.checks {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0 1.2rem;
-	}
-	/* the whole label is the 44 px target */
-	.check {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		min-height: 2.75rem;
-		cursor: pointer;
-	}
-	.check input {
-		width: 1.25rem;
-		height: 1.25rem;
-		margin: 0;
-		accent-color: var(--b-accent);
-	}
 	.ic {
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.range {
 		display: flex;
@@ -215,34 +155,13 @@
 		flex-direction: column;
 		gap: 0.2rem;
 	}
-	select {
-		min-height: 2.75rem;
-		padding: 0 0.6rem;
-		border: 0;
-		border-radius: 999px;
-		background: rgb(255 253 248 / 0.92);
-		box-shadow:
-			0 3px 0 rgb(38 50 56 / 0.18),
-			0 0 0 1px rgb(38 50 56 / 0.2);
-		background: var(--b-bg);
-		color: var(--b-text);
-		font: inherit;
-	}
 	.panel .hint {
 		margin: 0;
 		font-size: 0.95rem;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.reset {
 		margin-top: 0.6rem;
-	}
-	.sr {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
 	}
 	@media (prefers-reduced-motion: reduce) {
 		svg {

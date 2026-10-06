@@ -48,12 +48,12 @@
 	.span {
 		display: block;
 		font-size: 0.9rem;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.members {
 		list-style: none;
 		margin: 0;
 		padding: 0 0 0 0.75rem;
-		border-left: 2px dotted var(--b-line-strong);
+		border-left: 2px dotted var(--pc-line-strong);
 	}
 </style>

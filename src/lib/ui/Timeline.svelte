@@ -51,7 +51,7 @@
 
 <ol class="timeline" bind:this={list} style:--when="{whenWidth}px">
 	{#each items as item, i (item.key)}
-		<li class:past={fadePast && current >= 0 && i < current} class:now={i === current} style:--c={item.color}>
+		<li class:past={fadePast && current >= 0 && i < current} class:now={i === current} style:--pc-c={item.color}>
 			{#if item.href}
 				<a class="entry" href={item.href} onclick={item.onclick}>{@render content(item)}</a>
 			{:else}
@@ -79,7 +79,7 @@
 		padding: 6px;
 		border-radius: 14px;
 		position: relative;
-		color: var(--text);
+		color: var(--pc-ink);
 	}
 	/* the thread through the dots */
 	.entry::before {
@@ -89,7 +89,7 @@
 		top: 0;
 		bottom: 0;
 		width: 1px;
-		background: var(--line);
+		background: var(--pc-line);
 	}
 	li:first-child .entry::before {
 		top: 14px;
@@ -98,18 +98,18 @@
 		bottom: calc(100% - 14px);
 	}
 	.entry:hover {
-		background: var(--accent-soft);
+		background: var(--pc-accent-soft);
 	}
 	li.now .entry {
-		background: color-mix(in srgb, var(--c) 16%, transparent);
-		box-shadow: inset 2px 0 0 var(--c);
+		background: color-mix(in srgb, var(--pc-c) 16%, transparent);
+		box-shadow: inset 2px 0 0 var(--pc-c);
 	}
 	li.past {
 		opacity: 0.6;
 	}
 	.when {
 		font-size: 11px;
-		color: var(--muted);
+		color: var(--pc-muted);
 		font-variant-numeric: tabular-nums;
 		padding-top: 2px;
 	}
@@ -121,9 +121,9 @@
 		width: 20px;
 		height: 20px;
 		border-radius: 50%;
-		background: var(--card);
-		border: 2px solid var(--c);
-		color: var(--c);
+		background: var(--pc-card);
+		border: 2px solid var(--pc-c);
+		color: var(--pc-c);
 		font-size: 10px;
 		font-weight: 600;
 	}
@@ -138,7 +138,7 @@
 	}
 	.sub {
 		font-size: 11px;
-		color: var(--muted);
+		color: var(--pc-muted);
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
 		line-clamp: 2;
@@ -158,7 +158,7 @@
 	}
 	.more {
 		font-size: 11px;
-		color: var(--muted);
+		color: var(--pc-muted);
 		padding-left: 2px;
 	}
 </style>

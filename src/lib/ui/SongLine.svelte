@@ -4,6 +4,7 @@
   the event banner; the container gives it its chrome.
 -->
 <script lang="ts">
+	import Icon from '$lib/ui/Icon.svelte';
 	import type { Song } from '$lib/data';
 	import { player, spotify, trackUrl } from '$lib/spotify.svelte';
 
@@ -15,10 +16,10 @@
 {#if linked && song.art && !player.broken[song.id!]}
 	<img src={song.art} alt="" width="28" height="28" onerror={() => player.coverFailed(song.id!)} />
 {:else}
-	<span class="note" aria-hidden="true">♪</span>
+	<span class="note"><Icon name="music" /></span>
 {/if}
 <span class="title" title="{song.name} · {song.artist}"
-	><span class="sr">Now playing: </span><b>{song.name}</b><span class="artist">{' · '}{song.artist}</span></span
+	><span class="pc-sr-only">Now playing: </span><b>{song.name}</b><span class="artist">{' · '}{song.artist}</span></span
 >
 {#if linked}
 	{#if player.id !== song.id}
@@ -27,11 +28,11 @@
 			class="go"
 			onclick={() => player.listen(song.id!)}
 			disabled={player.opening}
-			aria-label="Listen to {song.name} here">{player.opening ? '…' : '▶ Listen'}</button
+			aria-label="Listen to {song.name} here">{#if player.opening}…{:else}<Icon name="play" size="sm" /> Listen{/if}</button
 		>
 	{/if}
 	<a class="go" href={trackUrl(song.id!)} target="_blank" rel="noreferrer" aria-label="Open {song.name} in Spotify (new tab)"
-		>Spotify ↗</a
+		>Spotify <Icon name="external" size="sm" /></a
 	>
 {/if}
 
@@ -49,8 +50,8 @@
 	.note {
 		display: grid;
 		place-items: center;
-		background: var(--accent-soft);
-		color: var(--accent-ink);
+		background: var(--pc-accent-soft);
+		color: var(--pc-accent-ink);
 		font-size: 14px;
 	}
 	.title {
@@ -71,8 +72,8 @@
 		padding: 4px 10px;
 		border: 0;
 		border-radius: 999px;
-		background: var(--accent-soft);
-		color: var(--accent-ink);
+		background: var(--pc-accent-soft);
+		color: var(--pc-accent-ink);
 		font: inherit;
 		font-size: 12px;
 		font-weight: 700;
@@ -80,15 +81,7 @@
 		cursor: pointer;
 	}
 	.go:hover {
-		background: var(--card);
-	}
-	.sr {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
+		background: var(--pc-card);
 	}
 	@media (max-width: 360px) {
 		.artist {

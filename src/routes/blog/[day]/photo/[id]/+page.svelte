@@ -58,7 +58,7 @@
 		margin: 0 0 0.5rem;
 		padding: 0;
 		font-size: 0.95rem;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.crumb li {
 		display: flex;
@@ -85,11 +85,11 @@
 		max-height: 78vh;
 		object-fit: contain;
 		border-radius: 10px;
-		background: var(--b-card);
+		background: var(--pc-card);
 	}
 	figcaption {
 		margin-top: 0.7rem;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	h1 {
 		margin: 0 0 0.8rem;
@@ -100,7 +100,7 @@
 		display: block;
 		font-size: 1rem;
 		font-weight: 400;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.pager {
 		display: flex;
@@ -117,7 +117,7 @@
 	}
 	.hint {
 		font-size: 0.95rem;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.links {
 		display: flex;
@@ -125,7 +125,7 @@
 		gap: 1rem;
 		align-items: center;
 		padding-top: 1rem;
-		border-top: 1px solid var(--b-line);
+		border-top: 1px solid var(--pc-line);
 	}
 	.links a {
 		display: inline-flex;
@@ -135,8 +135,8 @@
 	.dx {
 		padding: 0 1rem;
 		border-radius: 8px;
-		background: var(--b-accent);
-		color: var(--b-bg) !important;
+		background: var(--pc-accent-ink);
+		color: var(--pc-paper) !important;
 		font-weight: 600;
 		text-decoration: none;
 	}

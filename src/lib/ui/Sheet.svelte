@@ -59,7 +59,7 @@
 			<h2>{title}</h2>
 			<button class="close" onclick={onclose} onpointerdown={(e) => e.stopPropagation()} aria-label="Close">×</button>
 		</header>
-		<div class="body scroll-y">
+		<div class="body pc-scroll-y">
 			{@render children()}
 		</div>
 	</div>
@@ -70,7 +70,7 @@
 		position: fixed;
 		inset: 0;
 		z-index: 150;
-		background: rgb(38 50 56 / 0.35);
+		background: var(--pc-backdrop);
 	}
 	.sheet {
 		position: fixed;
@@ -80,13 +80,13 @@
 		bottom: 0;
 		display: flex;
 		flex-direction: column;
-		border: 1px solid var(--line);
+		border: 1px solid var(--pc-line);
 		border-bottom: none;
 		border-radius: 24px 24px 0 0;
 		/* themeable: the events sheet over the globe is light */
-		background: var(--sheet-bg, var(--card));
+		background: var(--pc-card);
 		backdrop-filter: blur(14px);
-		color: var(--text);
+		color: var(--pc-ink);
 		padding-bottom: env(safe-area-inset-bottom);
 		transition: transform 0.2s ease-out;
 	}
@@ -110,14 +110,14 @@
 		height: 4px;
 		margin-left: -20px;
 		border-radius: 2px;
-		background: var(--muted);
+		background: var(--pc-muted);
 		opacity: 0.6;
 	}
 	h2 {
 		margin: 0;
 		font-size: 15px;
-		color: var(--text);
-		font-family: var(--font-display);
+		color: var(--pc-ink);
+		font-family: var(--pc-font-display);
 	}
 	.close {
 		all: unset;
@@ -129,7 +129,7 @@
 		height: 44px;
 		display: grid;
 		place-items: center;
-		color: var(--muted);
+		color: var(--pc-muted);
 		font-size: 26px;
 	}
 	.body {

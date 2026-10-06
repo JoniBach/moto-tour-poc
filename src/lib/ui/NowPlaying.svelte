@@ -62,12 +62,12 @@
 		box-sizing: border-box;
 		padding: 4px;
 		border-radius: 999px;
-		background: var(--glass);
+		background: var(--pc-glass);
 		backdrop-filter: blur(12px);
 		box-shadow:
-			0 4px 16px rgb(70 55 30 / 0.1),
-			0 0 0 1px var(--line);
-		color: var(--text);
+			var(--pc-shadow),
+			0 0 0 1px var(--pc-line);
+		color: var(--pc-ink);
 		font-size: 13px;
 	}
 	.np:not(:has(:global(.go))) {
@@ -86,8 +86,8 @@
 		border: 0;
 		border-radius: 12px;
 		box-shadow:
-			0 4px 16px rgb(70 55 30 / 0.1),
-			0 0 0 1px var(--line);
+			var(--pc-shadow),
+			0 0 0 1px var(--pc-line);
 	}
 	.close {
 		flex: none;
@@ -95,9 +95,9 @@
 		height: 30px;
 		border: 0;
 		border-radius: 50%;
-		background: var(--glass);
-		box-shadow: 0 0 0 1px var(--line);
-		color: var(--text);
+		background: var(--pc-glass);
+		box-shadow: 0 0 0 1px var(--pc-line);
+		color: var(--pc-ink);
 		font: inherit;
 		font-size: 16px;
 		line-height: 1;

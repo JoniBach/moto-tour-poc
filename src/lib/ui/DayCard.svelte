@@ -5,6 +5,7 @@
 -->
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import Icon from './Icon.svelte';
 	import { A } from '$lib/activity';
 	import { TOUR } from '$lib/tourConfig';
 	import { distRound, distUnit, tempRound, tempUnit } from '$lib/units';
@@ -24,12 +25,12 @@
 	);
 </script>
 
-<aside class="daycard scroll-y" aria-label="This day" style:--c={dayColor(summary?.index ?? 0, total)}>
+<aside class="daycard pc-scroll-y" aria-label="This day" style:--pc-c={dayColor(summary?.index ?? 0, total)}>
 	<header>
-		<span class="stamp" aria-hidden="true"><small>Day</small>{(summary?.index ?? 0) + 1}</span>
+		<span class="pc-stamp pc-stamp--solid pc-stamp--sm stamp" aria-hidden="true"><small>Day</small>{(summary?.index ?? 0) + 1}</span>
 		<div>
 			<p class="date">{date}</p>
-			<h2 class="display">{tour.data.track.title}</h2>
+			<h2 class="pc-display">{tour.data.track.title}</h2>
 		</div>
 	</header>
 	{#if summary}
@@ -40,10 +41,10 @@
 			{#if summary.rides > 1}<li>{summary.rides} {A.legs}</li>{/if}
 		</ul>
 	{/if}
-	<button type="button" class="tune" aria-expanded={open} onclick={() => (open = !open)}>
-		<span aria-hidden="true">✦</span>
+	<button type="button" class="pc-button tune" aria-expanded={open} onclick={() => (open = !open)}>
+		<Icon name="sparkle" />
 		{customise}
-		<span class="caret" aria-hidden="true">{open ? '▴' : '▾'}</span>
+		<span class="caret"><Icon name={open ? 'chevron-up' : 'chevron-down'} size="sm" /></span>
 	</button>
 	{#if open}<div class="drawer">{@render children()}</div>{/if}
 </aside>
@@ -60,10 +61,10 @@
 		box-sizing: border-box;
 		padding: 16px 12px 16px 16px;
 		border-radius: 24px;
-		background: var(--glass);
+		background: var(--pc-glass);
 		backdrop-filter: blur(12px);
-		box-shadow: var(--shadow);
-		color: var(--text);
+		box-shadow: var(--pc-shadow);
+		color: var(--pc-ink);
 		font-size: 14px;
 	}
 	header {
@@ -73,33 +74,12 @@
 	}
 	.stamp {
 		flex: none;
-		display: grid;
-		place-items: center;
-		width: 44px;
-		height: 50px;
-		border: 3px dotted var(--card);
-		border-radius: 6px;
-		background: var(--c);
-		color: #fff;
-		font-family: var(--font-display);
-		font-weight: 700;
-		font-size: 21px;
-		line-height: 1;
-		transform: rotate(-4deg);
-		text-shadow: 0 1px 1px rgb(0 0 0 / 0.25);
-		box-shadow: 0 0 0 1px var(--line);
-	}
-	.stamp small {
-		font-family: var(--font-ui);
-		font-size: 9px;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
 	}
 	.date {
 		margin: 0;
 		font-size: 12px;
 		font-weight: 650;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	h2 {
 		margin: 0;
@@ -119,33 +99,16 @@
 	.facts li {
 		padding: 4px 10px;
 		border-radius: 999px;
-		background: color-mix(in srgb, var(--c) 18%, var(--card));
+		background: color-mix(in srgb, var(--pc-c) 18%, var(--pc-card));
 	}
 	.tune {
-		display: flex;
-		align-items: center;
-		gap: 8px;
 		width: 100%;
-		min-height: 42px;
+		justify-content: flex-start;
 		margin-top: 14px;
-		padding: 0 14px;
-		border: 0;
-		border-radius: 999px;
-		background: var(--card);
-		color: var(--text);
-		font: inherit;
-		font-weight: 650;
-		cursor: pointer;
-		box-shadow:
-			var(--press),
-			0 0 0 1px var(--line);
-	}
-	.tune:hover {
-		background: var(--accent-soft);
 	}
 	.caret {
 		margin-left: auto;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.drawer {
 		margin-top: 4px;

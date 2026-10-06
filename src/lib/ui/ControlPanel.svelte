@@ -66,49 +66,49 @@
 
 {#snippet controls()}
 	{#if !flat}
-		<fieldset class="knobs">
+		<fieldset class="pc-knobs">
 			<legend>Camera</legend>
-			<div class="pills">
+			<div class="pc-pills">
 				{#each cameras as c (c.id)}
 					<button type="button" aria-pressed={tour.camera === c.id} onclick={() => (tour.camera = c.id)}>{c.label}</button>
 				{/each}
 			</div>
 		</fieldset>
-		<fieldset class="knobs">
+		<fieldset class="pc-knobs">
 			<legend>Surface</legend>
-			<div class="pills">
+			<div class="pc-pills">
 				{#each mapStyles as m (m.id)}
 					<button type="button" aria-pressed={tour.mapStyle === m.id} onclick={() => (tour.mapStyle = m.id)}>{m.label}</button>
 				{/each}
 			</div>
 		</fieldset>
-		<fieldset class="knobs">
+		<fieldset class="pc-knobs">
 			<legend>Route colour</legend>
-			<div class="pills">
+			<div class="pc-pills">
 				{#each colorModes as c (c.id)}
 					<button type="button" aria-pressed={tour.colorBy === c.id} onclick={() => (tour.colorBy = c.id)}>{c.label}</button>
 				{/each}
 			</div>
 		</fieldset>
-		<label class="slider"><span>Vertical exaggeration <output>{tour.exaggeration.toFixed(1)}×</output></span>
+		<label class="pc-slider"><span>Vertical exaggeration <output>{tour.exaggeration.toFixed(1)}×</output></span>
 			<input type="range" min="1" max="5" step="0.1" bind:value={tour.exaggeration} /></label>
-		<label class="slider"><span>Detail radius <output>{(tour.bubble / 1000).toFixed(1)} km</output></span>
+		<label class="pc-slider"><span>Detail radius <output>{(tour.bubble / 1000).toFixed(1)} km</output></span>
 			<input type="range" min="600" max="2800" step="100" bind:value={tour.bubble} /></label>
-		<label class="slider"><span>Terrain radius <output>{(tour.horizon / 1000).toFixed(0)} km</output></span>
+		<label class="pc-slider"><span>Terrain radius <output>{(tour.horizon / 1000).toFixed(0)} km</output></span>
 			<input type="range" min="4000" max="60000" step="1000" bind:value={tour.horizon} /></label>
-		<label class="slider"><span>Point size <output>{tour.pointSize.toFixed(1)}×</output></span>
+		<label class="pc-slider"><span>Point size <output>{tour.pointSize.toFixed(1)}×</output></span>
 			<input type="range" min="0.5" max="4" step="0.1" bind:value={tour.pointSize} /></label>
-		<label class="slider"><span>Point density <output>{tour.pointDensity.toFixed(1)}×</output></span>
+		<label class="pc-slider"><span>Point density <output>{tour.pointDensity.toFixed(1)}×</output></span>
 			<input type="range" min="0.4" max="2.5" step="0.1" bind:value={tour.pointDensity} /></label>
-		<label class="slider"><span>Point glow <output>{tour.pointGlow.toFixed(1)}×</output></span>
+		<label class="pc-slider"><span>Point glow <output>{tour.pointGlow.toFixed(1)}×</output></span>
 			<input type="range" min="0.4" max="3" step="0.1" bind:value={tour.pointGlow} /></label>
 	{/if}
-	<fieldset class="knobs">
+	<fieldset class="pc-knobs">
 		<legend>Show</legend>
-		<div class="chips">
+		<div class="pc-chips">
 			{#each Object.keys(layerLabels).filter((k) => (!flat || FLAT_LAYERS.includes(k)) && layerAvailable(k)) as key (key)}
 				{@const k = key as keyof Tour['layers']}
-				<label class="chip"><input type="checkbox" bind:checked={tour.layers[k]} /><span class="tick" aria-hidden="true"></span>{layerLabels[k]}</label>
+				<label class="pc-chip"><input type="checkbox" bind:checked={tour.layers[k]} /><span class="pc-chip__tick" aria-hidden="true"></span>{layerLabels[k]}</label>
 			{/each}
 		</div>
 	</fieldset>
@@ -128,12 +128,12 @@
 	.hint {
 		margin: 12px 0 0;
 		font-size: 12px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.sheet-day {
 		margin: 0 0 4px;
 		font-size: 13px;
-		color: var(--muted);
+		color: var(--pc-muted);
 		text-align: center;
 	}
 </style>

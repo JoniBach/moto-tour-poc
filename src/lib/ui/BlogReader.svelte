@@ -4,6 +4,7 @@
   Photos embedded in the post open the gallery. Esc or × closes it.
 -->
 <script lang="ts">
+	import Icon from '$lib/ui/Icon.svelte';
 	import { base } from '$app/paths';
 	import { A } from '$lib/activity';
 	import { TOUR } from '$lib/tourConfig';
@@ -58,14 +59,14 @@
 <svelte:window {onkeydown} />
 
 {#if post}
-	<article class="reader scroll-y" class:beside-drawer={app.settings.eventsOpen} bind:this={body}>
+	<article class="reader pc-scroll-y" class:beside-drawer={app.settings.eventsOpen} bind:this={body}>
 		<!-- zero-height sticky bar: the close button floats over the cover without taking space -->
 		<div class="close-bar"><button class="close" onclick={() => (app.reading = null)} aria-label="Close">×</button></div>
 		{#if post.cover}
 			<img class="cover" src={photoSrc('large', post.cover)} alt="" />
 		{/if}
 		<p class="kicker">
-			✎ Story{#if day} · <b>Day {day.index + 1}</b> · {day.title}{/if}
+			<Icon name="pen" size="sm" /> Story{#if day} · <b>Day {day.index + 1}</b> · {day.title}{/if}
 		</p>
 		<h1>{post.title}</h1>
 		<p class="when">{date(post.t)} · {clock(post.t)} · {post.minutes} min read</p>
@@ -78,9 +79,9 @@
 
 		<footer>
 			<span class="actions">
-				<button class="ride" onclick={() => app.rideTo(post, onride)}>▶ {A.go} here</button>
-				<button class="link" onclick={share} title="Copy a link to this post">{linked ? '✓ Copied' : '🔗 Link'}</button>
-				{#if on('blog')}<a class="link" href="{base}/blog/{post.day}/{post.slug}">📖 Read in the blog</a>{/if}
+				<button class="ride" onclick={() => app.rideTo(post, onride)}><Icon name="play" size="sm" /> {A.go} here</button>
+				<button class="link" onclick={share} title="Copy a link to this post"><Icon name={linked ? 'check' : 'link'} size="sm" /> {linked ? 'Copied' : 'Link'}</button>
+				{#if on('blog')}<a class="link" href="{base}/blog/{post.day}/{post.slug}"><Icon name="book" size="sm" /> Read in the blog</a>{/if}
 			</span>
 			<nav>
 				<button disabled={!prev} onclick={() => (app.reading = prev)} title={prev?.title}>‹ Previous</button>
@@ -102,11 +103,11 @@
 		padding: 0 0 16px;
 		border: 0;
 		border-radius: 24px;
-		background: var(--card);
-		color: var(--text);
+		background: var(--pc-card);
+		color: var(--pc-ink);
 		box-shadow:
-			var(--shadow),
-			0 0 0 1px var(--line);
+			var(--pc-shadow),
+			0 0 0 1px var(--pc-line);
 		user-select: text;
 	}
 	.reader.beside-drawer {
@@ -129,11 +130,11 @@
 		display: grid;
 		place-items: center;
 		border-radius: 50%;
-		background: var(--card);
+		background: var(--pc-card);
 		box-shadow:
-			var(--press),
-			0 0 0 1px var(--line);
-		color: var(--text);
+			var(--pc-press),
+			0 0 0 1px var(--pc-line);
+		color: var(--pc-ink);
 		font-size: 20px;
 		z-index: 1;
 	}
@@ -157,17 +158,15 @@
 		font-weight: 750;
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
-		color: var(--accent-ink);
+		color: var(--pc-accent-ink);
 	}
 	.kicker b {
 		font-weight: 600;
 	}
 	h1 {
 		margin: 0;
-		font-family: var(--font-display);
-		font-variation-settings:
-			'SOFT' 100,
-			'WONK' 1;
+		font-family: var(--pc-font-display);
+		font-variation-settings: var(--pc-display-axes);
 		font-weight: 650;
 		font-size: 26px;
 		line-height: 1.15;
@@ -175,33 +174,33 @@
 	.when {
 		margin: 4px 0 12px;
 		font-size: 12px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.prose {
 		font-size: 15px;
 		line-height: 1.7;
-		color: var(--text);
+		color: var(--pc-ink);
 	}
 	.prose :global(p) {
 		margin: 0 0 12px;
 	}
 	.prose :global(em) {
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.prose :global(a) {
-		color: var(--accent-ink);
+		color: var(--pc-accent-ink);
 	}
 	.prose :global(h2),
 	.prose :global(h3) {
 		margin: 18px 0 8px;
-		color: var(--text);
+		color: var(--pc-ink);
 	}
 	.prose :global(blockquote) {
 		margin: 0 0 12px;
 		padding-left: 12px;
-		border-left: 4px solid var(--accent);
-		font-family: var(--font-display);
-		color: var(--text);
+		border-left: 4px solid var(--pc-accent);
+		font-family: var(--pc-font-display);
+		color: var(--pc-ink);
 	}
 	.prose :global(figure) {
 		margin: 14px -18px;
@@ -215,7 +214,7 @@
 	.prose :global(figcaption) {
 		padding: 6px 18px 0;
 		font-size: 12px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	footer {
 		display: flex;
@@ -224,7 +223,7 @@
 		gap: 8px;
 		margin-top: 16px;
 		padding-top: 12px;
-		border-top: 1px solid var(--line);
+		border-top: 1px solid var(--pc-line);
 	}
 	footer button {
 		all: unset;
@@ -235,16 +234,16 @@
 		font-weight: 650;
 	}
 	.ride {
-		background: var(--accent);
-		color: var(--on-accent);
-		box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 55%, #000);
+		background: var(--pc-accent);
+		color: var(--pc-on-accent);
+		box-shadow: 0 3px 0 var(--pc-accent-deep);
 	}
 	.actions {
 		display: flex;
 		gap: 4px;
 	}
 	.link {
-		color: var(--muted);
+		color: var(--pc-muted);
 		text-decoration: none;
 	}
 	a.link {
@@ -254,19 +253,19 @@
 		font-weight: 650;
 	}
 	.link:hover {
-		color: var(--text);
-		background: var(--accent-soft);
+		color: var(--pc-ink);
+		background: var(--pc-accent-soft);
 	}
 	nav {
 		display: flex;
 		gap: 4px;
 	}
 	nav button {
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	nav button:hover:not(:disabled) {
-		color: var(--text);
-		background: var(--accent-soft);
+		color: var(--pc-ink);
+		background: var(--pc-accent-soft);
 	}
 	nav button:disabled {
 		opacity: 0.3;

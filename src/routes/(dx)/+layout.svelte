@@ -96,7 +96,7 @@
 <svelte:window {onkeydown} />
 
 <!-- the 3D view keeps its night-time hologram panels; the globe and the map share the postcard look -->
-<main class:theme-night={app.view === '3d'}>
+<main class:pc-theme-night={app.view === '3d'}>
 	{#if app.index && (app.view !== '3d' || app.region)}
 		<!-- each view is its own chunk: the 2D map never downloads the 3D scene, and vice versa -->
 		{#if app.view === '3d'}
@@ -180,7 +180,7 @@
 				<p>{app.error}</p>
 			{:else}
 				<span class="road" aria-hidden="true"><span class="rider">{A.icon}</span></span>
-				<p class="display">Getting the tour ready…</p>
+				<p class="pc-display">Getting the tour ready…</p>
 			{/if}
 		</div>
 	{/if}
@@ -225,25 +225,25 @@
 		margin: 0;
 		padding: 1px 6px;
 		border-radius: 6px 6px 0 0;
-		background: var(--glass);
+		background: var(--pc-glass);
 		font-size: 10px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.info {
 		font-size: 13px;
 		line-height: 1.5;
-		color: var(--text);
+		color: var(--pc-ink);
 	}
 	.info .credits,
 	.info .credits a {
 		font-size: 12px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.attribution a {
 		color: inherit;
 	}
 	main {
-		background: var(--paper);
+		background: var(--pc-paper);
 	}
 	.loading {
 		position: absolute;
@@ -252,19 +252,19 @@
 		place-content: center;
 		justify-items: center;
 		gap: 14px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.loading p {
 		margin: 0;
 		font-size: 20px;
-		color: var(--text);
+		color: var(--pc-ink);
 	}
 	/* a little rider going round and round a dashed road */
 	.road {
 		position: relative;
 		width: 180px;
 		height: 30px;
-		border-bottom: 3px dashed color-mix(in srgb, var(--ink) 30%, transparent);
+		border-bottom: 3px dashed color-mix(in srgb, var(--pc-ink) 30%, transparent);
 	}
 	.rider {
 		position: absolute;
@@ -291,9 +291,9 @@
 		transform: translateX(-50%);
 		padding: 6px 12px;
 		border-radius: 8px;
-		background: #fbe3dc;
-		color: #7a2e0f;
-		box-shadow: var(--shadow);
+		background: var(--pc-accent-soft);
+		color: var(--pc-accent-ink);
+		box-shadow: var(--pc-shadow);
 		font-size: 12px;
 	}
 </style>

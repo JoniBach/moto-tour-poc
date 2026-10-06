@@ -5,6 +5,7 @@
   switches to the map view.
 -->
 <script lang="ts">
+	import Icon from '$lib/ui/Icon.svelte';
 	import type { App } from '$lib/app.svelte';
 	import type { Tour } from '$lib/tour.svelte';
 
@@ -73,7 +74,7 @@
 		</g>
 		<text x={SIZE - 6} y="11" class="north">N</text>
 	</svg>
-	<span class="label"><span aria-hidden="true">🗺</span> Map</span>
+	<span class="label"><Icon name="map" size="sm" /> Map</span>
 </button>
 
 <style>
@@ -88,12 +89,12 @@
 		padding: 0;
 		border: 0;
 		border-radius: 24px;
-		background: color-mix(in srgb, var(--sky) 60%, var(--card));
+		background: color-mix(in srgb, var(--pc-sky) 60%, var(--pc-card));
 		backdrop-filter: blur(10px);
 		box-shadow:
-			var(--press),
-			0 0 0 1px var(--line),
-			var(--shadow);
+			var(--pc-press),
+			0 0 0 1px var(--pc-line),
+			var(--pc-shadow);
 		cursor: pointer;
 		overflow: hidden;
 		transition:
@@ -110,7 +111,7 @@
 	}
 	.route {
 		fill: none;
-		stroke: color-mix(in srgb, var(--ink) 35%, transparent);
+		stroke: color-mix(in srgb, var(--pc-ink) 35%, transparent);
 		stroke-width: 1.2;
 		stroke-linecap: round;
 		stroke-linejoin: round;
@@ -125,19 +126,19 @@
 	}
 	.ridden {
 		fill: none;
-		stroke: var(--accent);
+		stroke: var(--pc-accent);
 		stroke-width: 1.8;
 		stroke-linecap: round;
 		stroke-linejoin: round;
 	}
 	.reach {
-		fill: color-mix(in srgb, var(--accent) 10%, transparent);
-		stroke: color-mix(in srgb, var(--accent) 50%, transparent);
+		fill: color-mix(in srgb, var(--pc-accent) 10%, transparent);
+		stroke: color-mix(in srgb, var(--pc-accent) 50%, transparent);
 		stroke-width: 0.6;
 		stroke-dasharray: 1.5 1.5;
 	}
 	.bike {
-		fill: var(--ink);
+		fill: var(--pc-ink);
 		stroke: #fff;
 		stroke-width: 1;
 	}
@@ -145,8 +146,8 @@
 		fill: #fff;
 	}
 	.north {
-		font: 700 7px var(--font-ui);
-		fill: var(--muted);
+		font: 700 7px var(--pc-font-ui);
+		fill: var(--pc-muted);
 		text-anchor: middle;
 	}
 	.label {
@@ -155,10 +156,10 @@
 		bottom: 8px;
 		padding: 2px 8px;
 		border-radius: 999px;
-		background: var(--card);
+		background: var(--pc-card);
 		font-size: 11px;
 		font-weight: 700;
-		color: var(--text);
+		color: var(--pc-ink);
 	}
 	@media (max-width: 900px) {
 		/* phones: the right side is the button strip */

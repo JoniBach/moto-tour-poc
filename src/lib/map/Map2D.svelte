@@ -262,7 +262,7 @@
 			const at = F.dayStart(d);
 			if (!at) continue;
 			const el = button('day', `Day ${d.index + 1}: ${d.title}`, String(d.index + 1), () => onselect(d.day));
-			el.style.setProperty('--c', dayColor(d.index, days.length));
+			el.style.setProperty('--pc-c', dayColor(d.index, days.length));
 			markers.push(new Marker({ element: el }).setLngLat(at).addTo(m));
 			dayMarkers.push({ day: d.day, el });
 		}
@@ -289,7 +289,7 @@
 				const meta = PIN_META[pin.type];
 				// no pop-up card: jump the ride there, and the event banner tells the rest
 				const el = button('pin', `${meta.label}: ${pin.title}`, meta.icon, () => t.openPin(pin));
-				el.style.setProperty('--c', meta.color);
+				el.style.setProperty('--pc-c', meta.color);
 				pinMarkers.push(new Marker({ element: el }).setLngLat(F.at(pin.x + s.originE, pin.n + s.originN)).addTo(m));
 			}
 		});
@@ -429,7 +429,7 @@
 	.map2d {
 		position: absolute;
 		inset: 0;
-		background: #f6f0e3;
+		background: var(--pc-sunk);
 	}
 	/* under the trip bar, and on desktop under the mini globe in the corner */
 	.map2d :global(.maplibregl-ctrl-top-right) {
@@ -456,19 +456,19 @@
 		display: grid;
 		place-items: center;
 		cursor: pointer;
-		font: 700 13px/1 var(--font-ui);
+		font: 700 13px/1 var(--pc-font-ui);
 	}
 	.map2d :global(.mk.day) {
 		width: 28px;
 		height: 28px;
 		border-radius: 50%;
 		background: #fffdf8;
-		color: #263238;
-		border: 3px solid var(--c);
-		box-shadow: 0 2px 0 rgb(38 50 56 / 0.25);
+		color: var(--pc-ink);
+		border: 3px solid var(--pc-c);
+		box-shadow: 0 2px 0 var(--pc-backdrop);
 	}
 	.map2d :global(.mk.day.on) {
-		background: var(--c);
+		background: var(--pc-c);
 		transform: scale(1.2);
 	}
 	.map2d :global(.mk.post) {
@@ -479,16 +479,16 @@
 		color: #524008;
 		border: 2px solid #fffdf8;
 		font-size: 16px;
-		box-shadow: 0 2px 0 rgb(38 50 56 / 0.25);
+		box-shadow: 0 2px 0 var(--pc-backdrop);
 	}
 	.map2d :global(.mk.pin) {
 		width: 26px;
 		height: 26px;
 		border-radius: 8px;
 		background: #fffdf8;
-		border: 2px solid var(--c);
+		border: 2px solid var(--pc-c);
 		font-size: 13px;
-		box-shadow: 0 2px 0 rgb(38 50 56 / 0.25);
+		box-shadow: 0 2px 0 var(--pc-backdrop);
 	}
 	.map2d :global(.bike) {
 		filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.4));
@@ -505,11 +505,11 @@
 		border: 0;
 		border-radius: 999px;
 		box-shadow:
-			var(--press),
-			0 0 0 1px var(--line);
-		background: var(--glass);
+			var(--pc-press),
+			0 0 0 1px var(--pc-line);
+		background: var(--pc-glass);
 		backdrop-filter: blur(10px);
-		color: var(--text);
+		color: var(--pc-ink);
 		font: inherit;
 		font-weight: 600;
 		cursor: pointer;

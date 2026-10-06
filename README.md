@@ -213,7 +213,17 @@ each event, the day's parks and weather. It holds no coordinates, and place name
 within 8 km of a privacy zone. It runs as part of `npm run data`, `data:photos` and `data:blog`.
 
 Routes: the 3D experience lives in the `(dx)` route group (URLs unchanged) so the blog never loads
-the canvas; the root layout holds the shared theme.
+the canvas; the root layout loads the shared look.
+
+Look: every page wears [Postcard](https://github.com/JoniBach/postcard-styleguide)
+(`@jonibach/postcard`, style guide at https://jonibach.github.io/postcard-styleguide/): its tokens
+(`--pc-*`), fonts (Fraunces and Figtree), components (`pc-*` classes) and icons
+(`src/lib/ui/Icon.svelte` draws from its sprite). The root layout imports it; components keep only
+their own layout CSS, written with Postcard's tokens. The 3D view's panels use its night theme
+(`pc-theme-night`), and `app.html` pins the light theme (`data-theme="light"`): Postcard's dark
+theme, Dusk, isn't switched on yet. To change the look, change Postcard and upgrade the package;
+the dependency is pinned to a minor version (`~0.4.0`), so fixes come in with `npm update` and new
+versions are an explicit upgrade.
 
 Performance: blog pages are server-rendered and prerendered at build time (`blog/+layout.ts`,
 data from `src/lib/server/blog-data.ts`), so the HTML arrives with the content and no blog page

@@ -4,6 +4,7 @@
   and a row of photo ticks (hover to preview, click to jump there and open the photo).
 -->
 <script lang="ts">
+	import Icon from '$lib/ui/Icon.svelte';
 	import { A, cap } from '$lib/activity';
 	import { distance, distUnit, tempRound, tempUnit, wind, windUnit } from '$lib/units';
 	import { TOUR } from '$lib/tourConfig';
@@ -152,21 +153,21 @@ time: ${stamp}${cover}
 <div class="scrubber" bind:offsetHeight={scrubH}>
 	<div class="bar">
 		<button class="play" onclick={() => tour.togglePlay()} aria-label={tour.playing ? 'Pause' : 'Play'}>
-			{tour.playing ? '❚❚' : '▶'}
+			<Icon name={tour.playing ? 'pause' : 'play'} />
 		</button>
 		<label class="rate">
 			<select bind:value={tour.rate} aria-label="Playback speed">
 				{#each [1, 5, 20, 60, 200] as r (r)}<option value={r}>{r}×</option>{/each}
 			</select>
 		</label>
-		<div class="clock display">{clock(b.time)}</div>
+		<div class="clock pc-display">{clock(b.time)}</div>
 		{#if wx && wxLabel}
 			<div class="wx" title="{wxLabel.label}, cloud {wx.cloud}%, gusts {wind(wx.gust ?? 0).toFixed(0)} {windUnit}">
 				<span class="wx-icon">{wxLabel.icon}</span>
 				<span class="wx-main">
 					<span class="wx-temp">{tempRound(wx.temp ?? 0)}{tempUnit}</span>
 					<small>
-						{wxLabel.label} · <span class="arrow" style:transform="rotate({wx.windDir + 180}deg)">↑</span>
+						{wxLabel.label} · <span class="arrow" style:transform="rotate({wx.windDir + 180}deg)"><Icon name="arrow-up" size="sm" /></span>
 						{wind(wx.wind ?? 0).toFixed(0)} {windUnit}{#if (wx.precip ?? 0) > 0} · {wx.precip} mm/h{/if}
 					</small>
 				</span>
@@ -187,14 +188,14 @@ time: ${stamp}${cover}
 			<div><dt>Distance</dt><dd>{distance(b.dist / 1000).toFixed(1)}<small>{distUnit}</small></dd></div>
 		</dl>
 		<button class="share" onclick={shareMoment} title="Copy a link to this moment of the {A.leg}">
-			{linked ? '✓ Copied' : '🔗 Share moment'}
+			<Icon name={linked ? 'check' : 'link'} size="sm" /> {linked ? 'Copied' : 'Share moment'}
 		</button>
 		<button class="stretch-btn" onclick={() => tour.pickStretch()} title="Choose a stretch of the {A.leg} to share, with a GPX to ride it" aria-label="Share a stretch">
-			<span aria-hidden="true">✂</span><span class="label"> Share a stretch</span>
+			<Icon name="scissors" size="sm" /><span class="label"> Share a stretch</span>
 		</button>
 		{#if import.meta.env.DEV}
 			<button class="post-here" onclick={copyPostHeader} title="Copy a blog post header for this moment">
-				{copied ? '✓ Copied' : '✎ Post here'}
+				<Icon name={copied ? 'check' : 'pen'} size="sm" /> {copied ? 'Copied' : 'Post here'}
 			</button>
 		{/if}
 		<div class="legend">
@@ -352,12 +353,12 @@ time: ${stamp}${cover}
 		padding: 10px 16px 8px;
 		border: 0;
 		border-radius: 24px;
-		background: var(--glass);
+		background: var(--pc-glass);
 		backdrop-filter: blur(12px);
 		box-shadow:
-			var(--shadow),
-			0 0 0 1px var(--line);
-		color: var(--text);
+			var(--pc-shadow),
+			0 0 0 1px var(--pc-line);
+		color: var(--pc-ink);
 	}
 	.bar {
 		display: flex;
@@ -374,28 +375,28 @@ time: ${stamp}${cover}
 		width: 44px;
 		height: 44px;
 		border-radius: 50%;
-		background: var(--accent);
-		color: var(--on-accent);
+		background: var(--pc-accent);
+		color: var(--pc-on-accent);
 		font-size: 15px;
-		box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 55%, #000);
+		box-shadow: 0 3px 0 var(--pc-accent-deep);
 	}
 	.rate select {
-		background: var(--card);
-		color: var(--text);
+		background: var(--pc-card);
+		color: var(--pc-ink);
 		border: 0;
 		border-radius: 999px;
 		padding: 6px 8px;
 		font: inherit;
 		font-weight: 650;
-		box-shadow: 0 0 0 1px var(--line);
+		box-shadow: 0 0 0 1px var(--pc-line);
 	}
 	.rate option {
-		background: var(--card);
+		background: var(--pc-card);
 	}
 	.clock {
 		font-size: 22px;
 		font-variant-numeric: tabular-nums;
-		color: var(--text);
+		color: var(--pc-ink);
 		min-width: 64px;
 	}
 	.wx {
@@ -417,11 +418,11 @@ time: ${stamp}${cover}
 	}
 	.wx small {
 		font-size: 10px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.arrow {
 		display: inline-block;
-		color: var(--text);
+		color: var(--pc-ink);
 	}
 	.rain {
 		fill: #6fa8d6;
@@ -445,14 +446,14 @@ time: ${stamp}${cover}
 	.road-title {
 		font-size: 14px;
 		font-weight: 650;
-		color: var(--text);
+		color: var(--pc-ink);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
 	.road small {
 		font-size: 10px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.readouts {
 		display: flex;
@@ -468,7 +469,7 @@ time: ${stamp}${cover}
 		font-size: 10px;
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	dd {
 		margin: 0;
@@ -477,7 +478,7 @@ time: ${stamp}${cover}
 	}
 	dd small {
 		font-size: 10px;
-		color: var(--muted);
+		color: var(--pc-muted);
 		margin-left: 2px;
 	}
 	.legend {
@@ -487,7 +488,7 @@ time: ${stamp}${cover}
 		column-gap: 8px;
 		align-items: center;
 		font-size: 11px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	.ramp {
 		height: 8px;
@@ -507,11 +508,11 @@ time: ${stamp}${cover}
 	}
 	.post-tick circle {
 		fill: #f2c14e;
-		stroke: var(--card);
+		stroke: var(--pc-card);
 		stroke-width: 2;
 	}
 	.post-tick text {
-		fill: #263238;
+		fill: var(--pc-ink);
 		pointer-events: none;
 	}
 	.post-tick:hover circle {
@@ -522,9 +523,9 @@ time: ${stamp}${cover}
 		cursor: pointer;
 		padding: 6px 12px;
 		border-radius: 999px;
-		box-shadow: 0 0 0 1px var(--line);
-		background: var(--card);
-		color: var(--text);
+		box-shadow: 0 0 0 1px var(--pc-line);
+		background: var(--pc-card);
+		color: var(--pc-ink);
 		font-size: 12px;
 		font-weight: 650;
 		white-space: nowrap;
@@ -533,29 +534,29 @@ time: ${stamp}${cover}
 		flex: none;
 		min-height: 34px;
 		padding: 0 12px;
-		border: 1px dashed var(--line);
+		border: 1px dashed var(--pc-line);
 		border-radius: 999px;
 		background: transparent;
-		color: var(--text);
+		color: var(--pc-ink);
 		font: inherit;
 		font-size: 12px;
 		font-weight: 650;
 		cursor: pointer;
 	}
 	.stretch-btn:hover {
-		background: var(--card);
+		background: var(--pc-card);
 	}
 	.share:hover {
-		color: var(--text);
-		background: var(--accent-soft);
+		color: var(--pc-ink);
+		background: var(--pc-accent-soft);
 	}
 	.post-here {
 		all: unset;
 		cursor: pointer;
 		padding: 4px 9px;
 		border-radius: 999px;
-		border: 1px dashed var(--muted);
-		color: var(--muted);
+		border: 1px dashed var(--pc-muted);
+		color: var(--pc-muted);
 		font-size: 11px;
 		white-space: nowrap;
 	}
@@ -564,7 +565,7 @@ time: ${stamp}${cover}
 	}
 	.photo-tick circle {
 		fill: #8d7cc4;
-		stroke: var(--card);
+		stroke: var(--pc-card);
 		stroke-width: 1.5;
 		opacity: 0.55;
 	}
@@ -586,8 +587,8 @@ time: ${stamp}${cover}
 		padding: 4px;
 		border: 0;
 		border-radius: 14px;
-		background: var(--card);
-		box-shadow: var(--shadow);
+		background: var(--pc-card);
+		box-shadow: var(--pc-shadow);
 		pointer-events: none;
 		z-index: 2;
 	}
@@ -599,7 +600,7 @@ time: ${stamp}${cover}
 	}
 	.photo-preview span {
 		font-size: 10px;
-		color: var(--muted);
+		color: var(--pc-muted);
 	}
 	svg {
 		display: block;
@@ -609,17 +610,17 @@ time: ${stamp}${cover}
 	}
 	.gps {
 		fill: none;
-		stroke: var(--text);
+		stroke: var(--pc-ink);
 		stroke-width: 1;
 		opacity: 0.7;
 	}
 	/* the part of the day not yet reached, washed out */
 	.unridden {
-		fill: color-mix(in srgb, var(--card) 62%, transparent);
+		fill: color-mix(in srgb, var(--pc-card) 62%, transparent);
 		pointer-events: none;
 	}
 	.stop {
-		stroke: var(--muted);
+		stroke: var(--pc-muted);
 		stroke-dasharray: 2 3;
 		opacity: 0.5;
 	}
@@ -627,10 +628,10 @@ time: ${stamp}${cover}
 	.tick,
 	.hover {
 		font-size: 10px;
-		fill: var(--muted);
+		fill: var(--pc-muted);
 	}
 	.hover {
-		fill: var(--text);
+		fill: var(--pc-ink);
 	}
 	/* decorations must not swallow clicks meant for the pin ticks */
 	.stop,
@@ -645,12 +646,12 @@ time: ${stamp}${cover}
 		cursor: pointer;
 	}
 	.head {
-		stroke: var(--accent);
+		stroke: var(--pc-accent);
 		stroke-width: 2;
 	}
 	.head-dot {
-		fill: var(--accent);
-		stroke: var(--card);
+		fill: var(--pc-accent);
+		stroke: var(--pc-card);
 		stroke-width: 2;
 	}
 	/* phones: play, time, weather, road + the timeline; the rest lives in the sheets */

@@ -27,7 +27,7 @@
 	image={data.share}
 />
 
-<article style:--c={dayColor(d.index, dayCount)}>
+<article style:--pc-c={dayColor(d.index, dayCount)}>
 	<nav aria-label="Breadcrumb" class="crumb">
 		<ol>
 			<li><a href="{base}/blog">All days</a></li>
@@ -38,7 +38,7 @@
 		<!-- the day as a postcard: a photo from it (or its colour), its stamp and its route -->
 		<div class="banner" class:photo={!!d.cover}>
 			{#if d.cover}<Photo id={d.cover.id} size={[d.cover.w, d.cover.h]} alt="" sizes="(max-width: 46rem) 100vw, 46rem" priority />{/if}
-			<span class="stamp" aria-hidden="true"><small>Day</small>{d.index + 1}</span>
+			<span class="pc-stamp stamp" aria-hidden="true"><small>Day</small>{d.index + 1}</span>
 			<span class="route"><RouteSketch s={d.sketch} color={dayColor(d.index, dayCount)} label="The day's route, from the hollow start dot to the solid finish" /></span>
 		</div>
 		<p class="daynum">Day {d.index + 1} of {dayCount} · <time datetime={iso(d.start)}>{longDate(d.start)}</time></p>
@@ -59,7 +59,7 @@
 		{#if on('blogFilters')}<ViewControls {shown} total={d.events.length} />{/if}
 	</header>
 
-	<h2 class="sr">The day, moment by moment</h2>
+	<h2 class="pc-sr-only">The day, moment by moment</h2>
 	<ol class="events">
 		{#each rows as r (r.key)}
 			{#if r.kind === 'group'}
@@ -87,7 +87,7 @@
 		margin: 0 0 0.5rem;
 		padding: 0;
 		font-size: 0.95rem;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.crumb li + li::before {
 		content: '/';
@@ -109,8 +109,8 @@
 		font-size: 0.9rem;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
-		color: var(--b-muted);
-		border-left: 6px solid var(--c);
+		color: var(--pc-muted);
+		border-left: 6px solid var(--pc-c);
 		border-radius: 3px;
 		padding-left: 0.6rem;
 		font-weight: 700;
@@ -126,8 +126,8 @@
 		margin: 0.25rem 0 1.25rem;
 		border-radius: 28px;
 		overflow: hidden;
-		background: color-mix(in srgb, var(--c) 28%, var(--b-bg));
-		box-shadow: 0 12px 30px rgb(70 55 30 / 0.15);
+		background: color-mix(in srgb, var(--pc-c) 28%, var(--pc-paper));
+		box-shadow: var(--pc-shadow);
 	}
 	.banner :global(img) {
 		display: block;
@@ -139,33 +139,13 @@
 		content: '';
 		position: absolute;
 		inset: 0;
-		background: linear-gradient(160deg, transparent 45%, color-mix(in srgb, var(--c) 45%, transparent));
+		background: linear-gradient(160deg, transparent 45%, color-mix(in srgb, var(--pc-c) 45%, transparent));
 	}
 	.stamp {
 		position: absolute;
 		z-index: 1;
-		top: 1rem;
-		left: 1rem;
-		display: grid;
-		place-items: center;
-		width: 3.8rem;
-		height: 4.3rem;
-		border: 3px dotted var(--c);
-		border-radius: 8px;
-		background: color-mix(in srgb, var(--c) var(--b-tint), var(--b-card));
-		color: var(--b-text);
-		font-family: var(--font-display);
-		font-weight: 700;
-		font-size: 1.8rem;
-		line-height: 1;
-		transform: rotate(-4deg);
-		box-shadow: 0 2px 6px rgb(0 0 0 / 0.15);
-	}
-	.stamp small {
-		font-family: var(--font-ui);
-		font-size: 0.65rem;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
+		top: 0.9rem;
+		left: 0.9rem;
 	}
 	.route {
 		position: absolute;
@@ -177,7 +157,7 @@
 		padding: 0.35rem;
 		box-sizing: border-box;
 		border-radius: 22px;
-		background: rgb(255 253 248 / 0.9);
+		background: var(--pc-glass);
 	}
 	.banner:not(.photo) .route {
 		width: 11rem;
@@ -198,16 +178,16 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.4rem;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.facts li {
 		padding: 0.2rem 0.8rem;
 		border-radius: 999px;
-		background: var(--b-card);
-		box-shadow: 0 0 0 1px var(--b-line);
+		background: var(--pc-card);
+		box-shadow: 0 0 0 1px var(--pc-line);
 	}
 	.facts strong {
-		color: var(--b-text);
+		color: var(--pc-ink);
 	}
 	.none {
 		font-size: 1.1rem;
@@ -218,9 +198,9 @@
 		gap: 0.6rem;
 	}
 	.dx.alt {
-		background: var(--b-card);
-		color: var(--b-accent) !important;
-		box-shadow: 0 0 0 1px var(--b-accent);
+		background: var(--pc-card);
+		color: var(--pc-accent-ink) !important;
+		box-shadow: 0 0 0 1px var(--pc-accent-ink);
 	}
 	.dx {
 		display: inline-flex;
@@ -228,8 +208,8 @@
 		min-height: 2.75rem;
 		padding: 0 1.2rem;
 		border-radius: 999px;
-		background: var(--b-accent);
-		color: var(--b-bg) !important;
+		background: var(--pc-accent-ink);
+		color: var(--pc-paper) !important;
 		font-weight: 650;
 		text-decoration: none;
 	}
@@ -244,7 +224,7 @@
 		gap: 1rem;
 		margin-top: 2.5rem;
 		padding-top: 1rem;
-		border-top: 1px solid var(--b-line);
+		border-top: 1px solid var(--pc-line);
 		font-weight: 600;
 	}
 	.pager a {
@@ -254,13 +234,5 @@
 	}
 	.pager a[rel='next'] {
 		text-align: right;
-	}
-	.sr {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
 	}
 </style>

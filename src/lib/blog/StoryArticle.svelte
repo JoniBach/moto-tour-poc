@@ -50,7 +50,7 @@
 	const c = $derived(dayColor(day.index, dayCount));
 </script>
 
-<article class="post" style:--c={c}>
+<article class="post" style:--pc-c={c}>
 	{#if !preview}<nav aria-label="Breadcrumb" class="crumb">
 		<ol>
 			<li><a href="{base}/blog">All days</a></li>
@@ -115,7 +115,7 @@
 		<nav class="more" aria-label="Other stories">
 			{#each [prev, next] as s, k (k)}
 				{#if s}
-					<a class="card" rel={k ? 'next' : 'prev'} href="{base}/blog/{s.day}/{s.slug}" style:--c={dayColor(s.index, dayCount)}>
+					<a class="card" rel={k ? 'next' : 'prev'} href="{base}/blog/{s.day}/{s.slug}" style:--pc-c={dayColor(s.index, dayCount)}>
 						{#if s.cover}<span class="thumb"><Photo id={s.cover.id} size={[s.cover.w, s.cover.h]} alt="" sizes="12rem" /></span>{/if}
 						<span class="txt">
 							<span class="which">{k ? 'Next story' : 'Previous story'} · Day {s.index + 1}</span>
@@ -138,7 +138,7 @@
 		margin: 0 0 0.5rem;
 		padding: 0;
 		font-size: 0.95rem;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.crumb li {
 		display: flex;
@@ -162,14 +162,14 @@
 		gap: 0.5rem;
 		margin: 0;
 		font-weight: 650;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.chip {
 		padding: 0.15rem 0.7rem;
 		border-radius: 999px;
-		background: color-mix(in srgb, var(--c) 28%, var(--b-card));
-		box-shadow: inset 0 0 0 2px var(--c);
-		color: var(--b-text);
+		background: color-mix(in srgb, var(--pc-c) 28%, var(--pc-card));
+		box-shadow: inset 0 0 0 2px var(--pc-c);
+		color: var(--pc-ink);
 		font-size: 0.85rem;
 		font-weight: 750;
 		letter-spacing: 0.04em;
@@ -180,7 +180,7 @@
 		line-height: 1.08;
 	}
 	.meta {
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.post :global(.cover) {
 		display: block;
@@ -190,7 +190,7 @@
 		object-fit: cover;
 		border-radius: 24px;
 		margin: 0.5rem 0 2rem;
-		box-shadow: 0 12px 30px rgb(70 55 30 / 0.15);
+		box-shadow: var(--pc-shadow);
 	}
 	/* the reading measure: about 65 characters a line */
 	.prose {
@@ -207,14 +207,14 @@
 	.prose:not(:global(.ProseMirror)) > :global(p:first-child:not(:has(> em:first-child))::first-letter) {
 		float: left;
 		margin: 0.1em 0.12em 0 0;
-		font-family: var(--font-display);
+		font-family: var(--pc-font-display);
 		font-weight: 700;
 		font-size: 3.4em;
 		line-height: 0.85;
-		color: var(--b-accent);
+		color: var(--pc-accent-ink);
 	}
 	.prose :global(em) {
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.prose :global(figure) {
 		margin: 2rem 0;
@@ -231,7 +231,7 @@
 		aspect-ratio: 3 / 2;
 		overflow: hidden;
 		border-radius: 18px;
-		background: #f6f0e3;
+		background: var(--pc-sunk);
 	}
 	/* the whole journey: portrait, so narrower than the column (it'd be very tall at full width) */
 	.prose :global(.map-shot.whole .map-frame) {
@@ -250,15 +250,15 @@
 		gap: 6px 12px;
 		margin: 0.5rem 0 0;
 		font-size: 0.9rem;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.prose :global(.stretch-facts button) {
 		padding: 4px 12px;
 		border: 0;
 		border-radius: 999px;
-		background: var(--b-card, #fff);
-		box-shadow: 0 0 0 1px rgb(38 50 56 / 0.15);
-		color: var(--b-text);
+		background: var(--pc-card);
+		box-shadow: 0 0 0 1px var(--pc-line);
+		color: var(--pc-ink);
 		font: inherit;
 		font-size: 0.85rem;
 		font-weight: 650;
@@ -278,13 +278,13 @@
 		border-radius: 6px 0 0 0;
 		background: rgb(255 255 255 / 0.7);
 		font-size: 10px;
-		color: #46535a;
+		color: var(--pc-muted);
 	}
 	.prose :global(.map-frame.failed) {
 		display: grid;
 		place-items: center;
 		font-size: 0.9rem;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	/* a place linked to the moment the ride was there */
 	.prose :global(a.moment) {
@@ -295,7 +295,7 @@
 	.prose :global(figcaption) {
 		margin-top: 0.5rem;
 		font-size: 0.95rem;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	/* where a photo or map is in the trip (src/lib/story.js): "📍 Day 8, 13:22" */
 	.prose :global(figcaption a.where) {
@@ -303,7 +303,7 @@
 		margin-left: 0.15rem;
 		font-weight: 600;
 		white-space: nowrap;
-		color: var(--b-link);
+		color: var(--pc-accent-ink);
 		text-decoration-style: dotted;
 		text-decoration-thickness: 2px;
 		text-underline-offset: 0.22em;
@@ -314,12 +314,12 @@
 	.prose :global(blockquote) {
 		margin: 0 0 1.5em;
 		padding: 0.6rem 1.2rem;
-		border-left: 5px solid var(--c);
+		border-left: 5px solid var(--pc-c);
 		border-radius: 4px 16px 16px 4px;
-		background: var(--b-card);
-		font-family: var(--font-display);
+		background: var(--pc-card);
+		font-family: var(--pc-font-display);
 		font-size: 1.2em;
-		color: var(--b-text);
+		color: var(--pc-ink);
 	}
 	/* where it happened: the day's route with the moment on it */
 	.where {
@@ -337,8 +337,8 @@
 		width: 8rem;
 		height: 8rem;
 		border-radius: 18px;
-		background: rgb(255 253 248 / 0.9);
-		box-shadow: 0 4px 14px rgb(70 55 30 / 0.1);
+		background: var(--pc-glass);
+		box-shadow: var(--pc-shadow);
 	}
 	.where h2 {
 		margin: 0 0 0.3rem;
@@ -346,7 +346,7 @@
 	}
 	.where p {
 		margin: 0 0 0.6rem;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.go {
 		display: inline-flex;
@@ -354,8 +354,8 @@
 		min-height: 2.75rem;
 		padding: 0 1.1rem;
 		border-radius: 999px;
-		background: var(--b-accent);
-		color: var(--b-bg) !important;
+		background: var(--pc-accent-ink);
+		color: var(--pc-paper) !important;
 		font-weight: 650;
 		text-decoration: none;
 	}
@@ -370,9 +370,9 @@
 		display: flex;
 		flex-direction: column;
 		border-radius: 20px;
-		background: var(--b-card);
-		box-shadow: 0 10px 26px rgb(70 55 30 / 0.12);
-		color: var(--b-text) !important;
+		background: var(--pc-card);
+		box-shadow: var(--pc-shadow);
+		color: var(--pc-ink) !important;
 		text-decoration: none;
 		overflow: hidden;
 		transition: transform 0.15s ease;
@@ -400,10 +400,10 @@
 		font-weight: 700;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	.t {
-		font-family: var(--font-display);
+		font-family: var(--pc-font-display);
 		font-weight: 650;
 		font-size: 1.15rem;
 		line-height: 1.2;

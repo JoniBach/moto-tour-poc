@@ -3,7 +3,7 @@
 	import { fold, foldAll } from './fold.svelte';
 </script>
 
-<button type="button" class="foldall" onclick={() => foldAll(!fold.open)}>
+<button type="button" class="pc-button foldall" onclick={() => foldAll(!fold.open)}>
 	<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" class:shut={!fold.open}>
 		<path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
 	</svg>
@@ -11,38 +11,11 @@
 </button>
 
 <style>
-	.foldall {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45rem;
-		min-height: 2.75rem;
-		padding: 0 1rem;
-		border: 0;
-		border-radius: 999px;
-		background: rgb(255 253 248 / 0.92);
-		box-shadow:
-			0 3px 0 rgb(38 50 56 / 0.18),
-			0 0 0 1px rgb(38 50 56 / 0.2);
-		background: var(--b-card);
-		color: var(--b-text);
-		font: inherit;
-		font-weight: 600;
-		cursor: pointer;
-	}
-	.foldall:hover {
-		box-shadow:
-			0 3px 0 rgb(38 50 56 / 0.18),
-			0 0 0 2px var(--b-accent);
-	}
+	/* a Postcard button; the chevron turns when the events are shut */
 	svg {
-		transition: transform 0.15s;
+		transition: transform var(--pc-dur-quick) var(--pc-ease);
 	}
 	svg.shut {
 		transform: rotate(-90deg);
-	}
-	@media (prefers-reduced-motion: reduce) {
-		svg {
-			transition: none;
-		}
 	}
 </style>

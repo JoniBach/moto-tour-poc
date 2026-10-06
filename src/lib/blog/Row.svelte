@@ -38,7 +38,7 @@
 <li class="event {cls}" class:shut={foldable && !open}>
 	{#if href}
 		<a class="when" {href} title="View on the map">
-			<time datetime={iso(t)}>{time(t)}</time><span class="sr">, view on the map</span>
+			<time datetime={iso(t)}>{time(t)}</time><span class="pc-sr-only">, view on the map</span>
 		</a>
 	{:else}
 		<span class="when plain"><time datetime={iso(t)}>{time(t)}</time></span>
@@ -54,7 +54,7 @@
 			{@render head()}
 			{#if foldable}
 				<button type="button" class="fold" aria-expanded={open} aria-controls="{uid}-body" onclick={() => (open = !open)}>
-					<span class="sr">{open ? 'Hide' : 'Show'} details: {label}</span>
+					<span class="pc-sr-only">{open ? 'Hide' : 'Show'} details: {label}</span>
 					<svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true">
 						<path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
 					</svg>
@@ -85,7 +85,7 @@
 		top: 0;
 		bottom: 0;
 		width: 2px;
-		background: var(--b-line);
+		background: var(--pc-line);
 	}
 	/* the time is the map link: 44 px tall, underlined like any link */
 	.when {
@@ -105,10 +105,10 @@
 		width: 1.75rem;
 		height: 1.75rem;
 		border-radius: 50%;
-		background: var(--b-bg);
-		border: 2px solid var(--b-line-strong);
+		background: var(--pc-paper);
+		border: 2px solid var(--pc-line-strong);
 		font-size: 0.8rem;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 		text-decoration: none;
 	}
 	/* 44 px touch area around the 28 px circle */
@@ -119,25 +119,25 @@
 	}
 	.when.plain {
 		font-weight: 600;
-		color: var(--b-muted);
+		color: var(--pc-muted);
 	}
 	a.dot:hover {
-		background: var(--b-card);
-		border-color: var(--b-accent);
+		background: var(--pc-card);
+		border-color: var(--pc-accent-ink);
 	}
 	.post .dot,
 	.photos .dot {
-		border-color: var(--b-warm);
-		color: var(--b-warm);
+		border-color: var(--pc-gold);
+		color: var(--pc-gold);
 	}
 	.start .dot,
 	.finish .dot {
-		border-color: var(--b-accent);
-		color: var(--b-accent);
+		border-color: var(--pc-accent-ink);
+		color: var(--pc-accent-ink);
 	}
 	/* a group: a doubled ring */
 	.group .dot {
-		box-shadow: 0 0 0 3px var(--b-bg), 0 0 0 5px currentColor;
+		box-shadow: 0 0 0 3px var(--pc-paper), 0 0 0 5px currentColor;
 	}
 	.head {
 		display: flex;
@@ -162,12 +162,12 @@
 		border: 1px solid transparent;
 		border-radius: 8px;
 		background: none;
-		color: var(--b-text);
+		color: var(--pc-ink);
 		cursor: pointer;
 	}
 	.fold:hover {
-		border-color: var(--b-line-strong);
-		background: var(--b-card);
+		border-color: var(--pc-line-strong);
+		background: var(--pc-card);
 	}
 	.fold svg {
 		transition: transform 0.15s;
@@ -177,15 +177,6 @@
 	}
 	.body {
 		padding-bottom: 0.3rem;
-	}
-	.sr {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip: rect(0 0 0 0);
-		clip-path: inset(50%);
-		white-space: nowrap;
 	}
 	@media (max-width: 520px) {
 		.event {

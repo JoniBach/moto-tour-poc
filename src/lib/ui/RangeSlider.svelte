@@ -77,7 +77,7 @@
 		height: 10px;
 		margin-top: -5px;
 		border-radius: 5px;
-		background: color-mix(in srgb, var(--ink) 12%, transparent);
+		background: color-mix(in srgb, var(--pc-ink) 12%, transparent);
 		overflow: hidden;
 	}
 	/* the clear band between the fogs, fading in and out at its ends */
@@ -88,8 +88,8 @@
 			to right,
 			transparent 0,
 			transparent calc(var(--lo) - 8%),
-			var(--accent) var(--lo),
-			var(--accent) calc(var(--hi) - 6%),
+			var(--pc-accent) var(--lo),
+			var(--pc-accent) calc(var(--hi) - 6%),
 			transparent var(--hi)
 		);
 	}
@@ -115,7 +115,7 @@
 		border-radius: 50%;
 		background: #fff;
 		box-shadow:
-			0 0 0 3px var(--accent),
+			0 0 0 3px var(--pc-accent),
 			0 2px 4px rgb(0 0 0 / 0.2);
 		cursor: grab;
 	}
@@ -130,7 +130,7 @@
 		border-radius: 50%;
 		background: #fff;
 		box-shadow:
-			0 0 0 3px var(--accent),
+			0 0 0 3px var(--pc-accent),
 			0 2px 4px rgb(0 0 0 / 0.2);
 		cursor: grab;
 	}
@@ -139,12 +139,12 @@
 	}
 	input:focus-visible::-webkit-slider-thumb {
 		box-shadow:
-			0 0 0 3px var(--accent),
-			0 0 0 7px color-mix(in srgb, var(--accent) 35%, transparent);
+			0 0 0 3px var(--pc-accent),
+			0 0 0 7px color-mix(in srgb, var(--pc-accent) 35%, transparent);
 	}
 	input:focus-visible::-moz-range-thumb {
 		box-shadow:
-			0 0 0 3px var(--accent),
-			0 0 0 7px color-mix(in srgb, var(--accent) 35%, transparent);
+			0 0 0 3px var(--pc-accent),
+			0 0 0 7px color-mix(in srgb, var(--pc-accent) 35%, transparent);
 	}
 </style>

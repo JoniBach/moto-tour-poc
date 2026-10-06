@@ -59,7 +59,7 @@
 					class="marker"
 					class:active={m.d.day === activeDay}
 					class:hidden={!far}
-					style:--c={dayColor(m.d.index, days.length)}
+					style:--pc-c={dayColor(m.d.index, days.length)}
 					{@attach clickThroughControls}
 					onclick={() => onselect(m.d.day)}
 					title={m.d.title}
@@ -81,16 +81,16 @@
 		align-items: center;
 		padding: 2px 8px;
 		border-radius: 10px;
-		border: 1px solid var(--c);
+		border: 1px solid var(--pc-c);
 		background: rgba(4, 12, 20, 0.78);
 		color: #e8f8ff;
 		font-size: 11px;
 		white-space: nowrap;
-		box-shadow: 0 0 12px color-mix(in srgb, var(--c) 45%, transparent);
+		box-shadow: 0 0 12px color-mix(in srgb, var(--pc-c) 45%, transparent);
 		transform: translateY(-18px);
 	}
 	.marker b {
-		color: var(--c);
+		color: var(--pc-c);
 		font-size: 12px;
 	}
 	/* compact "Day N" pills: with 18 days full titles pile up, so they show on hover */
@@ -106,7 +106,7 @@
 		z-index: 1;
 	}
 	.marker.active {
-		background: color-mix(in srgb, var(--c) 30%, rgba(4, 12, 20, 0.85));
+		background: color-mix(in srgb, var(--pc-c) 30%, rgba(4, 12, 20, 0.85));
 	}
 	.marker.hidden {
 		opacity: 0.6;
